@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "delivery",
+    "slug": "delivery",
+    "version": "1.0.0",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dima.delivery"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "newArchEnabled": true
+          }
+        }
+      ]
+    ]
+  }
+}
