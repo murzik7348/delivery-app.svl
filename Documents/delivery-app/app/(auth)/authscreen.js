@@ -1,13 +1,11 @@
-import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Google from 'expo-auth-session/providers/google';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AuthScreen() {
   // Налаштування для Google (сюди потім вставимо ID з консолі)
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: 'ТВІЙ_IOS_CLIENT_ID.apps.googleusercontent.com',
-    androidClientId: 'ТВІЙ_ANDROID_CLIENT_ID.apps.googleusercontent.com',
-  });
+  // ({
+  //   iosClientId: 'ТВІЙ_IOS_CLIENT_ID.apps.googleusercontent.com',
+  //   androidClientId: 'ТВІЙ_ANDROID_CLIENT_ID.apps.googleusercontent.com',
+  // });
 
   // Функція для Apple
   const handleAppleLogin = async () => {
@@ -35,20 +33,11 @@ export default function AuthScreen() {
       </View>
 
       <View style={styles.buttonContainer}>
-        {/* Кнопка Apple (Офіційний стиль) */}
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-          cornerRadius={12}
-          style={styles.appleBtn}
-          onPress={handleAppleLogin}
-        />
+        <TouchableOpacity style={styles.appleBtn}>
+          <Text style={styles.googleText}>Продовжити з Apple</Text>
+        </TouchableOpacity>
 
-        {/* Кнопка Google */}
-        <TouchableOpacity 
-          style={styles.googleBtn} 
-          onPress={() => promptAsync()}
-        >
+        <TouchableOpacity style={styles.googleBtn} onPress={() => promptAsync()}>
           <Text style={styles.googleText}>Продовжити з Google</Text>
         </TouchableOpacity>
       </View>
