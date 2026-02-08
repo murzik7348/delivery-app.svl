@@ -5,7 +5,6 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
-// Налаштування: показувати сповіщення, навіть коли додаток відкритий
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -44,47 +43,43 @@ export function usePushNotifications() {
       }
 
       if (finalStatus !== 'granted') {
-        alert('Немає дозволу на пуш-сповіщення!');
+        // alert('Немає дозволу на пуш-сповіщення!');
         return;
       }
 
-      // 👇 Тут пробуємо взяти ID автоматично, або використовуємо твій
       const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId ?? 'b083b897-3d46-4a68-9a38-3833f0cc568c';
 
       try {
         token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-        console.log("🔥 ВАШ НОВИЙ ТОКЕН:", token);
+        console.log("🔥 ТОКЕН:", token);
       } catch (e) {
-        console.error("Помилка отримання токена:", e);
+        console.error("Помилка токена:", e);
       }
     } else {
-      console.log('На емуляторі пуші не працюють, потрібен телефон');
+      console.log('На емуляторі пуші не працюють');
     }
 
     return token;
   }
 
   useEffect(() => {
-    // 1. Отримуємо токен
     registerForPushNotificationsAsync().then(token => setExpoPushToken(token));
 
-    // 2. Слухаємо вхідні (коли додаток відкритий)
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       setNotification(notification);
     });
 
-    // 3. Слухаємо НАТИСКАННЯ (переходимо по посиланню)
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
-      // Якщо в пуші є { "url": "/cart" } — переходимо туди
       if (data?.url) {
         router.push(data.url);
       }
     });
 
     return () => {
-      Notifications.removeNotificationSubscription(notificationListener.current);
-      Notifications.removeNotificationSubscription(responseListener.current);
+      // 👇 ОСЬ ТУТ БУЛА ПОМИЛКА. ТЕПЕР ПРАВИЛЬНО:
+      notificationListener.current && Notifications.removeNotificationSubscription(notificationListener.current);
+      responseListener.current && Notifications.removeNotificationSubscription(responseListener.current);
     };
   }, []);
 
