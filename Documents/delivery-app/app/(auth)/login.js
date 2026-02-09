@@ -45,7 +45,7 @@ export default function LoginScreen() {
     };
 
     dispatch(loginUser(mockUser));
-    router.replace('/(tabs)/index');
+    router.replace('/profile');
   };
 
   return (

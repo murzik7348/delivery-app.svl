@@ -1,87 +1,43 @@
-import { useState, useEffect, useRef } from 'react';
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
-export function usePushNotifications() {
-  const [expoPushToken, setExpoPushToken] = useState('');
-  const [notification, setNotification] = useState(false);
+export default function Index() {
   const router = useRouter();
-  
-  const notificationListener = useRef();
-  const responseListener = useRef();
-
-  async function registerForPushNotificationsAsync() {
-    let token;
-
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
-      });
-    }
-
-    if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== 'granted') {
-        // alert('Немає дозволу на пуш-сповіщення!');
-        return;
-      }
-
-      const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId ?? 'b083b897-3d46-4a68-9a38-3833f0cc568c';
-
-      try {
-        token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-        console.log("🔥 ТОКЕН:", token);
-      } catch (e) {
-        console.error("Помилка токена:", e);
-      }
-    } else {
-      console.log('На емуляторі пуші не працюють');
-    }
-
-    return token;
-  }
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    registerForPushNotificationsAsync().then(token => setExpoPushToken(token));
+    async function checkLaunch() {
+      try {
+        // 1. Питаємо систему: "Мене відкрили через сповіщення?"
+        const response = await Notifications.getLastNotificationResponseAsync();
+        const url = response?.notification?.request?.content?.data?.url;
 
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      setNotification(notification);
-    });
-
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      const data = response.notification.request.content.data;
-      if (data?.url) {
-        router.push(data.url);
+        if (url) {
+          console.log("🔔 ХОЛОДНИЙ СТАРТ: Летимо на", url);
+          // Якщо так — відправляємо зразу туди (напр. /cart)
+          router.replace(url);
+        } else {
+          // Якщо ні — просто відкриваємо меню
+          router.replace('/(tabs)');
+        }
+      } catch (e) {
+        console.error("Помилка старту:", e);
+        // У будь-якому незрозумілому випадку — на Головну
+        router.replace('/(tabs)');
+      } finally {
+        setIsReady(true);
       }
-    });
+    }
 
-    return () => {
-      // 👇 ОСЬ ТУТ БУЛА ПОМИЛКА. ТЕПЕР ПРАВИЛЬНО:
-      notificationListener.current && Notifications.removeNotificationSubscription(notificationListener.current);
-      responseListener.current && Notifications.removeNotificationSubscription(responseListener.current);
-    };
+    checkLaunch();
   }, []);
 
-  return { expoPushToken, notification };
+  // Показуємо крутилку пару мілісекунд, поки думаємо
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <ActivityIndicator size="large" color="#e334e3" />
+    </View>
+  );
 }
