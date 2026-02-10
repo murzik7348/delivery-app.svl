@@ -167,27 +167,60 @@ export default function ProfileScreen() {
                 <Ionicons name="close-circle" size={30} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
-            <FlatList
-              data={savedAddresses}
-              keyExtractor={(item) => item.id.toString()}
-              ListEmptyComponent={<Text style={{textAlign: 'center', color: theme.textSecondary, marginTop: 20}}>Немає збережених адрес</Text>}
-              renderItem={({ item }) => (
-                <View style={[styles.addressItem, { borderColor: theme.border }]}>
-                  <View style={styles.addressInfo}>
-                    <View style={[styles.iconBox, { backgroundColor: theme.input }]}>
-                       <Ionicons name="location" size={20} color="#e334e3" />
-                    </View>
-                    <View style={{marginLeft: 12, flex: 1}}>
-                      <Text style={[styles.addrName, { color: theme.text }]}>{item.name}</Text>
-                      <Text style={[styles.addrDesc, { color: theme.textSecondary }]} numberOfLines={1}>{item.address}</Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity onPress={() => handleDeleteAddress(item.id)} style={[styles.deleteBtn, { backgroundColor: theme.input }]}>
-                    <Ionicons name="trash-outline" size={22} color="red" />
-                  </TouchableOpacity>
-                </View>
-              )}
-            />
+<FlatList
+  data={savedAddresses}
+  keyExtractor={(item) => item.id.toString()}
+  ListEmptyComponent={
+    <Text style={{ textAlign: 'center', color: 'gray', marginTop: 20 }}>
+      Немає збережених адрес
+    </Text>
+  }
+  renderItem={({ item }) => (
+    <View style={{
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 15,
+      marginBottom: 10,
+      backgroundColor: '#f9f9f9', // Світлий фон
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#eee'
+    }}>
+      {/* Ліва частина: Назва і Вулиця */}
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 16, fontWeight: 'bold', color: 'black' }}>
+          {item.name}
+        </Text>
+        <Text style={{ fontSize: 14, color: 'gray', marginTop: 2 }}>
+          {item.address}
+        </Text>
+      </View>
+
+      {/* Права частина: Кнопка видалити */}
+      <TouchableOpacity onPress={() => handleDeleteAddress(item.id)} style={{ padding: 5 }}>
+        <Ionicons name="trash-outline" size={24} color="red" />
+      </TouchableOpacity>
+    </View>
+  )}
+/>
+
+{/* Кнопка додавання (під списком) */}
+<TouchableOpacity 
+  onPress={() => router.push('/location-picker')}
+  style={{
+    marginTop: 20,
+    backgroundColor: 'black',
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center'
+  }}
+>
+  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+    + Додати нову адресу
+  </Text>
+</TouchableOpacity>
+
             <TouchableOpacity style={styles.addNewBtn} onPress={() => { setModalVisible(false); router.push('/location-picker'); }}>
               <Ionicons name="add" size={24} color="white" />
               <Text style={styles.addNewText}>Додати нову адресу</Text>
