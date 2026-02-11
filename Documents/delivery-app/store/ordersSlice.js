@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit';
-import * as Notifications from 'expo-notifications'; // 👇 Імпорт для сповіщень
 
 const initialState = {
   orders: [],

@@ -9,36 +9,38 @@ import { clearCart, removeFromCart, updateQuantity } from '../store/cartSlice';
 import { addOrder, updateOrderStatus } from '../store/ordersSlice';
 import * as Notifications from 'expo-notifications';
 
+// 👇 ІМПОРТУЄМО ШТОРКУ (Перевір, що файл існує в папці components)
+import AddressBottomSheet from '../components/AddressBottomSheet';
+
 export default function CartScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   
+  // Стан для відкриття шторки
+  const [isAddressSheetVisible, setAddressSheetVisible] = useState(false);
+
   const cartItems = useSelector((state) => state.cart.items);
   const totalPrice = useSelector((state) => state.cart.totalAmount);
-  
-  // 👇 ГАРАНТОВАНО ОТРИМУЄМО НАЗВУ ОПЛАТИ
-  const paymentState = useSelector((state) => state.payment);
-  const methods = {
-    '1': 'Apple Pay',
-    '2': 'Карта',
-    '3': 'Готівка',
-    'apple': 'Apple Pay',
-    'cash': 'Готівка',
-    'card': 'Картка'
-  };
-  // Якщо ID немає в списку, пишемо "Apple Pay" за замовчуванням
-  const paymentName = methods[paymentState?.selectedMethodId] || 'Apple Pay';
-  
-  // Іконка для оплати
-  const getPaymentIcon = () => {
-    if (paymentName.includes('Apple')) return 'logo-apple';
-    if (paymentName.includes('Google')) return 'logo-google';
-    if (paymentName.includes('Готівка')) return 'cash';
-    return 'card';
-  };
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated || state.auth.token);
 
+  // Оплата
+  const paymentId = useSelector((state) => state.payment?.selectedMethodId);
+  const getPaymentInfo = (id) => {
+    const map = {
+      '1': { name: 'Apple Pay', icon: 'logo-apple' },
+      'apple': { name: 'Apple Pay', icon: 'logo-apple' },
+      '2': { name: 'Google Pay', icon: 'logo-google' },
+      'card': { name: 'Картка', icon: 'card' },
+      '3': { name: 'Готівка', icon: 'cash' },
+      'cash': { name: 'Готівка', icon: 'cash' }
+    };
+    return map[id] || { name: 'Apple Pay', icon: 'logo-apple' };
+  };
+  const paymentInfo = getPaymentInfo(paymentId);
+
+  // Адреса
   const savedAddresses = useSelector((state) => state.location.savedAddresses);
   const userAddress = savedAddresses && savedAddresses.length > 0 
     ? savedAddresses[0].address 
@@ -46,8 +48,15 @@ export default function CartScreen() {
 
   const [promoCode, setPromoCode] = useState('');
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (cartItems.length === 0) return;
+    if (!isAuthenticated) {
+      Alert.alert("Вхід не виконано", "Увійдіть у профіль.", [
+        { text: "Відміна", style: "cancel" },
+        { text: "Увійти", onPress: () => router.push('/(auth)/login') }
+      ]);
+      return;
+    }
 
     const newOrder = {
       id: Date.now().toString(),
@@ -56,7 +65,7 @@ export default function CartScreen() {
       date: new Date().toISOString(),
       status: 'pending', 
       address: userAddress,
-      payment: paymentName
+      payment: paymentInfo.name
     };
 
     dispatch(addOrder(newOrder));
@@ -64,25 +73,23 @@ export default function CartScreen() {
 
     Alert.alert("Успішно!", "Замовлення оформлено 🎉", [{ text: "ОК", onPress: () => router.push('/orders') }]);
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Замовлення прийнято! 🛵",
-        body: `Кур'єр везе замовлення на: ${userAddress.slice(0, 20)}...`,
-        sound: true,
-        data: { url: '/orders' },
-      },
-      trigger: { seconds: 10 },
-    });
-
-    setTimeout(() => {
+    setTimeout(async () => {
       dispatch(updateOrderStatus({ orderId: newOrder.id, status: 'courier' }));
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Замовлення прийнято! 🛵",
+          body: `Кур'єр вже везе ваше замовлення #${newOrder.id.slice(-4)}`,
+          sound: true, data: { url: '/orders' },
+        },
+        trigger: null,
+      });
     }, 10000);
   };
 
   const renderItem = ({ item }) => (
     <View style={[styles.itemCard, { backgroundColor: theme.card }]}>
       <Image source={{ uri: item.image }} style={styles.image} />
-      <View style={{ flex: 1, marginLeft: 10 }}>
+      <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
         <Text style={{ color: '#e334e3', fontWeight: 'bold', marginTop: 4 }}>{item.price} ₴</Text>
       </View>
@@ -106,7 +113,7 @@ export default function CartScreen() {
       <View style={styles.header}>
         <Text style={[styles.title, { color: theme.text }]}>Кошик 🛒</Text>
         <TouchableOpacity onPress={() => dispatch(clearCart())}>
-            <Text style={{ color: 'red', fontWeight: 'bold' }}>Очистити</Text>
+            <Text style={{ color: '#ff3b30', fontWeight: 'bold' }}>Очистити</Text>
         </TouchableOpacity>
       </View>
       
@@ -116,13 +123,13 @@ export default function CartScreen() {
             data={cartItems} 
             renderItem={renderItem} 
             keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()} 
-            contentContainerStyle={{ paddingBottom: 350 }} 
+            contentContainerStyle={{ paddingBottom: 380 }} 
           />
           
           <View style={[styles.footer, { backgroundColor: theme.card, shadowColor: theme.text }]}>
             
             <Text style={[styles.label, { color: theme.textSecondary }]}>Є ПРОМОКОД?</Text>
-            <View style={[styles.rowContainer, { backgroundColor: theme.input }]}>
+            <View style={[styles.promoRow, { backgroundColor: theme.input }]}>
                 <TextInput 
                     style={[styles.input, { color: theme.text }]} 
                     placeholder="Введіть код" 
@@ -137,17 +144,14 @@ export default function CartScreen() {
             
             <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-            {/* 📍 АДРЕСА */}
+            {/* 👇 АДРЕСА: ТЕПЕР ВІДКРИВАЄ ШТОРКУ, А НЕ КАРТУ */}
             <TouchableOpacity 
-              style={[styles.rowContainer, { backgroundColor: theme.input, paddingVertical: 12 }]} 
-              onPress={() => router.push('/location-picker')}
+              style={[styles.infoRow, { backgroundColor: theme.input }]} 
+              onPress={() => setAddressSheetVisible(true)} // 👈 ВІДКРИВАЄМО ШТОРКУ
             >
-              <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
-                  {/* 👇 КРУЖЕЧОК ЯК НА СКРІНІ */}
-                  <View style={styles.iconCircle}>
-                      <Ionicons name="location" size={18} color="#e334e3" />
-                  </View>
-                  <View style={{marginLeft: 10, flex: 1}}>
+              <View style={styles.leftSide}>
+                  <Ionicons name="location" size={20} color={theme.text} />
+                  <View style={{ marginLeft: 10, flex: 1 }}>
                     <Text style={{color: 'gray', fontSize: 10}}>Адреса доставки:</Text>
                     <Text style={{ color: theme.text, fontWeight: 'bold' }} numberOfLines={1}>
                         {userAddress}
@@ -157,21 +161,21 @@ export default function CartScreen() {
               <Text style={styles.changeText}>Змінити</Text>
             </TouchableOpacity>
 
-            {/* 💳 ОПЛАТА */}
+            {/* ОПЛАТА */}
             <TouchableOpacity 
-              style={[styles.rowContainer, { backgroundColor: theme.input, paddingVertical: 12, marginTop: 10 }]} 
+              style={[styles.infoRow, { backgroundColor: theme.input, marginTop: 10 }]} 
               onPress={() => router.push('/payment')}
             >
-               <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
-                  <View style={styles.iconCircle}>
-                      <Ionicons name={getPaymentIcon()} size={18} color={theme.text} />
-                  </View>
-                  <Text style={{ color: theme.text, fontWeight: 'bold', marginLeft: 10 }}>{paymentName}</Text>
+               <View style={styles.leftSide}>
+                  <Ionicons name={paymentInfo.icon} size={20} color={theme.text} />
+                  <Text style={{ color: theme.text, fontWeight: 'bold', marginLeft: 10 }}>
+                    {paymentInfo.name}
+                  </Text>
               </View>
               <Text style={styles.changeText}>Змінити</Text>
             </TouchableOpacity>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20, marginBottom: 15 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, marginBottom: 16 }}>
                <Text style={{ fontSize: 18, color: theme.text }}>Разом:</Text>
                <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.text }}>{totalPrice} грн</Text>
             </View>
@@ -190,6 +194,13 @@ export default function CartScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* 👇 ТУТ ЖИВЕ ШТОРКА. ВОНА НЕВИДИМА, ПОКИ ТИ НЕ НАЖМЕШ "ЗМІНИТИ" */}
+      <AddressBottomSheet 
+        visible={isAddressSheetVisible} 
+        onClose={() => setAddressSheetVisible(false)} 
+      />
+
     </SafeAreaView>
   );
 }
@@ -198,47 +209,29 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 28, fontWeight: 'bold' },
-  
   itemCard: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, padding: 12, borderRadius: 16, marginHorizontal: 16 },
-  image: { width: 60, height: 60, borderRadius: 8 },
-  name: { fontSize: 16, fontWeight: 'bold' },
+  image: { width: 60, height: 60, borderRadius: 12, backgroundColor: '#eee' },
+  name: { fontSize: 16, fontWeight: 'bold', flex: 1 },
   counter: { flexDirection: 'row', alignItems: 'center' },
-  qty: { marginHorizontal: 10, fontSize: 16, fontWeight: 'bold' },
-  
+  qty: { marginHorizontal: 12, fontSize: 16, fontWeight: 'bold' },
   footer: { 
     position: 'absolute', bottom: 0, left: 0, right: 0, 
-    padding: 20, 
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    elevation: 20, shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: {width: 0, height: -5}
+    padding: 24, borderTopLeftRadius: 30, borderTopRightRadius: 30,
+    elevation: 25, shadowOpacity: 0.3, shadowRadius: 15, shadowOffset: {width: 0, height: -5}
   },
-  
-  label: { fontSize: 12, fontWeight: 'bold', marginBottom: 5, textTransform: 'uppercase' },
-  
-  rowContainer: { 
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderRadius: 12, paddingHorizontal: 15, paddingVertical: 5 
-  },
-
-  // 👇 НОВИЙ СТИЛЬ ДЛЯ ІКОНКИ В КРУЖЕЧКУ
-  iconCircle: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: 'white', // Білий фон
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: '#eee'
-  },
-  
-  input: { flex: 1, height: 44, fontSize: 16 },
+  label: { fontSize: 12, fontWeight: 'bold', marginBottom: 8, textTransform: 'uppercase' },
+  promoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  leftSide: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  input: { flex: 1, height: 40, fontSize: 16 },
   applyBtn: { backgroundColor: '#e334e3', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 },
   applyBtnText: { color: 'white', fontWeight: 'bold' },
-  
   changeText: { color: '#e334e3', fontWeight: 'bold', fontSize: 14 },
-  divider: { height: 1, marginVertical: 15 },
-  
+  divider: { height: 1, marginVertical: 20, opacity: 0.5 },
   checkoutBtn: { backgroundColor: '#e334e3', padding: 18, borderRadius: 16, alignItems: 'center' },
   checkoutText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-  
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: -50 },
   emptyText: { fontSize: 18, marginTop: 16, marginBottom: 20 },
-  shopBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
-  shopBtnText: { fontWeight: 'bold' }
+  shopBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  shopBtnText: { fontWeight: 'bold', fontSize: 16 }
 });
