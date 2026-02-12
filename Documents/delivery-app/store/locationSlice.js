@@ -15,7 +15,6 @@ const locationSlice = createSlice({
     saveAddress: (state, action) => {
       state.savedAddresses.push(action.payload);
     },
-    // Функція видалення
     removeAddress: (state, action) => {
       state.savedAddresses = state.savedAddresses.filter(
         (addr) => addr.id !== action.payload
@@ -24,6 +23,6 @@ const locationSlice = createSlice({
   },
 });
 
+// 👇 ОСЬ ЦЕ ГОЛОВНЕ ВИПРАВЛЕННЯ:
 export const { setCurrentLocation, saveAddress, removeAddress } = locationSlice.actions;
-
 export default locationSlice.reducer;
