@@ -205,29 +205,20 @@ export default function ProfileScreen() {
   )}
 />
 
-{/* Кнопка додавання (під списком) */}
-<TouchableOpacity 
-  onPress={() => router.push('/location-picker')}
-  style={{
-    marginTop: 20,
-    backgroundColor: 'black',
-    padding: 15,
-    borderRadius: 12,
-    alignItems: 'center'
-  }}
->
-  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
-    + Додати нову адресу
-  </Text>
-</TouchableOpacity>
-
-            <TouchableOpacity style={styles.addNewBtn} onPress={() => { setModalVisible(false); router.push('/location-picker'); }}>
+{/* 👇 ТІЛЬКИ ОДНА ЧОРНА КНОПКА (рожеву видалено повністю) */}
+           <TouchableOpacity 
+              style={styles.pinkAddBtn} 
+              onPress={() => { setModalVisible(false); router.push('/location-picker'); }}
+              activeOpacity={0.8}
+            >
               <Ionicons name="add" size={24} color="white" />
-              <Text style={styles.addNewText}>Додати нову адресу</Text>
+              <Text style={styles.pinkAddBtnText}>Додати нову адресу</Text>
             </TouchableOpacity>
+
           </View>
         </View>
       </Modal>
+
     </View>
   );
 }
@@ -268,6 +259,15 @@ const styles = StyleSheet.create({
   addrName: { fontWeight: 'bold', fontSize: 16 },
   addrDesc: { fontSize: 13, marginTop: 2 },
   deleteBtn: { padding: 10, borderRadius: 10, marginLeft: 10 },
-  addNewBtn: { flexDirection: 'row', backgroundColor: '#e334e3', padding: 18, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
+  addNewBtn: { flexDirection: 'row', backgroundColor: 'black', padding: 18, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
   addNewText: { color: 'white', fontWeight: 'bold', marginLeft: 10, fontSize: 16 },
+pinkAddBtn: { 
+    flexDirection: 'row', 
+    backgroundColor: '#e334e3', 
+    padding: 16, 
+    borderRadius: 16, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginTop: 20 
+  },
 });

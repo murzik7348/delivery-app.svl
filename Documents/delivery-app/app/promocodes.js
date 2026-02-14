@@ -1,64 +1,115 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  Keyboard,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useColorScheme
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useDispatch } from 'react-redux';
 import Colors from '../constants/Colors';
+import { applyDiscount } from '../store/cartSlice';
 
 export default function PromocodesScreen() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
 
   const [code, setCode] = useState('');
-  
-  // Фейкові промокоди
-  const [promos, setPromos] = useState([
-    { id: '1', code: 'HELLO2024', discount: '-20%', desc: 'На перше замовлення', color: '#FF6B6B' },
-    { id: '2', code: 'BURGER50', discount: '-50%', desc: 'Знижка на бургери', color: '#4ECDC4' },
-    { id: '3', code: 'FREEDELIVERY', discount: '🛵 0₴', desc: 'Безкоштовна доставка', color: '#e334e3' },
-  ]);
 
-  const handleAddPromo = () => {
+  // Список доступних промокодів
+  const promos = [
+    { id: '1', code: 'SALE10', discount: '-10%', desc: 'На все замовлення', color: '#FF6B6B' },
+    { id: '2', code: 'BURGER50', discount: '-50₴', desc: 'Знижка на бургери', color: '#4ECDC4' },
+    { id: '3', code: 'FREEFOOD', discount: '🛵 0₴', desc: 'Безкоштовна доставка', color: '#e334e3' },
+  ];
+
+  const handleApplyPromo = () => {
+    Keyboard.dismiss();
     if (code.trim() === '') return;
-    Alert.alert("Успіх", `Промокод "${code}" додано!`);
-    setCode('');
+    
+    // Шукаємо введений код у нашому списку
+    const foundPromo = promos.find(p => p.code === code.trim().toUpperCase());
+    
+    if (foundPromo) {
+       // Розпізнаємо знижку (відсотки чи фіксована сума)
+       let type = 'percent';
+       let discountValue = 0;
+
+       if (foundPromo.discount.includes('%')) {
+           type = 'percent';
+           // Витягуємо тільки цифри
+           discountValue = parseInt(foundPromo.discount.replace(/\D/g, ''), 10);
+       } else {
+           type = 'fixed';
+           discountValue = parseInt(foundPromo.discount.replace(/\D/g, ''), 10);
+       }
+       
+       // Відправляємо в Redux
+       dispatch(applyDiscount({ 
+         code: foundPromo.code, 
+         type, 
+         discount: discountValue 
+       }));
+
+       Alert.alert("Успіх! 🎉", `Промокод "${foundPromo.code}" застосовано!`);
+       setCode('');
+       router.back(); // Повертаємось у кошик
+    } else {
+       Alert.alert("Помилка", "Такого промокоду не існує");
+    }
   };
 
+  // Клік по картці вставляє код у поле
   const copyToClipboard = (promoCode) => {
-    // Тут в реальному додатку було б Clipboard.setString(promoCode)
-    Alert.alert("Скопійовано! 📋", `Використайте код ${promoCode} в кошику.`);
+    setCode(promoCode);
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       
       {/* Шапка */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+      <View style={[styles.header, { backgroundColor: theme.card }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.input }]}>
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.text }]}>Мої промокоди 🎟</Text>
-        <View style={{width: 24}} />
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Промокоди</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.content}>
         
         {/* Поле вводу */}
-        <View style={[styles.inputContainer, { backgroundColor: theme.card }]}>
-          <TextInput 
-            style={[styles.input, { color: theme.text }]}
-            placeholder="Введіть промокод"
-            placeholderTextColor={theme.textSecondary}
-            value={code}
-            onChangeText={setCode}
-          />
-          <TouchableOpacity style={styles.addBtn} onPress={handleAddPromo}>
-            <Text style={styles.addBtnText}>Додати</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Додати промокод</Text>
+        <View style={styles.inputRow}>
+          <View style={[styles.inputWrapper, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Ionicons name="ticket-outline" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+            <TextInput
+              style={[styles.input, { color: theme.text }]}
+              placeholder="Введіть код..."
+              placeholderTextColor={theme.textSecondary}
+              value={code}
+              onChangeText={setCode}
+              autoCapitalize="characters"
+            />
+          </View>
+          <TouchableOpacity style={styles.applyBtn} onPress={handleApplyPromo} activeOpacity={0.8}>
+            <Text style={styles.applyBtnText}>Застосувати</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Активні купони</Text>
+        <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+        {/* Список доступних промокодів */}
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Доступні для вас</Text>
 
         <FlatList
           data={promos}
@@ -73,8 +124,9 @@ export default function PromocodesScreen() {
               {/* Ліва частина (Знижка) */}
               <View style={[styles.ticketLeft, { backgroundColor: item.color }]}>
                 <Text style={styles.discountText}>{item.discount}</Text>
-                <View style={styles.circleTop} />
-                <View style={styles.circleBottom} />
+                {/* Декоративні кола */}
+                <View style={[styles.circleTop, { backgroundColor: theme.background }]} />
+                <View style={[styles.circleBottom, { backgroundColor: theme.background }]} />
               </View>
 
               {/* Права частина (Опис) */}
@@ -96,28 +148,31 @@ export default function PromocodesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20 },
-  title: { fontSize: 20, fontWeight: 'bold' },
-  backBtn: { padding: 5 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
+  backBtn: { padding: 8, borderRadius: 20 },
+  headerTitle: { fontSize: 18, fontWeight: 'bold' },
+  content: { padding: 16, flex: 1 },
   
-  content: { padding: 20, flex: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 12 },
 
-  inputContainer: { flexDirection: 'row', padding: 5, borderRadius: 16, marginBottom: 30, elevation: 2 },
-  input: { flex: 1, paddingHorizontal: 15, fontSize: 16 },
-  addBtn: { backgroundColor: '#e334e3', borderRadius: 12, paddingHorizontal: 20, justifyContent: 'center', alignItems: 'center' },
-  addBtnText: { color: 'white', fontWeight: 'bold' },
+  // Ввід
+  inputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  inputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, marginRight: 10 },
+  inputIcon: { marginRight: 8 },
+  input: { flex: 1, fontSize: 16 },
+  applyBtn: { backgroundColor: '#e334e3', height: 50, paddingHorizontal: 20, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  applyBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
 
-  subtitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
+  divider: { height: 1, marginVertical: 10, marginBottom: 20 },
 
-  // СТИЛІ КВИТКА (TICKET)
+  // СТИЛІ КВИТКА
   ticketContainer: { flexDirection: 'row', height: 100, marginBottom: 15, borderRadius: 16, overflow: 'hidden', elevation: 3 },
   
   ticketLeft: { width: 100, justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  discountText: { color: 'white', fontSize: 24, fontWeight: '900' },
+  discountText: { color: 'white', fontSize: 20, fontWeight: '900', textAlign: 'center' },
   
-  // Вирізи для ефекту квитка
-  circleTop: { position: 'absolute', top: -10, right: -10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#f2f2f2' }, // Колір фону екрану (підбираємо під світлу тему)
-  circleBottom: { position: 'absolute', bottom: -10, right: -10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#f2f2f2' },
+  circleTop: { position: 'absolute', top: -10, right: -10, width: 20, height: 20, borderRadius: 10 },
+  circleBottom: { position: 'absolute', bottom: -10, right: -10, width: 20, height: 20, borderRadius: 10 },
 
   ticketRight: { flex: 1, padding: 15, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
   promoCode: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
