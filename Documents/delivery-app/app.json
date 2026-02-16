@@ -2,6 +2,7 @@
   "expo": {
     "name": "delivery-app",
     "slug": "delivery-app",
+    "entryPoint": "./src/App.js",
     "version": "1.0.0",
     "scheme": "delivery-app",
     "sdkVersion": "54.0.0",
