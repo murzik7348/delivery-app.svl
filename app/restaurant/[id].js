@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../../constants/Colors';
-import { products, stores } from '../../data/mockData';
+import { products, stores } from '../../data/mockData.js';
 import { addToCart, removeFromCart } from '../../store/cartSlice';
 // 👇 1. Імпортуємо дію для улюблених
 import { toggleFavorite } from '../../store/favoritesSlice';

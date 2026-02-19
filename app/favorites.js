@@ -4,7 +4,7 @@ import { FlatList, Image, StyleSheet, Text, TouchableOpacity, useColorScheme, Vi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
-import { stores } from '../data/mockData';
+import { stores } from '../data/mockData.js';
 import { toggleFavorite } from '../store/favoritesSlice';
 
 export default function FavoritesScreen() {

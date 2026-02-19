@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 
 import Colors from '../../constants/Colors';
-import { categories, promotions, stores } from '../../data/mockData';
+import { categories, promotions, stores } from '../../data/mockData.js';
 
 export default function HomeScreen() {
   const router = useRouter();

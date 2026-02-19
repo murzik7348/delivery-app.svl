@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from '../../constants/Colors';
 
 // 👇 ВИПРАВЛЕНО: Імпортуємо products напряму
-import { products } from '../../data/mockData';
+import { products } from '../../data/mockData.js';
 
 export default function CatalogScreen() {
   const router = useRouter();

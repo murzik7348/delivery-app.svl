@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from '../../constants/Colors';
-import { restaurants } from '../../data/mockData';
+import { restaurants } from '../../data/mockData.js';
 
 export default function SearchScreen() {
   const router = useRouter();
