@@ -1,329 +1,605 @@
+
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState, useRef } from 'react';
-import { 
-  Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View, 
-  useColorScheme, Platform, UIManager, Modal, Animated, PanResponder, TextInput, Dimensions, LayoutAnimation, KeyboardAvoidingView
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  LayoutAnimation,
+  Modal,
+  PanResponder,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  UIManager,
+  View,
+  useColorScheme,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
-import { clearCart, removeFromCart, updateQuantity, setDeliveryType, setOrderNote, addToCart } from '../store/cartSlice';
+import {
+  addToCart,
+  clearCart,
+  removeFromCart,
+  setDeliveryType,
+  setOrderNote,
+  updateQuantity,
+} from '../store/cartSlice';
 import { addOrder } from '../store/ordersSlice';
-
 import AddressBottomSheet from '../components/AddressBottomSheet';
-import { products } from '../data/mockData.js'; 
+import { products } from '../data/mockData';
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const CLOSED_HEIGHT = 120; // Висота згорнутої шторки
-const OPEN_HEIGHT = SCREEN_HEIGHT * 0.75; // Висота відкритої
-
+// ─── Enable LayoutAnimation on Android ────────────────────────────────────────
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// ─── Sheet geometry ────────────────────────────────────────────────────────────
+//   COLLAPSED_HEIGHT  = pixels visible when sheet is "closed"
+//   EXPANDED_HEIGHT   = total sheet height when fully open (72% of screen)
+//   MAX_TRANS         = how far down the sheet translates when collapsed
+//                       (so only COLLAPSED_HEIGHT peeks above the bottom)
+//   MIN_TRANS         = 0 → sheet is at its natural (expanded) position
+const COLLAPSED_HEIGHT = 158;
+const EXPANDED_HEIGHT  = SCREEN_HEIGHT * 0.72;
+const MAX_TRANS        = EXPANDED_HEIGHT - COLLAPSED_HEIGHT;
+const MIN_TRANS        = 0;
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+const PAYMENT_MAP = {
+  '1':    { name: 'Apple Pay',  icon: 'logo-apple'  },
+  '2':    { name: 'Google Pay', icon: 'logo-google' },
+  '3':    { name: 'Готівка',    icon: 'cash'        },
+  card:   { name: 'Картка',     icon: 'card'        },
+};
+
+const getPaymentInfo = (id) => PAYMENT_MAP[id] ?? { name: 'Apple Pay', icon: 'logo-apple' };
+
+/** Parse any value safely — never returns NaN. */
+const safeNum = (v) => {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** Resolve a canonical ID from a product/cart item. */
+const resolveId = (item) =>
+  item?.product_id ?? item?.id ?? null;
+
+// ══════════════════════════════════════════════════════════════════════════════
 export default function CartScreen() {
-  const router = useRouter();
-  const dispatch = useDispatch();
+  const router      = useRouter();
+  const dispatch    = useDispatch();
   const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-  
-  const [isAddressSheetVisible, setAddressSheetVisible] = useState(false);
-  const [viewProduct, setViewProduct] = useState(null);
-  const [isNoteVisible, setIsNoteVisible] = useState(false);
+  const theme       = Colors[colorScheme ?? 'light'];
+  const insets      = useSafeAreaInsets();
 
-  // --- REDUX ДАНІ ---
-  const { 
-    items: cartItems, totalAmount, discountAmount, 
-    appliedPromo, deliveryType, deliveryFee, orderNote 
-  } = useSelector((state) => state.cart);
+  // ── Local UI state ─────────────────────────────────────────────────────────
+  const [addressSheetOpen, setAddressSheetOpen] = useState(false);
+  const [noteVisible,      setNoteVisible]       = useState(false);
+  const [viewProduct,      setViewProduct]        = useState(null);
 
-  // --- ЗАЛІЗНА МАТЕМАТИКА (БЕЗ NaN) ---
-  const safeTotal = parseFloat(totalAmount) || 0;
-  const safeDelivery = deliveryType === 'delivery' ? (parseFloat(deliveryFee) || 0) : 0;
-  const safeDiscount = parseFloat(discountAmount) || 0;
-  const calculatedSubtotal = safeTotal - safeDelivery + safeDiscount;
-  
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
-  const paymentId = useSelector((state) => state.payment?.selectedMethodId);
-  const savedAddresses = useSelector((state) => state.location.savedAddresses);
-  const userAddress = savedAddresses && savedAddresses.length > 0 ? savedAddresses[0].address : 'Оберіть адресу';
-  
-  const getPaymentInfo = (id) => {
-    const map = { '1': { name: 'Apple Pay', icon: 'logo-apple' }, '2': { name: 'Google Pay', icon: 'logo-google' }, '3': { name: 'Готівка', icon: 'cash' }, 'card': { name: 'Картка', icon: 'card' } };
-    return map[id] || { name: 'Apple Pay', icon: 'logo-apple' };
-  };
-  const paymentInfo = getPaymentInfo(paymentId);
-  
-  const recommendations = products.filter(p => !cartItems.find(i => (i.id || i.product_id) === p.product_id)).slice(0, 5);
+  // ── Redux state ────────────────────────────────────────────────────────────
+  const {
+    items:          cartItems,
+    subtotal:       rawSubtotal,
+    totalAmount:    rawTotal,
+    discountAmount: rawDiscount,
+    appliedPromo,
+    deliveryType,
+    deliveryFee:    rawFee,
+    orderNote,
+  } = useSelector((s) => s.cart);
 
-  // --- АНІМАЦІЯ ШТОРКИ (ВБУДОВАНА) ---
-  const maxOffset = OPEN_HEIGHT - CLOSED_HEIGHT;
-  const panY = useRef(new Animated.Value(maxOffset)).current;
+  const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
+  const paymentId       = useSelector((s) => s.payment?.selectedMethodId);
+  const savedAddresses  = useSelector((s) => s.location.savedAddresses);
 
+  // Safe numbers — no NaN anywhere
+  const subtotal       = safeNum(rawSubtotal);
+  const totalAmount    = safeNum(rawTotal);
+  const discountAmount = safeNum(rawDiscount);
+  const deliveryFee    = deliveryType === 'delivery' ? safeNum(rawFee) : 0;
+
+  const userAddress  = savedAddresses?.length > 0 ? savedAddresses[0].address : 'Оберіть адресу';
+  const paymentInfo  = getPaymentInfo(paymentId);
+
+  // Items NOT yet in the cart — shown as horizontal recommendations
+  const recommendations = products
+    .filter((p) => !cartItems.find((i) => resolveId(i) === p.product_id))
+    .slice(0, 6);
+
+  // ── Bottom sheet animation ─────────────────────────────────────────────────
+  //
+  // We use React Native's own `Animated` + `PanResponder` from 'react-native'.
+  // NEVER import Animated from react-native-reanimated and then pair it with
+  // PanResponder — they are different animation runtimes and will crash.
+  //
+  // translateY range:
+  //   MIN_TRANS (0)   = expanded
+  //   MAX_TRANS       = collapsed (only COLLAPSED_HEIGHT visible)
+  //
+  const translateY  = useRef(new Animated.Value(MAX_TRANS)).current;
+
+  // Track current value without accessing private ._value internals
+  const currentY = useRef(MAX_TRANS);
+  useEffect(() => {
+    const sub = translateY.addListener(({ value }) => { currentY.current = value; });
+    return () => translateY.removeListener(sub);
+  }, [translateY]);
+
+  const snapTo = useCallback((toValue) => {
+    Animated.spring(translateY, {
+      toValue,
+      useNativeDriver: true,
+      tension:           70,
+      friction:          12,
+      overshootClamping: true,
+    }).start();
+  }, [translateY]);
+
+  // PanResponder lives only on the DRAG HANDLE (44px pill area at the top
+  // of the sheet). Creating it synchronously inside useRef() ensures the
+  // handlers exist on the very first render — a useEffect() creation would
+  // leave the first render with no handlers.
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
-      onPanResponderGrant: () => panY.extractOffset(),
-      onPanResponderMove: (_, gestureState) => panY.setValue(gestureState.dy),
-      onPanResponderRelease: (_, gestureState) => {
-        panY.flattenOffset();
-        if (gestureState.dy < -50 || (gestureState.dy < 0 && gestureState.moveY < SCREEN_HEIGHT - 200)) {
-          Animated.spring(panY, { toValue: 0, friction: 6, tension: 50, useNativeDriver: false }).start();
-        } else {
-          Animated.spring(panY, { toValue: maxOffset, friction: 6, tension: 50, useNativeDriver: false }).start();
-        }
+      // Only respond to vertical gestures
+      onMoveShouldSetPanResponder:        (_, gs) => Math.abs(gs.dy) > 5,
+      onMoveShouldSetPanResponderCapture: (_, gs) => Math.abs(gs.dy) > 8,
+
+      onPanResponderGrant: () => {
+        // Capture current animated value as offset so movement starts from here
+        translateY.setOffset(currentY.current);
+        translateY.setValue(0);
+      },
+
+      onPanResponderMove: (_, gs) => {
+        let dy = gs.dy;
+        const projected = currentY.current + dy;
+        // Rubber-band: heavy resistance beyond snap limits
+        if (projected < MIN_TRANS) dy *= 0.18;
+        else if (projected > MAX_TRANS) dy *= 0.18;
+        translateY.setValue(dy);
+      },
+
+      onPanResponderRelease: (_, gs) => {
+        translateY.flattenOffset();
+        const cy  = currentY.current;
+        const vy  = gs.vy;
+
+        let target;
+        if      (vy >  0.5) target = MAX_TRANS; // fast flick down → collapse
+        else if (vy < -0.5) target = MIN_TRANS;  // fast flick up   → expand
+        else target = cy < MAX_TRANS * 0.45 ? MIN_TRANS : MAX_TRANS;
+
+        snapTo(target);
+      },
+
+      onPanResponderTerminate: () => {
+        translateY.flattenOffset();
+        snapTo(currentY.current > MAX_TRANS / 2 ? MAX_TRANS : MIN_TRANS);
       },
     })
   ).current;
 
-  const handleAddToCartFromSheet = () => {
-    if (viewProduct) {
-      dispatch(addToCart({ ...viewProduct, quantity: 1 }));
-      setViewProduct(null);
-    }
-  };
-
+  // ── Checkout ───────────────────────────────────────────────────────────────
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
     if (!isAuthenticated) {
-      Alert.alert("Вхід не виконано", "Увійдіть у профіль.", [{ text: "Відміна", style: "cancel" }, { text: "Увійти", onPress: () => router.push('/(auth)/login') }]);
+      Alert.alert(
+        'Вхід не виконано',
+        'Будь ласка, увійдіть у профіль для оформлення замовлення.',
+        [
+          { text: 'Відміна', style: 'cancel' },
+          { text: 'Увійти', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
       return;
     }
-    const newOrder = {
-      id: Date.now().toString(),
-      items: cartItems,
-      total: safeTotal,
-      discount: safeDiscount,
-      delivery: safeDelivery,
-      promo: appliedPromo?.code || null,
-      note: orderNote,
-      type: deliveryType,
-      date: new Date().toISOString(),
-      status: 'pending', 
-      address: deliveryType === 'delivery' ? userAddress : 'Самовивіз з ресторану',
-      payment: paymentInfo.name
+    const order = {
+      id:       Date.now().toString(),
+      items:    cartItems,
+      total:    totalAmount,
+      discount: discountAmount,
+      delivery: deliveryFee,
+      promo:    appliedPromo?.code ?? null,
+      note:     orderNote,
+      type:     deliveryType,
+      date:     new Date().toISOString(),
+      status:   'pending',
+      address:  deliveryType === 'delivery' ? userAddress : 'Самовивіз з ресторану',
+      payment:  paymentInfo.name,
     };
-    dispatch(addOrder(newOrder));
+    dispatch(addOrder(order));
     dispatch(clearCart());
-    Alert.alert("Успішно!", `Замовлення оформлено 🎉`, [{ text: "ОК", onPress: () => router.push('/orders') }]);
+    Alert.alert('Успішно!', 'Замовлення оформлено 🎉', [
+      { text: 'OK', onPress: () => router.push('/orders') },
+    ]);
   };
 
-  const renderItem = ({ item }) => {
-    const itemId = item.id || item.product_id;
+  // ── Cart item row ──────────────────────────────────────────────────────────
+  const renderCartItem = ({ item }) => {
+    const id = resolveId(item);
     return (
       <View style={[styles.itemCard, { backgroundColor: theme.card }]}>
-        <TouchableOpacity style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }} activeOpacity={0.7} onPress={() => setViewProduct(item)}>
-          <Image source={{ uri: item.image }} style={styles.image} />
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>{item.name}</Text>
-            <Text style={{ color: '#e334e3', fontWeight: 'bold', marginTop: 4 }}>{item.price} ₴</Text>
+        {/* Left: image + name + price — tapping opens detail modal */}
+        <TouchableOpacity
+          style={styles.itemLeft}
+          activeOpacity={0.75}
+          onPress={() => setViewProduct(item)}
+        >
+          <Image source={{ uri: item.image }} style={styles.itemImage} />
+          <View style={styles.itemInfo}>
+            <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={2}>
+              {item.name}
+            </Text>
+            <Text style={styles.itemPrice}>{safeNum(item.price).toFixed(0)} ₴</Text>
           </View>
         </TouchableOpacity>
-        <View style={styles.counter}>
-          <TouchableOpacity onPress={() => { if (item.quantity > 1) dispatch(updateQuantity({ id: itemId, quantity: item.quantity - 1 })); else dispatch(removeFromCart(itemId)); }}>
-             <Ionicons name="remove-circle" size={32} color="#e334e3" />
+
+        {/* Right: quantity stepper */}
+        <View style={styles.stepper}>
+          <TouchableOpacity
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            onPress={() => {
+              if (item.quantity > 1) dispatch(updateQuantity({ id, quantity: item.quantity - 1 }));
+              else dispatch(removeFromCart(id));
+            }}
+          >
+            <Ionicons name="remove-circle" size={32} color="#e334e3" />
           </TouchableOpacity>
-          <Text style={[styles.qty, { color: theme.text }]}>{item.quantity}</Text>
-          <TouchableOpacity onPress={() => dispatch(updateQuantity({ id: itemId, quantity: item.quantity + 1 }))}>
-             <Ionicons name="add-circle" size={32} color="#e334e3" />
+
+          <Text style={[styles.stepperQty, { color: theme.text }]}>{item.quantity}</Text>
+
+          <TouchableOpacity
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            onPress={() => dispatch(updateQuantity({ id, quantity: item.quantity + 1 }))}
+          >
+            <Ionicons name="add-circle" size={32} color="#e334e3" />
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      
-      {/* HEADER */}
-      <View style={styles.headerContainer}>
-        <View style={styles.headerTitleRow}>
-          <Text style={[styles.title, { color: theme.text }]}>Кошик</Text>
-          <TouchableOpacity onPress={() => dispatch(clearCart())}>
-            <Text style={{ color: '#ff3b30', fontWeight: '600' }}>Очистити</Text>
-          </TouchableOpacity>
-        </View>
+  // ── Recommendation card ────────────────────────────────────────────────────
+  //
+  // BUG 2 FIX: The "+" button is its own TouchableOpacity that dispatches
+  // addToCart directly. It is NOT nested inside the card's TouchableOpacity.
+  // This prevents any event bubbling ambiguity and the wrong-item Redux bug
+  // (which is also fixed in cartSlice.js).
+  //
+  const renderRecItem = ({ item }) => (
+    <View style={[styles.recCard, { backgroundColor: theme.card }]}>
+      {/* Card body — tap to see detail */}
+      <TouchableOpacity activeOpacity={0.8} onPress={() => setViewProduct(item)}>
+        <Image source={{ uri: item.image }} style={styles.recImage} />
+        <Text style={[styles.recName, { color: theme.text }]} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.recPrice}>{safeNum(item.price).toFixed(0)} ₴</Text>
+      </TouchableOpacity>
 
-        <View style={[styles.toggleContainer, { backgroundColor: theme.input }]}>
-          <TouchableOpacity style={[styles.toggleBtn, deliveryType === 'delivery' && styles.toggleBtnActive]} onPress={() => dispatch(setDeliveryType('delivery'))}>
-            <Text style={[styles.toggleText, deliveryType === 'delivery' && styles.toggleTextActive]}>🛵 Доставка</Text>
+      {/* "+" button — separate TouchableOpacity, direct dispatch */}
+      <TouchableOpacity
+        style={styles.recAddBtn}
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        onPress={() => dispatch(addToCart({ ...item }))}
+      >
+        <Ionicons name="add" size={20} color="white" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  // ── Main render ────────────────────────────────────────────────────────────
+  return (
+    <SafeAreaView
+      edges={['top']}
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
+      {/* ── Header ── */}
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Кошик</Text>
+        {cartItems.length > 0 && (
+          <TouchableOpacity onPress={() => dispatch(clearCart())}>
+            <Text style={styles.clearBtn}>Очистити</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.toggleBtn, deliveryType === 'pickup' && styles.toggleBtnActive]} onPress={() => dispatch(setDeliveryType('pickup'))}>
-            <Text style={[styles.toggleText, deliveryType === 'pickup' && styles.toggleTextActive]}>🏃 Самовивіз</Text>
-          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* ── Delivery toggle ── */}
+      <View style={styles.headerPad}>
+        <View style={[styles.toggle, { backgroundColor: theme.input }]}>
+          {['delivery', 'pickup'].map((type) => (
+            <TouchableOpacity
+              key={type}
+              style={[styles.toggleBtn, deliveryType === type && styles.toggleBtnActive]}
+              onPress={() => dispatch(setDeliveryType(type))}
+            >
+              <Text style={[styles.toggleText, deliveryType === type && styles.toggleTextActive]}>
+                {type === 'delivery' ? '🛵 Доставка' : '🏃 Самовивіз'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
-      
+
+      {/* ── Content area ── */}
       {cartItems.length > 0 ? (
         <>
-          {/* СПИСОК ТОВАРІВ */}
-          <FlatList 
-            data={cartItems} 
-            renderItem={renderItem} 
-            keyExtractor={(item, index) => (item.id || item.product_id || index).toString()} 
-            contentContainerStyle={{ paddingBottom: 160, paddingTop: 10 }} 
+          {/* Scrollable list */}
+          <FlatList
+            data={cartItems}
+            renderItem={renderCartItem}
+            keyExtractor={(item, idx) => (resolveId(item) ?? idx).toString()}
+            contentContainerStyle={{
+              paddingTop: 10,
+              // Extra bottom padding so items are never hidden behind the sheet
+              paddingBottom: COLLAPSED_HEIGHT + insets.bottom + 32,
+            }}
             ListFooterComponent={
-              <View style={styles.recommendationsContainer}>
-                <Text style={[styles.recTitle, { color: theme.text }]}>З цим смакує 🔥</Text>
-                <FlatList
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  data={recommendations}
-                  keyExtractor={item => (item.product_id || item.id).toString()}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity style={[styles.recCard, { backgroundColor: theme.card }]} activeOpacity={0.8} onPress={() => setViewProduct(item)}>
-                      <Image source={{ uri: item.image }} style={styles.recImage} />
-                      <View style={{ alignItems: 'center' }}>
-                         <Text style={[styles.recName, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
-                         <Text style={{ color: '#e334e3', fontWeight: 'bold', fontSize: 12 }}>{item.price} ₴</Text>
-                      </View>
-                      <View style={styles.recAddBtn}><Ionicons name="add" size={20} color="white" /></View>
-                    </TouchableOpacity>
-                  )}
-                />
-              </View>
+              recommendations.length > 0 ? (
+                <View style={styles.recSection}>
+                  <Text style={[styles.recTitle, { color: theme.text }]}>
+                    З цим смакує 🔥
+                  </Text>
+                  <FlatList
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    data={recommendations}
+                    keyExtractor={(item) => resolveId(item).toString()}
+                    renderItem={renderRecItem}
+                    contentContainerStyle={{ paddingLeft: 16 }}
+                  />
+                </View>
+              ) : null
             }
           />
-          
-          {/* 👇 НИЖНЯ ШТОРКА (ВБУДОВАНА, БАЧИТЬ ВСІ ДАНІ І ФУНКЦІЇ) 👇 */}
+
+          {/* ── THE ONE AND ONLY BOTTOM SHEET ──────────────────────────────
+           *
+           * Architecture:
+           *   • Fixed height = EXPANDED_HEIGHT
+           *   • position: absolute, bottom: 0, left: 0, right: 0
+           *   • Starts at translateY = MAX_TRANS (collapsed, COLLAPSED_HEIGHT visible)
+           *   • Swipe up  → translateY → 0    (fully expanded)
+           *   • Swipe down → translateY → MAX_TRANS (back to collapsed)
+           *   • Sheet never goes below MAX_TRANS (never fully hides)
+           *
+           * PanResponder ONLY on dragHandleArea — this is what lets buttons
+           * inside the sheet receive onPress events normally.
+           */}
           <Animated.View
             style={[
-              styles.sheetContainer,
+              styles.sheet,
               {
-                height: OPEN_HEIGHT,
+                backgroundColor: theme.card,
+                shadowColor:      theme.text,
+                height:           EXPANDED_HEIGHT,
                 transform: [{
-                  translateY: panY.interpolate({
-                    inputRange: [-200, 0, maxOffset, maxOffset + 200],
-                    outputRange: [-50, 0, maxOffset, maxOffset + 50],
+                  translateY: translateY.interpolate({
+                    inputRange:  [MIN_TRANS, MAX_TRANS],
+                    outputRange: [MIN_TRANS, MAX_TRANS],
                     extrapolate: 'clamp',
                   }),
                 }],
               },
             ]}
           >
-            {/* Зона для свайпу */}
-            <View {...panResponder.panHandlers} style={styles.dragHandleArea}>
-              <View style={styles.dragIndicator} />
+            {/* ── Drag handle (PanResponder lives HERE only) ── */}
+            <View style={styles.dragHandleArea} {...panResponder.panHandlers}>
+              <View style={styles.dragPill} />
             </View>
 
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.sheetContent}>
-              
-              <View style={styles.sheetHeaderRow}>
-                <Text style={styles.totalLabel}>До сплати:</Text>
-                <Text style={styles.totalPrice}>{safeTotal} ₴</Text>
+            {/* ════════════════════════════════════════════════════════
+             * COLLAPSED ZONE — always visible, always interactive
+             * ════════════════════════════════════════════════════════ */}
+            <View style={styles.collapsedZone}>
+              <View style={styles.totalRow}>
+                <Text style={[styles.totalLabel, { color: theme.text }]}>До сплати:</Text>
+                <Text style={[styles.totalValue, { color: theme.text }]}>
+                  {totalAmount.toFixed(0)} ₴
+                </Text>
               </View>
 
-              <TouchableOpacity style={styles.orderButton} onPress={handleCheckout} activeOpacity={0.8}>
-                <Text style={styles.orderButtonText}>Оформити замовлення</Text>
+              <TouchableOpacity
+                style={styles.checkoutBtn}
+                activeOpacity={0.85}
+                onPress={handleCheckout}
+              >
+                <Text style={styles.checkoutBtnText}>Оформити замовлення</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* ════════════════════════════════════════════════════════
+             * EXPANDED ZONE — revealed when sheet is swiped up
+             * ════════════════════════════════════════════════════════ */}
+            <View style={styles.expandedZone}>
+              <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+              {/* Price breakdown */}
+              <View style={styles.priceRow}>
+                <Text style={[styles.priceLabel, { color: 'gray' }]}>Товари</Text>
+                <Text style={[styles.priceValue, { color: theme.text }]}>
+                  {subtotal.toFixed(0)} ₴
+                </Text>
+              </View>
+
+              {deliveryType === 'delivery' && (
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceLabel, { color: 'gray' }]}>Доставка</Text>
+                  <Text style={[styles.priceValue, { color: theme.text }]}>
+                    {deliveryFee === 0 ? 'Безкоштовно' : `${deliveryFee.toFixed(0)} ₴`}
+                  </Text>
+                </View>
+              )}
+
+              {appliedPromo && discountAmount > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceLabel, { color: '#e334e3' }]}>
+                    Знижка ({appliedPromo.code})
+                  </Text>
+                  <Text style={[styles.priceValue, { color: '#e334e3' }]}>
+                    −{discountAmount.toFixed(0)} ₴
+                  </Text>
+                </View>
+              )}
+
+              <View style={{ height: 14 }} />
+
+              {/* Promo code row */}
+              <TouchableOpacity
+                style={[styles.actionRow, { backgroundColor: theme.input }]}
+                activeOpacity={0.75}
+                onPress={() => router.push('/promocodes')}
+              >
+                <View style={styles.actionRowLeft}>
+                  <Ionicons name="ticket-outline" size={20} color="#e334e3" />
+                  <Text style={[styles.actionRowText, { color: theme.text }]}>
+                    {appliedPromo ? appliedPromo.code : 'Промокод'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="gray" />
               </TouchableOpacity>
 
-              <View style={styles.detailsContainer}>
-                 <View style={styles.divider} />
-                 
-                 <View style={styles.detailRow}>
-                   <Text style={styles.detailText}>Товари</Text>
-                   <Text style={styles.detailPrice}>{calculatedSubtotal} ₴</Text>
-                 </View>
+              {/* Address row (delivery only) */}
+              {deliveryType === 'delivery' && (
+                <TouchableOpacity
+                  style={[styles.actionRow, { backgroundColor: theme.input }]}
+                  activeOpacity={0.75}
+                  onPress={() => setAddressSheetOpen(true)}
+                >
+                  <View style={[styles.actionRowLeft, { flex: 1 }]}>
+                    <Ionicons name="location-outline" size={20} color={theme.text} />
+                    <Text
+                      style={[styles.actionRowText, { color: theme.text, flex: 1 }]}
+                      numberOfLines={1}
+                    >
+                      {userAddress}
+                    </Text>
+                  </View>
+                  <Text style={styles.changeText}>Змінити</Text>
+                </TouchableOpacity>
+              )}
 
-                 {deliveryType === 'delivery' && (
-                   <View style={styles.detailRow}>
-                     <Text style={styles.detailText}>Доставка</Text>
-                     <Text style={styles.detailPrice}>{safeDelivery === 0 ? 'Безкоштовно' : `${safeDelivery} ₴`}</Text>
-                   </View>
-                 )}
+              {/* Payment row */}
+              <TouchableOpacity
+                style={[styles.actionRow, { backgroundColor: theme.input }]}
+                activeOpacity={0.75}
+                onPress={() => router.push('/payment')}
+              >
+                <View style={styles.actionRowLeft}>
+                  <Ionicons name={paymentInfo.icon} size={20} color={theme.text} />
+                  <Text style={[styles.actionRowText, { color: theme.text }]}>
+                    {paymentInfo.name}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="gray" />
+              </TouchableOpacity>
 
-                 {safeDiscount > 0 && (
-                   <View style={styles.detailRow}>
-                     <Text style={{ color: '#e334e3', fontSize: 16 }}>Знижка</Text>
-                     <Text style={{ color: '#e334e3', fontSize: 16 }}>- {safeDiscount} ₴</Text>
-                   </View>
-                 )}
-
-                 {/* КНОПКИ ПЕРЕХОДІВ */}
-                 <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/promocodes')} activeOpacity={0.7}>
-                   <View style={{flexDirection:'row', alignItems:'center', gap: 10}}>
-                      <Ionicons name="ticket-outline" size={24} color="#e334e3" />
-                      <Text style={styles.menuText}>{appliedPromo ? appliedPromo.code : 'Промокод'}</Text>
-                   </View>
-                   <Ionicons name="chevron-forward" size={20} color="gray" />
-                 </TouchableOpacity>
-
-                 {deliveryType === 'delivery' && (
-                   <TouchableOpacity style={styles.menuItem} onPress={() => setAddressSheetVisible(true)} activeOpacity={0.7}>
-                     <View style={{flexDirection:'row', alignItems:'center', gap: 10, flex: 1}}>
-                        <Ionicons name="location-outline" size={24} color="white" />
-                        <Text style={styles.menuText} numberOfLines={1}>{userAddress}</Text>
-                     </View>
-                     <Text style={{color: '#e334e3', fontSize: 12}}>Змінити</Text>
-                   </TouchableOpacity>
-                 )}
-
-                 <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/payment')} activeOpacity={0.7}>
-                   <View style={{flexDirection:'row', alignItems:'center', gap: 10}}>
-                      <Ionicons name={paymentInfo.icon} size={24} color="white" />
-                      <Text style={styles.menuText}>{paymentInfo.name}</Text>
-                   </View>
-                   <Ionicons name="chevron-forward" size={20} color="gray" />
-                 </TouchableOpacity>
-                 
-                 {/* КОМЕНТАР */}
-                 <View style={{ marginTop: 15, paddingBottom: 20 }}>
-                   {!isNoteVisible && !orderNote ? (
-                     <TouchableOpacity onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setIsNoteVisible(true); }}>
-                         <Text style={{ color: '#e334e3', fontWeight: 'bold' }}>+ Коментар до замовлення</Text>
-                     </TouchableOpacity>
-                   ) : (
-                     <View style={styles.noteContainer}>
-                       <TextInput 
-                         style={styles.noteInput} 
-                         placeholder="Код домофону, прибори..." 
-                         placeholderTextColor="gray" 
-                         value={orderNote} 
-                         onChangeText={(text) => dispatch(setOrderNote(text))} 
-                         multiline 
-                       />
-                     </View>
-                   )}
-                 </View>
+              {/* Order note */}
+              <View style={{ marginTop: 6, paddingBottom: insets.bottom + 12 }}>
+                {!noteVisible && !orderNote ? (
+                  <TouchableOpacity
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    onPress={() => {
+                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                      setNoteVisible(true);
+                    }}
+                  >
+                    <Text style={styles.addNoteText}>+ Коментар до замовлення</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={[styles.noteBox, { backgroundColor: theme.input }]}>
+                    <TextInput
+                      style={[styles.noteInput, { color: theme.text }]}
+                      placeholder="Код домофону, прибори..."
+                      placeholderTextColor="gray"
+                      value={orderNote}
+                      onChangeText={(t) => dispatch(setOrderNote(t))}
+                      multiline
+                    />
+                  </View>
+                )}
               </View>
-            </KeyboardAvoidingView>
+            </View>
           </Animated.View>
-
         </>
       ) : (
-        <View style={styles.emptyContainer}>
+        /* ── Empty state ── */
+        <View style={styles.emptyState}>
           <Ionicons name="cart-outline" size={80} color="gray" />
           <Text style={[styles.emptyText, { color: theme.text }]}>Кошик порожній</Text>
-          <TouchableOpacity style={[styles.shopBtn, { backgroundColor: theme.card }]} onPress={() => router.push('/(tabs)')}>
+          <TouchableOpacity
+            style={[styles.shopBtn, { backgroundColor: theme.card }]}
+            onPress={() => router.push('/(tabs)')}
+          >
             <Text style={[styles.shopBtnText, { color: theme.text }]}>В меню</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* ШТОРКА ТОВАРУ (Modal) */}
-      <Modal animationType="slide" transparent={true} visible={!!viewProduct} onRequestClose={() => setViewProduct(null)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setViewProduct(null)}>
-          <TouchableOpacity activeOpacity={1} style={[styles.productSheet, { backgroundColor: theme.card }]}>
-            <View style={{ width: 40, height: 4, backgroundColor: '#ccc', borderRadius: 2, alignSelf: 'center', marginVertical: 10 }} />
+      {/* ── Product detail modal ── */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={!!viewProduct}
+        onRequestClose={() => setViewProduct(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setViewProduct(null)}
+        >
+          {/* Inner TouchableOpacity prevents backdrop close on sheet tap */}
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.productSheet, { backgroundColor: theme.card }]}
+          >
+            <View style={styles.productSheetPill} />
             {viewProduct && (
               <>
-                <Image source={{ uri: viewProduct.image }} style={styles.sheetImage} />
-                <View style={styles.productSheetContent}>
-                  <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                    <Text style={[styles.productSheetTitle, { color: theme.text, flex: 1 }]}>{viewProduct.name}</Text>
-                    <Text style={styles.productSheetPrice}>{viewProduct.price} ₴</Text>
+                <Image source={{ uri: viewProduct.image }} style={styles.productSheetImage} />
+                <View style={styles.productSheetBody}>
+                  <View style={styles.productSheetTitleRow}>
+                    <Text style={[styles.productSheetTitle, { color: theme.text }]}>
+                      {viewProduct.name}
+                    </Text>
+                    <Text style={styles.productSheetPrice}>
+                      {safeNum(viewProduct.price).toFixed(0)} ₴
+                    </Text>
                   </View>
-                  <Text style={[styles.productSheetDesc, { color: theme.textSecondary }]}>{viewProduct.description || 'Опис відсутній.'}</Text>
-                  <TouchableOpacity style={styles.productSheetBtn} onPress={() => {
-                        const itemId = viewProduct.id || viewProduct.product_id;
-                        const isInCart = cartItems.find(i => (i.id || i.product_id) === itemId);
-                        if (!isInCart) handleAddToCartFromSheet();
-                        else setViewProduct(null);
-                    }}>
-                    <Text style={styles.productSheetBtnText}>{cartItems.find(i => (i.id || i.product_id) === (viewProduct.id || viewProduct.product_id)) ? 'Зрозуміло' : 'Додати в кошик'}</Text>
-                  </TouchableOpacity>
+                  <Text style={[styles.productSheetDesc, { color: theme.textSecondary ?? 'gray' }]}>
+                    {viewProduct.description || 'Опис відсутній.'}
+                  </Text>
+
+                  {/* If already in cart → close; else add */}
+                  {cartItems.find((i) => resolveId(i) === resolveId(viewProduct)) ? (
+                    <TouchableOpacity
+                      style={styles.productSheetBtn}
+                      onPress={() => setViewProduct(null)}
+                    >
+                      <Text style={styles.productSheetBtnText}>Зрозуміло</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.productSheetBtn}
+                      onPress={() => {
+                        dispatch(addToCart({ ...viewProduct }));
+                        setViewProduct(null);
+                      }}
+                    >
+                      <Text style={styles.productSheetBtnText}>Додати в кошик</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </>
             )}
@@ -331,70 +607,125 @@ export default function CartScreen() {
         </TouchableOpacity>
       </Modal>
 
-      <AddressBottomSheet visible={isAddressSheetVisible} onClose={() => setAddressSheetVisible(false)} />
+      {/* Address picker bottom sheet */}
+      <AddressBottomSheet
+        visible={addressSheetOpen}
+        onClose={() => setAddressSheetOpen(false)}
+      />
     </SafeAreaView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  headerContainer: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
-  headerTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  title: { fontSize: 28, fontWeight: 'bold' },
-  toggleContainer: { flexDirection: 'row', borderRadius: 12, padding: 4, height: 44 },
-  toggleBtn: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
-  toggleBtnActive: { backgroundColor: 'white', shadowColor: '#000', shadowOpacity: 0.1, elevation: 2 },
-  toggleText: { fontWeight: '600', color: 'gray' },
-  toggleTextActive: { color: 'black' },
-  itemCard: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, padding: 12, borderRadius: 20, marginHorizontal: 16 }, 
-  image: { width: 65, height: 65, borderRadius: 16, backgroundColor: '#eee' },
-  name: { fontSize: 16, fontWeight: 'bold', lineHeight: 22 },
-  counter: { flexDirection: 'row', alignItems: 'center' },
-  qty: { marginHorizontal: 12, fontSize: 18, fontWeight: 'bold' },
-  recommendationsContainer: { marginTop: 20, paddingLeft: 16, marginBottom: 20 },
-  recTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-  recCard: { width: 140, marginRight: 15, borderRadius: 16, padding: 10, alignItems: 'center', elevation: 2 },
-  recImage: { width: 100, height: 80, borderRadius: 12, marginBottom: 8, backgroundColor: '#eee' },
-  recName: { fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 4 },
-  recAddBtn: { position: 'absolute', bottom: 8, right: 8, backgroundColor: '#e334e3', borderRadius: 15, width: 26, height: 26, justifyContent: 'center', alignItems: 'center' },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: -50 },
-  emptyText: { fontSize: 18, marginTop: 16, marginBottom: 20 },
-  shopBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  shopBtnText: { fontWeight: 'bold', fontSize: 16 },
+  container:    { flex: 1 },
 
-  // --- СТИЛІ ВБУДОВАНОЇ ШТОРКИ КОШИКА ---
-  sheetContainer: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#1c1c1e', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    shadowColor: "#000", shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.3, shadowRadius: 10, elevation: 20, zIndex: 999,
+  // Header
+  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 6 },
+  headerTitle:  { fontSize: 28, fontWeight: 'bold' },
+  clearBtn:     { color: '#ff3b30', fontWeight: '600', fontSize: 15 },
+  headerPad:    { paddingHorizontal: 20, paddingBottom: 10 },
+
+  // Delivery toggle
+  toggle:          { flexDirection: 'row', borderRadius: 12, padding: 4, height: 44 },
+  toggleBtn:       { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
+  toggleBtnActive: { backgroundColor: 'white', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+  toggleText:      { fontWeight: '600', color: 'gray' },
+  toggleTextActive:{ color: 'black' },
+
+  // Cart item
+  itemCard:   { flexDirection: 'row', alignItems: 'center', marginBottom: 12, padding: 12, borderRadius: 20, marginHorizontal: 16 },
+  itemLeft:   { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  itemImage:  { width: 66, height: 66, borderRadius: 16, backgroundColor: '#eee' },
+  itemInfo:   { flex: 1, marginLeft: 12 },
+  itemName:   { fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  itemPrice:  { color: '#e334e3', fontWeight: 'bold', marginTop: 4 },
+  stepper:    { flexDirection: 'row', alignItems: 'center' },
+  stepperQty: { marginHorizontal: 10, fontSize: 18, fontWeight: 'bold' },
+
+  // Recommendations
+  recSection: { marginTop: 22, marginBottom: 20 },
+  recTitle:   { fontSize: 18, fontWeight: 'bold', marginLeft: 16, marginBottom: 12 },
+  recCard:    { width: 138, marginRight: 14, borderRadius: 16, padding: 10, alignItems: 'center', elevation: 2 },
+  recImage:   { width: 100, height: 78, borderRadius: 12, marginBottom: 7, backgroundColor: '#eee' },
+  recName:    { fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 2 },
+  recPrice:   { color: '#e334e3', fontWeight: 'bold', fontSize: 12, marginBottom: 4 },
+  recAddBtn:  {
+    position: 'absolute', bottom: 8, right: 8,
+    backgroundColor: '#e334e3',
+    borderRadius: 14, width: 28, height: 28,
+    justifyContent: 'center', alignItems: 'center',
   },
-  dragHandleArea: { width: '100%', height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
-  dragIndicator: { width: 40, height: 4, backgroundColor: '#555', borderRadius: 2 },
-  sheetContent: { paddingHorizontal: 20, flex: 1 },
-  sheetHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  totalLabel: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-  totalPrice: { color: 'white', fontSize: 22, fontWeight: 'bold' },
-  orderButton: { backgroundColor: '#d946ef', paddingVertical: 16, borderRadius: 16, alignItems: 'center', marginBottom: 20 },
-  orderButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-  detailsContainer: { marginTop: 10 },
-  divider: { height: 1, backgroundColor: '#333', marginBottom: 15 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  detailText: { color: 'gray', fontSize: 16 },
-  detailPrice: { color: 'white', fontSize: 16 },
-  menuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#2c2c2e', padding: 15, borderRadius: 12, marginTop: 10 },
-  menuText: { color: 'white', fontSize: 16, fontWeight:'500' },
-  noteContainer: { backgroundColor: '#2c2c2e', borderRadius: 12, padding: 10 },
-  noteInput: { color: 'white', fontSize: 14, maxHeight: 60 },
 
-  // --- СТИЛІ МОДАЛКИ ТОВАРУ ---
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
-  productSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40, width: '100%', maxHeight: '80%' },
-  sheetImage: { width: '100%', height: 250, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  productSheetContent: { padding: 20 },
-  productSheetTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 5 },
-  productSheetPrice: { fontSize: 24, fontWeight: 'bold', color: '#e334e3' },
-  productSheetDesc: { fontSize: 16, marginTop: 10, marginBottom: 25, lineHeight: 24 },
-  productSheetBtn: { backgroundColor: '#e334e3', padding: 16, borderRadius: 16, alignItems: 'center' },
-  productSheetBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' }
+  // ── Bottom sheet ──────────────────────────────────────────────────────────
+  sheet: {
+    position:             'absolute',
+    bottom:               0,
+    left:                 0,
+    right:                0,
+    borderTopLeftRadius:  28,
+    borderTopRightRadius: 28,
+    paddingHorizontal:    20,
+    paddingTop:           0,
+    elevation:            28,
+    shadowOpacity:        0.18,
+    shadowRadius:         14,
+    shadowOffset:         { width: 0, height: -6 },
+    zIndex:               999,
+  },
+
+  // Drag handle — panHandlers are attached ONLY to this view
+  dragHandleArea: {
+    alignItems:        'center',
+    paddingVertical:   14,
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+  },
+  dragPill: {
+    width: 44, height: 5,
+    backgroundColor: '#C6C6CC',
+    borderRadius: 3,
+  },
+
+  // Collapsed zone (total + checkout button)
+  collapsedZone: { paddingBottom: 18 },
+  totalRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  totalLabel:    { fontSize: 17, fontWeight: '700' },
+  totalValue:    { fontSize: 26, fontWeight: 'bold' },
+  checkoutBtn:   { backgroundColor: '#e334e3', borderRadius: 18, padding: 16, alignItems: 'center' },
+  checkoutBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+
+  // Expanded zone
+  expandedZone: { flex: 1 },
+  divider:      { height: 1, marginBottom: 14, opacity: 0.35 },
+  priceRow:     { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 9 },
+  priceLabel:   { fontSize: 15 },
+  priceValue:   { fontSize: 15, fontWeight: '600' },
+
+  actionRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 13, borderRadius: 14, marginBottom: 9 },
+  actionRowLeft:  { flexDirection: 'row', alignItems: 'center' },
+  actionRowText:  { fontSize: 14, fontWeight: '600', marginLeft: 10 },
+  changeText:     { color: '#e334e3', fontSize: 13, fontWeight: '600' },
+  addNoteText:    { color: '#e334e3', fontWeight: 'bold', paddingVertical: 6 },
+  noteBox:        { borderRadius: 14, padding: 12 },
+  noteInput:      { fontSize: 14, maxHeight: 70, lineHeight: 20 },
+
+  // Empty state
+  emptyState:   { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: -50 },
+  emptyText:    { fontSize: 18, marginTop: 16, marginBottom: 20 },
+  shopBtn:      { paddingHorizontal: 28, paddingVertical: 13, borderRadius: 14 },
+  shopBtnText:  { fontWeight: 'bold', fontSize: 16 },
+
+  // Product detail modal
+  modalBackdrop:        { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  productSheet:         { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 40, width: '100%', maxHeight: '82%' },
+  productSheetPill:     { width: 44, height: 5, backgroundColor: '#ccc', borderRadius: 3, alignSelf: 'center', marginTop: 12, marginBottom: 6 },
+  productSheetImage:    { width: '100%', height: 230, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  productSheetBody:     { padding: 20 },
+  productSheetTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
+  productSheetTitle:    { fontSize: 22, fontWeight: 'bold', flex: 1, marginRight: 10 },
+  productSheetPrice:    { fontSize: 22, fontWeight: 'bold', color: '#e334e3' },
+  productSheetDesc:     { fontSize: 15, marginTop: 8, marginBottom: 24, lineHeight: 23 },
+  productSheetBtn:      { backgroundColor: '#e334e3', padding: 16, borderRadius: 18, alignItems: 'center' },
+  productSheetBtnText:  { color: 'white', fontSize: 16, fontWeight: 'bold' },
 });
