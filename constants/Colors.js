@@ -13,7 +13,6 @@ export default {
     tabIconSelected: tintColorLight,
     border: '#eee',
     modalOverlay: 'rgba(0,0,0,0.5)',
-    // 👇 Колір нижнього меню для світлої теми
     tabBar: '#ffffff', 
   },
   dark: {
@@ -23,11 +22,10 @@ export default {
     card: '#1E1E1E',
     input: '#2C2C2C',
     icon: '#fff',
-    tabIconDefault: '#666', // Сірі іконки, коли не активні
+    tabIconDefault: '#666',
     tabIconSelected: tintColorDark,
     border: '#333',
     modalOverlay: 'rgba(255,255,255,0.1)',
-    // 👇 Колір нижнього меню для темної теми (Темно-сірий, як картки)
     tabBar: '#1E1E1E', 
   },
 };

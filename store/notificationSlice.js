@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  items: [], // Тут буде список: { id, title, body, date, read }
+  items: [],
   unreadCount: 0,
 };
 
@@ -10,7 +10,6 @@ const notificationSlice = createSlice({
   initialState,
   reducers: {
     addNotification: (state, action) => {
-      // Додаємо нове сповіщення на початок списку
       state.items.unshift({
         id: Date.now().toString(),
         title: action.payload.title || 'Нове повідомлення',
@@ -22,7 +21,6 @@ const notificationSlice = createSlice({
       state.unreadCount += 1;
     },
     markAsRead: (state) => {
-      // Позначаємо всі як прочитані
       state.items.forEach(item => item.read = true);
       state.unreadCount = 0;
     },

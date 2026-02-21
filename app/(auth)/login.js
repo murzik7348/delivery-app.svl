@@ -13,21 +13,14 @@ export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
-
-  // 👇 ТУТ ЗАЛИШАЄМО "+380"
   const [phone, setPhone] = useState('+380');
-
-  // 👇 ФУНКЦІЯ БЛОКУВАННЯ КОДУ
   const handlePhoneChange = (text) => {
-    // Якщо пробують стерти "+380", вертаємо назад
     if (!text.startsWith('+380')) {
       setPhone('+380'); 
       return;
     }
 
-    if (text.length > 13) return; // Ліміт довжини
-
-    // Лишаємо тільки цифри
+    if (text.length > 13) return;
     const onlyNumbers = text.substring(1).replace(/[^0-9]/g, '');
     setPhone('+' + onlyNumbers);
   };
@@ -58,9 +51,7 @@ export default function LoginScreen() {
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: theme.text }]}>Номер телефону</Text>
             <TextInput 
-              style={[styles.input, { backgroundColor: theme.input, color: theme.text, borderColor: theme.border }]} 
-              
-              // 👇 ТУТ ПРАЦЮЄ НАША ФУНКЦІЯ
+              style={[styles.input, { backgroundColor: theme.input, color: theme.text, borderColor: theme.border }]}
               value={phone}
               onChangeText={handlePhoneChange}
               

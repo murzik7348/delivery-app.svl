@@ -17,8 +17,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
-
-// 👇 ПРАВИЛЬНІ ІМПОРТИ (../../)
 import Colors from '../../constants/Colors';
 import { loginUser } from '../../store/authSlice';
 
@@ -31,8 +29,6 @@ export default function RegisterScreen() {
 
   const [step, setStep] = useState(1);
   const totalSteps = 6;
-
-  // Дані
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [avatar, setAvatar] = useState(null);
@@ -41,8 +37,6 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [birthDate, setBirthDate] = useState(new Date(2000, 0, 1));
   const [showPassword, setShowPassword] = useState(false);
-
-  // --- ВАЛІДАЦІЯ ---
   const isStepValid = () => {
     switch (step) {
       case 1: return firstName.trim().length > 0 && lastName.trim().length > 0;
@@ -50,12 +44,10 @@ export default function RegisterScreen() {
       case 3: return phoneRaw.length === 9; 
       case 4: return true; 
       case 5: return password.length >= 6; 
-      case 6: return true; // Логіка кнопки тепер всередині renderStepContent
+      case 6: return true;
       default: return false;
     }
   };
-
-  // 📸 ФУНКЦІЯ ВИБОРУ ФОТО
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permissionResult.granted === false) {
@@ -74,8 +66,6 @@ export default function RegisterScreen() {
       setAvatar(result.assets[0].uri);
     }
   };
-
-  // --- ЛОГІКА ПЕРЕХОДУ ---
   const nextStep = () => {
     Keyboard.dismiss(); 
     if (step === 1 && !isStepValid()) { Alert.alert("Увага", "Введіть ім'я та прізвище"); return; }
@@ -108,8 +98,6 @@ export default function RegisterScreen() {
     dispatch(loginUser(newUser));
     Alert.alert("Вітаємо! 🎉", "Реєстрацію успішно завершено!", [{ text: "Почати", onPress: () => router.replace('/(tabs)') }]);
   };
-
-  // КНОПКА "ДАЛІ" (Для кроків 1-5)
   const renderNextButton = (customText = "Далі") => {
     const valid = isStepValid();
     return (

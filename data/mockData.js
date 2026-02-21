@@ -1,59 +1,142 @@
 
-// data/mockData.js
-
-// --- 1. КАТЕГОРІЇ (ОБОВ'ЯЗКОВО ПОТРІБНІ ДЛЯ ГОЛОВНОЇ) ---
 export const categories = [
-  { 
-    category_id: 1, 
-    name: "Бургери", 
-    image: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png" 
+  {
+    category_id: 1,
+    name: "Бургери",
+    image: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png"
   },
-  { 
-    category_id: 2, 
-    name: "Суші", 
-    image: "https://cdn-icons-png.flaticon.com/512/2252/2252075.png" 
+  {
+    category_id: 2,
+    name: "Суші",
+    image: "https://cdn-icons-png.flaticon.com/512/2252/2252075.png"
   },
-  { 
-    category_id: 3, 
-    name: "Піца", 
-    image: "https://cdn-icons-png.flaticon.com/512/1404/1404945.png" 
+  {
+    category_id: 3,
+    name: "Піца",
+    image: "https://cdn-icons-png.flaticon.com/512/1404/1404945.png"
   },
-  { 
-    category_id: 4, 
-    name: "Магазини", 
-    image: "https://cdn-icons-png.flaticon.com/512/3081/3081559.png" 
+  {
+    category_id: 4,
+    name: "Магазини",
+    image: "https://cdn-icons-png.flaticon.com/512/3081/3081559.png"
   },
-  { 
-    category_id: 5, 
-    name: "Кава", 
-    image: "https://cdn-icons-png.flaticon.com/512/2935/2935303.png" 
+  {
+    category_id: 5,
+    name: "Кава",
+    image: "https://cdn-icons-png.flaticon.com/512/2935/2935303.png"
   },
 ];
-
-// --- 2. АКЦІЇ (ОБОВ'ЯЗКОВО ПОТРІБНІ ДЛЯ ГОЛОВНОЇ) ---
 export const promotions = [
   {
     id: 1,
-    title: "Знижка -50% на другий бургер",
-    image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=800",
-    description: "Купуй один бургер у Дубліні та отримуй другий за півціни!",
+    title: "Бургер Irish Beef — другий за 50%",
+    tag: "−50%",
+    tagColor: "#e334e3",
+    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800",
+    description: "Купуй Бургер Irish Beef у Дубліні та отримуй другий за півціни! Велика котлета, сир чеддер, бекон, соус BBQ.",
+    promoCode: "BURGER50",
+    storeId: 5,
+    storeName: "Дублін",
+    terms: "Акція діє щодня. Максимальна знижка — 145 грн. Не поєднується з іншими акціями.",
+    discountType: "buy2half",
+    discountProductId: 501,
+    discountPercent: 50,
+    product: {
+      product_id: 501,
+      store_id: 5,
+      name: "Бургер Irish Beef",
+      price: 290,
+      image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500",
+      description: "Велика котлета, сир чеддер, бекон, соус BBQ.",
+    },
   },
   {
     id: 2,
-    title: "Безкоштовна доставка з Алми",
-    image: "https://images.unsplash.com/photo-1604719312566-b7cb0463d339?w=800",
-    description: "Замовляй продукти на суму від 500 грн.",
-  }
+    title: "Сік Rich — безкоштовна доставка від 300 грн",
+    tag: "FREE",
+    tagColor: "#27ae60",
+    image: "https://images.unsplash.com/photo-1613478223719-2ab802602423?w=800",
+    description: "Замовляй в Алмі на 300 грн і отримуй безкоштовну доставку. Спробуй наш свіжий Сік Rich!",
+    promoCode: "FREEDEL",
+    storeId: 2,
+    storeName: "Алма",
+    terms: "Діє тільки в Алмі. Дійсно до 28 лютого 2025.",
+    product: {
+      product_id: 202,
+      store_id: 2,
+      name: "Сік Rich (1л)",
+      price: 62,
+      image: "https://images.unsplash.com/photo-1613478223719-2ab802602423?w=500",
+      description: "Апельсиновий сік, 100%.",
+    },
+  },
+  {
+    id: 3,
+    title: "Піца Папероні — 2 за ціною 1",
+    tag: "2×1",
+    tagColor: "#e67e22",
+    image: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800",
+    description: "Щовівторка у Наві — бери Піцу Папероні і отримуй другу безкоштовно!",
+    promoCode: "PIZZA2X1",
+    storeId: 7,
+    storeName: "Наві",
+    terms: "Тільки вівторок. Застосовується до піц однієї ціни або меншої.",
+    product: {
+      product_id: 701,
+      store_id: 7,
+      name: "Піца Папероні",
+      price: 230,
+      image: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=500",
+      description: "Томатний соус, моцарела, пікантна ковбаса.",
+    },
+  },
+  {
+    id: 4,
+    title: "Рол Зелений Дракон + напій в подарунок",
+    tag: "ГІФТ",
+    tagColor: "#e74c3c",
+    image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800",
+    description: "Замов Рол Зелений Дракон від 400 грн у Наві та отримай напій у подарунок.",
+    promoCode: "SUSHIGIFT",
+    storeId: 7,
+    storeName: "Наві",
+    terms: "Напій на вибір з меню до 60 грн. Акція діє до кінця місяця.",
+    product: {
+      product_id: 702,
+      store_id: 7,
+      name: "Рол Зелений Дракон",
+      price: 340,
+      image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500",
+      description: "Вугор, авокадо, унагі соус, кунжут.",
+    },
+  },
+  {
+    id: 5,
+    title: "Шашлик зі свинини — знижка −20%",
+    tag: "−20%",
+    tagColor: "#8e44ad",
+    image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
+    description: "Тільки для нових клієнтів Рутенії — знижка −20% на Шашлик зі свинини!",
+    promoCode: "WELCOME20",
+    storeId: 4,
+    storeName: "Рутенія",
+    terms: "Одноразовий промокод. Максимальна знижка — 150 грн. Тільки для нових акаунтів.",
+    product: {
+      product_id: 402,
+      store_id: 4,
+      name: "Шашлик зі свинини (200г)",
+      price: 260,
+      image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500",
+      description: "Соковитий шашлик на мангалі.",
+    },
+  },
 ];
 
-// --- 3. ЗАКЛАДИ (СВАЛЯВА) ---
 export const stores = [
-  // МАГАЗИНИ
   {
     store_id: 1,
     name: "Промінь",
-    // 👇 Нове надійне фото (магазин продуктів)
-    image: "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800", 
+    image: "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800",
     rating: 4.4,
     delivery_time: "15-25 хв",
     tags: ["Магазин", "Продукти", "Напої"],
@@ -74,8 +157,6 @@ export const stores = [
     delivery_time: "10-20 хв",
     tags: ["Магазин", "Снеки", "Вода"],
   },
-
-  // РЕСТОРАНИ
   {
     store_id: 4,
     name: "Рутенія",
@@ -109,10 +190,7 @@ export const stores = [
     tags: ["Ресторан", "Піца", "Суші"],
   }
 ];
-
-// --- 4. МЕНЮ ---
 export const products = [
-  // ПРОМІНЬ (id 1)
   {
     product_id: 101,
     store_id: 1,
@@ -129,8 +207,6 @@ export const products = [
     image: "https://images.unsplash.com/photo-1616118132534-381148898bb4?w=500",
     description: "Вода газована Поляна.",
   },
-  
-  // АЛМА (id 2)
   {
     product_id: 201,
     store_id: 2,
@@ -155,8 +231,6 @@ export const products = [
     image: "https://images.unsplash.com/photo-1603833665858-e61d17a86224?w=500",
     description: "Свіжі еквадорські банани.",
   },
-
-  // КУРОРТНИЙ (id 3)
   {
     product_id: 301,
     store_id: 3,
@@ -165,8 +239,6 @@ export const products = [
     image: "https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=500",
     description: "Великий ріжок з шоколадом.",
   },
-
-  // РУТЕНІЯ (id 4)
   {
     product_id: 401,
     store_id: 4,
@@ -183,8 +255,6 @@ export const products = [
     image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500",
     description: "Соковитий шашлик на мангалі.",
   },
-
-  // ДУБЛІН (id 5)
   {
     product_id: 501,
     store_id: 5,
@@ -201,8 +271,6 @@ export const products = [
     image: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500",
     description: "Крильця, цибулеві кільця, грінки, соуси.",
   },
-
-  // КАРДАМОН (id 6)
   {
     product_id: 601,
     store_id: 6,
@@ -219,8 +287,6 @@ export const products = [
     image: "https://images.unsplash.com/photo-1570968992193-6e5c8802efff?w=500",
     description: "Кава з молоком та карамельним сиропом.",
   },
-
-  // НАВІ (id 7)
   {
     product_id: 701,
     store_id: 7,

@@ -2,13 +2,14 @@ import { Stack } from "expo-router";
 import { Provider } from "react-redux";
 import { store } from "../store";
 import { useColorScheme } from 'react-native';
-import  usePushNotifications  from '../hooks/usePushNotifications'; // 👈 1. ІМПОРТ
+import usePushNotifications from '../hooks/usePushNotifications';
+import DynamicIsland from '../components/DynamicIsland';
 
 export default function RootLayout() {
-  
+
   const { expoPushToken } = usePushNotifications();
-  
-  
+
+
   console.log("Токен працює:", expoPushToken);
 
   const colorScheme = useColorScheme();
@@ -20,6 +21,7 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" />
         {/* Інші екрани */}
       </Stack>
+      <DynamicIsland />
     </Provider>
   );
 }

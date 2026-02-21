@@ -15,31 +15,23 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView from 'react-native-maps';
 import { useDispatch } from 'react-redux';
-
-// Перевір, чи правильні назви екшенів у твоєму locationSlice.js
 import { addAddress, setCurrentLocation } from '../store/locationSlice';
 
 export default function LocationPickerScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-
-  // === СТАН КАРТИ ТА ЛОКАЦІЇ ===
   const [region, setRegion] = useState({
-    latitude: 48.5469, // Свалява за замовчуванням
+    latitude: 48.5469,
     longitude: 22.9863,
     latitudeDelta: 0.005,
     longitudeDelta: 0.005,
   });
   const [detectedStreet, setDetectedStreet] = useState('Завантаження вулиці...');
   const [mapType, setMapType] = useState('standard');
-
-  // === СТАН ФОРМИ (Тумблер і поля) ===
-  const [addressType, setAddressType] = useState('apartment'); // 'apartment' або 'house'
+  const [addressType, setAddressType] = useState('apartment');
   const [houseNumber, setHouseNumber] = useState('');
   const [entrance, setEntrance] = useState('');
   const [apartmentNumber, setApartmentNumber] = useState('');
-
-  // 1. Отримання дозволу і поточної локації при завантаженні
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -55,8 +47,6 @@ export default function LocationPickerScreen() {
       });
     })();
   }, []);
-
-  // 2. Визначення вулиці при русі карти
   const onRegionChangeComplete = async (newRegion) => {
     setRegion(newRegion);
     try {
@@ -67,7 +57,6 @@ export default function LocationPickerScreen() {
 
       if (addressResponse.length > 0) {
         const addr = addressResponse[0];
-        // Формуємо вулицю і місто (без номера будинку, бо його юзер вводить сам)
         const streetText = `${addr.street || ''}, ${addr.city || ''}`;
         setDetectedStreet(streetText.trim() === ',' ? 'Невідома вулиця' : streetText.trim());
       }
@@ -75,13 +64,9 @@ export default function LocationPickerScreen() {
       setDetectedStreet('Не вдалося визначити адресу');
     }
   };
-
-  // Перемикач типу карти (Супутник / Звичайна)
   const toggleMapType = () => {
     setMapType(current => current === 'standard' ? 'hybrid' : 'standard');
   };
-
-  // Валідація полів
   const validateInputs = () => {
     if (!houseNumber.trim()) {
       Alert.alert('Помилка', 'Введіть номер будинку');
@@ -95,8 +80,6 @@ export default function LocationPickerScreen() {
     }
     return true;
   };
-
-  // Формування фінального об'єкта адреси
   const getFullAddressInfo = () => {
     let details = `буд. ${houseNumber}`;
     if (addressType === 'apartment') {
@@ -114,26 +97,18 @@ export default function LocationPickerScreen() {
       address: finalAddressString
     };
   };
-
-  // ЗБЕРЕГТИ АДРЕСУ
   const handleSaveLocation = () => {
     if (validateInputs()) {
       const newPlace = getFullAddressInfo();
-      
-      // Зберігаємо поточну локацію
       dispatch(setCurrentLocation({
         latitude: newPlace.latitude,
         longitude: newPlace.longitude,
         addressName: newPlace.address 
       }));
-      
-      // Додаємо в список адрес (використовуй addAddress або saveAddress залежно від твого Redux)
       dispatch(addAddress(newPlace)); 
       router.back();
     }
   };
-
-  // ВИКОРИСТАТИ 1 РАЗ
   const handleUseOnce = () => {
     if (validateInputs()) {
       const tempAddress = getFullAddressInfo();

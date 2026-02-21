@@ -1,80 +1,216 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { useState } from 'react';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useColorScheme,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
-import { stores } from '../data/mockData.js';
-import { toggleFavorite } from '../store/favoritesSlice';
+import { t } from '../constants/translations';
+import { products, stores } from '../data/mockData.js';
+import { toggleFavorite, toggleFavoriteProduct } from '../store/favoritesSlice';
+import ProductSheet from '../components/ProductSheet';
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const locale = useSelector(s => s.language?.locale ?? 'uk');
 
-  // Беремо лайки з Redux
   const favoriteIds = useSelector(state => state.favorites.ids);
-  // Шукаємо ресторани
-  const favoriteRestaurants = stores.filter(store => favoriteIds.includes(store.store_id));
+  const favoriteProductIds = useSelector(state => state.favorites.productIds ?? []);
+
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [activeTab, setActiveTab] = useState('stores');
+
+  const favoriteStores = stores.filter(s => favoriteIds.includes(s.store_id));
+  const favoriteProducts = products.filter(p => favoriteProductIds.includes(p.product_id));
+
+  const isEmpty = activeTab === 'stores' ? favoriteStores.length === 0 : favoriteProducts.length === 0;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+
+      {/* Заголовок */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.text }]}>Улюблені заклади ❤️</Text>
-        <View style={{ width: 24 }} />
+        <Text style={[styles.title, { color: theme.text }]}>{t(locale, 'favoritesTitle')} ❤️</Text>
       </View>
 
-      <FlatList
-        data={favoriteRestaurants}
-        keyExtractor={item => item.store_id.toString()}
-        contentContainerStyle={{ padding: 20 }}
-        ListEmptyComponent={
-            <View style={{ alignItems: 'center', marginTop: 50 }}>
-                <Ionicons name="heart-dislike-outline" size={60} color="gray" />
-                <Text style={{ color: 'gray', marginTop: 10 }}>Список порожній</Text>
-            </View>
-        }
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={[styles.card, { backgroundColor: theme.card }]}
-            onPress={() => router.push(`/restaurant/${item.store_id}`)}
-          >
-            <Image source={{ uri: item.image }} style={styles.image} />
-            <View style={styles.info}>
-              <View style={styles.row}>
-                <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
-                <Text style={{fontSize: 12}}>⭐️ {item.rating}</Text>
-              </View>
-              <Text style={styles.tags}>{item.tags.join(' • ')}</Text>
-              <Text style={styles.delivery}>{item.delivery_time}</Text>
-            </View>
-            <TouchableOpacity 
-                style={styles.removeBtn} 
-                onPress={() => dispatch(toggleFavorite(item.store_id))}
-            >
-                <Ionicons name="heart" size={24} color="#e334e3" />
-            </TouchableOpacity>
-          </TouchableOpacity>
-        )}
-      />
+      {/* Tabs */}
+      <View style={[styles.tabRow, { backgroundColor: theme.card }]}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'stores' && styles.tabActive]}
+          onPress={() => setActiveTab('stores')}
+        >
+          <Ionicons
+            name="storefront-outline"
+            size={16}
+            color={activeTab === 'stores' ? 'white' : 'gray'}
+            style={{ marginRight: 6 }}
+          />
+          <Text style={[styles.tabText, activeTab === 'stores' && styles.tabTextActive]}>
+            {locale === 'en' ? 'Places' : 'Заклади'} {favoriteStores.length > 0 ? `(${favoriteStores.length})` : ''}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'products' && styles.tabActive]}
+          onPress={() => setActiveTab('products')}
+        >
+          <Ionicons
+            name="restaurant-outline"
+            size={16}
+            color={activeTab === 'products' ? 'white' : 'gray'}
+            style={{ marginRight: 6 }}
+          />
+          <Text style={[styles.tabText, activeTab === 'products' && styles.tabTextActive]}>
+            {locale === 'en' ? 'Dishes' : 'Страви'} {favoriteProducts.length > 0 ? `(${favoriteProducts.length})` : ''}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Контент */}
+      {isEmpty ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyEmoji}>{activeTab === 'stores' ? '🏪' : '🍕'}</Text>
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>
+            {activeTab === 'stores'
+              ? (locale === 'en' ? 'No favorite places' : 'Немає улюблених закладів')
+              : (locale === 'en' ? 'No favorite dishes' : 'Немає улюблених страв')}
+          </Text>
+          <Text style={[styles.emptySubtitle, { color: 'gray' }]}>
+            {activeTab === 'stores'
+              ? (locale === 'en' ? 'Tap ⭐ in a restaurant to add' : 'Натисніть ⭐ у ресторані щоб додати')
+              : (locale === 'en' ? 'Tap ❤️ in restaurant menu to add' : 'Натисніть ❤️ у меню ресторану щоб додати')}
+          </Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+          {activeTab === 'stores'
+            ? favoriteStores.map(item => (
+              <TouchableOpacity
+                key={item.store_id}
+                style={[styles.card, { backgroundColor: theme.card }]}
+                onPress={() => router.push(`/restaurant/${item.store_id}`)}
+                activeOpacity={0.85}
+              >
+                <Image source={{ uri: item.image }} style={styles.storeImg} />
+                <View style={styles.cardInfo}>
+                  <Text style={[styles.cardName, { color: theme.text }]}>{item.name}</Text>
+                  <View style={styles.metaRow}>
+                    <Ionicons name="star" size={12} color="#f5c518" />
+                    <Text style={styles.metaText}>{item.rating}</Text>
+                    <Text style={styles.metaDot}>•</Text>
+                    <Text style={styles.metaText}>{item.delivery_time}</Text>
+                  </View>
+                  <Text style={[styles.tags, { color: 'gray' }]}>{item.tags.join(' · ')}</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => dispatch(toggleFavorite(item.store_id))}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="heart" size={22} color="#e334e3" />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))
+            : favoriteProducts.map(item => (
+              <TouchableOpacity
+                key={item.product_id}
+                style={[styles.card, { backgroundColor: theme.card }]}
+                onPress={() => setSelectedProduct(item)}
+                activeOpacity={0.85}
+              >
+                <Image source={{ uri: item.image }} style={styles.productImg} />
+                <View style={styles.cardInfo}>
+                  <Text style={[styles.cardName, { color: theme.text }]} numberOfLines={2}>{item.name}</Text>
+                  <Text style={styles.productPrice}>{item.price} ₴</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => dispatch(toggleFavoriteProduct(item.product_id))}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="heart" size={22} color="#e334e3" />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))
+          }
+        </ScrollView>
+      )}
+
+      {selectedProduct && (
+        <ProductSheet
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20 },
-  title: { fontSize: 20, fontWeight: 'bold' },
-  card: { flexDirection: 'row', borderRadius: 16, marginBottom: 16, padding: 10, elevation: 2 },
-  image: { width: 70, height: 70, borderRadius: 12 },
-  info: { flex: 1, marginLeft: 12, justifyContent: 'center' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontSize: 16, fontWeight: 'bold' },
-  tags: { fontSize: 12, color: 'gray' },
-  delivery: { fontSize: 12, color: 'gray' },
-  removeBtn: { padding: 10 }
+
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.3 },
+
+  tabRow: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderRadius: 16,
+    padding: 4,
+    gap: 4,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  tabActive: {
+    backgroundColor: '#e334e3',
+  },
+  tabText: { fontSize: 14, fontWeight: '600', color: 'gray' },
+  tabTextActive: { color: 'white' },
+
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 100,
+  },
+  emptyEmoji: { fontSize: 56, marginBottom: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  emptySubtitle: { fontSize: 13, textAlign: 'center', paddingHorizontal: 40 },
+
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 18,
+    marginBottom: 12,
+    padding: 12,
+  },
+  storeImg: { width: 70, height: 70, borderRadius: 14, backgroundColor: '#eee' },
+  productImg: { width: 70, height: 70, borderRadius: 14, backgroundColor: '#eee' },
+  cardInfo: { flex: 1, marginHorizontal: 12 },
+  cardName: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
+  metaText: { fontSize: 12, color: 'gray' },
+  metaDot: { color: 'gray', fontSize: 12 },
+  tags: { fontSize: 12 },
+  productPrice: { color: '#e334e3', fontWeight: '800', fontSize: 15 },
 });

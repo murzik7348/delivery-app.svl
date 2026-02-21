@@ -2,22 +2,19 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   savedAddresses: [],
-  currentLocation: null, //збереження поточної локації
+  currentLocation: null,
 };
 
 const locationSlice = createSlice({
   name: 'location',
   initialState,
   reducers: {
-    // Збереження адреси в список
     addAddress: (state, action) => {
       state.savedAddresses.push(action.payload);
     },
-    // На всякий випадок дублюємо як saveAddress (бо в тебе в коді була така назва)
     saveAddress: (state, action) => {
       state.savedAddresses.push(action.payload);
     },
-    // Видалення адреси зі списку
     removeAddress: (state, action) => {
       state.savedAddresses = state.savedAddresses.filter(
         (address) => address.id !== action.payload

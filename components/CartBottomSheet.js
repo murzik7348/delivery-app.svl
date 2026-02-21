@@ -34,8 +34,6 @@ export default function CartBottomSheet({
       },
     })
   ).current;
-
-  // Захист від NaN (якщо дані ще не підвантажились)
   const safeTotal = parseFloat(totalAmount) || 0;
   const safeSubtotal = parseFloat(subtotal) || 0;
   const safeDelivery = parseFloat(deliveryFee) || 0;

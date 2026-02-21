@@ -17,9 +17,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.user = null;
     },
-    // 👇 ДОДАЄМО ЦЕ (Оновлення профілю)
     updateUser: (state, action) => {
-      // Об'єднуємо старі дані з новими (наприклад, змінюємо тільки ім'я, а телефон залишаємо)
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
       }
@@ -27,5 +25,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { loginUser, logoutUser, updateUser } = authSlice.actions; // 👈 Не забудь експортувати updateUser
+export const { loginUser, logoutUser, updateUser } = authSlice.actions;
 export default authSlice.reducer;

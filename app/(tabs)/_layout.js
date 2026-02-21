@@ -3,15 +3,44 @@ import React from 'react';
 import { Platform, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
+import { useSelector } from 'react-redux';
+import { View, Text, StyleSheet } from 'react-native';
+import { t } from '../../constants/translations';
+
+function CartBadge({ color, focused }) {
+  const cartItems = useSelector((s) => s.cart.items);
+  const count = cartItems.reduce((sum, i) => sum + (i.quantity || 1), 0);
+  return (
+    <View>
+      <Ionicons name={focused ? 'cart' : 'cart-outline'} size={24} color={color} />
+      {count > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  badge: {
+    position: 'absolute', top: -4, right: -6,
+    backgroundColor: '#e334e3', borderRadius: 8,
+    minWidth: 16, height: 16,
+    justifyContent: 'center', alignItems: 'center', paddingHorizontal: 2,
+  },
+  badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
+});
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const locale = useSelector(s => s.language?.locale ?? 'uk');
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#e334e3', // Твій фіолетовий колір
+        tabBarActiveTintColor: '#e334e3',
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
         tabBarStyle: {
@@ -21,48 +50,49 @@ export default function TabLayout() {
           paddingBottom: Platform.OS === 'ios' ? 30 : 10,
         },
       }}>
-      
-      {/* 1. ГОЛОВНА */}
+
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Головна',
+          title: t(locale, 'home'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
           ),
         }}
       />
 
-      {/* 2. КАТАЛОГ (Замість пошуку) */}
       <Tabs.Screen
         name="catalog"
         options={{
-          title: 'Каталог',
+          title: t(locale, 'catalog'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'grid' : 'grid-outline'} size={24} color={color} />
           ),
         }}
       />
 
-      {/* 3. ПРОФІЛЬ */}
       <Tabs.Screen
-        name="profile"
+        name="favorites"
         options={{
-          title: 'Профіль',
+          title: t(locale, 'favorites'),
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'heart' : 'heart-outline'} size={24} color={color} />
           ),
         }}
       />
 
-      {/* 👇 Приховуємо старий файл пошуку, якщо ти його ще не видалив, щоб не було двох кнопок */}
       <Tabs.Screen
-        name="search"
+        name="cart"
         options={{
-          href: null, 
+          title: t(locale, 'cart'),
+          tabBarIcon: ({ color, focused }) => (
+            <CartBadge color={color} focused={focused} />
+          ),
         }}
       />
-      
+
+      <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -4,8 +4,8 @@ import { FlatList, Image, StyleSheet, Text, TouchableOpacity, useColorScheme, Vi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
-import { stores } from '../data/mockData'; // Наша база ресторанів
-import { toggleFavorite } from '../store/favoritesSlice'; // Дія видалення
+import { stores } from '../data/mockData';
+import { toggleFavorite } from '../store/favoritesSlice';
 
 export default function FavoritesScreen() {
   const router = useRouter();
@@ -13,11 +13,7 @@ export default function FavoritesScreen() {
   
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-
-  // 1. Беремо список ID улюблених закладів
   const favoriteIds = useSelector(state => state.favorites.ids);
-
-  // 2. Фільтруємо ресторани: залишаємо тільки ті, що є в списку
   const favoriteRestaurants = stores.filter(store => favoriteIds.includes(store.store_id));
 
   return (

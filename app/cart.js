@@ -5,9 +5,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  Easing,
   Dimensions,
   FlatList,
   Image,
+  Keyboard,
   LayoutAnimation,
   Modal,
   PanResponder,
@@ -23,6 +25,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
+import { t } from '../constants/translations';
 import {
   addToCart,
   clearCart,
@@ -31,37 +34,20 @@ import {
   setOrderNote,
   updateQuantity,
 } from '../store/cartSlice';
+import { showDynamicIsland } from '../store/uiSlice';
 import { addOrder } from '../store/ordersSlice';
+import * as LiveActivity from 'expo-live-activity';
 import AddressBottomSheet from '../components/AddressBottomSheet';
 import { products } from '../data/mockData';
-
-// ─── Enable LayoutAnimation on Android ────────────────────────────────────────
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-// ─── Sheet geometry ────────────────────────────────────────────────────────────
-//   COLLAPSED_HEIGHT  = pixels visible when sheet is "closed"
-//   EXPANDED_HEIGHT   = total sheet height when fully open (72% of screen)
-//   MAX_TRANS         = how far down the sheet translates when collapsed
-//                       (so only COLLAPSED_HEIGHT peeks above the bottom)
-//   MIN_TRANS         = 0 → sheet is at its natural (expanded) position
 const COLLAPSED_HEIGHT = 158;
-const EXPANDED_HEIGHT  = SCREEN_HEIGHT * 0.72;
-const MAX_TRANS        = EXPANDED_HEIGHT - COLLAPSED_HEIGHT;
-const MIN_TRANS        = 0;
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-const PAYMENT_MAP = {
-  '1':    { name: 'Apple Pay',  icon: 'logo-apple'  },
-  '2':    { name: 'Google Pay', icon: 'logo-google' },
-  '3':    { name: 'Готівка',    icon: 'cash'        },
-  card:   { name: 'Картка',     icon: 'card'        },
-};
-
-const getPaymentInfo = (id) => PAYMENT_MAP[id] ?? { name: 'Apple Pay', icon: 'logo-apple' };
+const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.58;
+const MAX_TRANS = EXPANDED_HEIGHT - COLLAPSED_HEIGHT;
+const MIN_TRANS = 0;
 
 /** Parse any value safely — never returns NaN. */
 const safeNum = (v) => {
@@ -72,113 +58,113 @@ const safeNum = (v) => {
 /** Resolve a canonical ID from a product/cart item. */
 const resolveId = (item) =>
   item?.product_id ?? item?.id ?? null;
-
-// ══════════════════════════════════════════════════════════════════════════════
 export default function CartScreen() {
-  const router      = useRouter();
-  const dispatch    = useDispatch();
+  const router = useRouter();
+  const dispatch = useDispatch();
   const colorScheme = useColorScheme();
-  const theme       = Colors[colorScheme ?? 'light'];
-  const insets      = useSafeAreaInsets();
-
-  // ── Local UI state ─────────────────────────────────────────────────────────
+  const theme = Colors[colorScheme ?? 'light'];
+  const locale = useSelector(s => s.language?.locale ?? 'uk');
+  const insets = useSafeAreaInsets();
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
-  const [noteVisible,      setNoteVisible]       = useState(false);
-  const [viewProduct,      setViewProduct]        = useState(null);
-
-  // ── Redux state ────────────────────────────────────────────────────────────
+  const [noteVisible, setNoteVisible] = useState(false);
+  const [viewProduct, setViewProduct] = useState(null);
   const {
-    items:          cartItems,
-    subtotal:       rawSubtotal,
-    totalAmount:    rawTotal,
+    items: cartItems,
+    subtotal: rawSubtotal,
+    totalAmount: rawTotal,
     discountAmount: rawDiscount,
     appliedPromo,
     deliveryType,
-    deliveryFee:    rawFee,
+    deliveryFee: rawFee,
     orderNote,
   } = useSelector((s) => s.cart);
 
   const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
-  const paymentId       = useSelector((s) => s.payment?.selectedMethodId);
-  const savedAddresses  = useSelector((s) => s.location.savedAddresses);
-
-  // Safe numbers — no NaN anywhere
-  const subtotal       = safeNum(rawSubtotal);
-  const totalAmount    = safeNum(rawTotal);
+  const paymentId = useSelector((s) => s.payment?.selectedMethodId);
+  const paymentMethods = useSelector((s) => s.payment?.methods ?? []);
+  const savedAddresses = useSelector((s) => s.location.savedAddresses);
+  const subtotal = safeNum(rawSubtotal);
+  const totalAmount = safeNum(rawTotal);
   const discountAmount = safeNum(rawDiscount);
-  const deliveryFee    = deliveryType === 'delivery' ? safeNum(rawFee) : 0;
+  const deliveryFee = deliveryType === 'delivery' ? safeNum(rawFee) : 0;
 
-  const userAddress  = savedAddresses?.length > 0 ? savedAddresses[0].address : 'Оберіть адресу';
-  const paymentInfo  = getPaymentInfo(paymentId);
-
-  // Items NOT yet in the cart — shown as horizontal recommendations
+  const userAddress = savedAddresses?.length > 0 ? savedAddresses[0].address : t(locale, 'chooseAddressBtn');
+  const activeMethod = paymentMethods.find(m => m.id === paymentId);
+  const paymentInfo = activeMethod
+    ? { name: activeMethod.type, icon: activeMethod.icon }
+    : { name: t(locale, 'choosePayment'), icon: 'card-outline' };
   const recommendations = products
     .filter((p) => !cartItems.find((i) => resolveId(i) === p.product_id))
     .slice(0, 6);
-
-  // ── Bottom sheet animation ─────────────────────────────────────────────────
-  //
-  // We use React Native's own `Animated` + `PanResponder` from 'react-native'.
-  // NEVER import Animated from react-native-reanimated and then pair it with
-  // PanResponder — they are different animation runtimes and will crash.
-  //
-  // translateY range:
-  //   MIN_TRANS (0)   = expanded
-  //   MAX_TRANS       = collapsed (only COLLAPSED_HEIGHT visible)
-  //
-  const translateY  = useRef(new Animated.Value(MAX_TRANS)).current;
-
-  // Track current value without accessing private ._value internals
+  const translateY = useRef(new Animated.Value(MAX_TRANS)).current;
   const currentY = useRef(MAX_TRANS);
   useEffect(() => {
     const sub = translateY.addListener(({ value }) => { currentY.current = value; });
     return () => translateY.removeListener(sub);
   }, [translateY]);
 
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        Animated.timing(keyboardOffset, {
+          toValue: e.endCoordinates.height,
+          duration: Platform.OS === 'ios' ? e.duration || 250 : 200,
+          easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
+          useNativeDriver: true,
+        }).start();
+      }
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      (e) => {
+        Animated.timing(keyboardOffset, {
+          toValue: 0,
+          duration: Platform.OS === 'ios' ? e.duration || 250 : 200,
+          easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
+          useNativeDriver: true,
+        }).start();
+      }
+    );
+    return () => { show.remove(); hide.remove(); };
+  }, [keyboardOffset]);
+
   const snapTo = useCallback((toValue) => {
-    Animated.spring(translateY, {
+    Animated.timing(translateY, {
       toValue,
+      duration: 420,
+      easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
       useNativeDriver: true,
-      tension:           70,
-      friction:          12,
-      overshootClamping: true,
     }).start();
   }, [translateY]);
-
-  // PanResponder lives only on the DRAG HANDLE (44px pill area at the top
-  // of the sheet). Creating it synchronously inside useRef() ensures the
-  // handlers exist on the very first render — a useEffect() creation would
-  // leave the first render with no handlers.
   const panResponder = useRef(
     PanResponder.create({
-      // Only respond to vertical gestures
-      onMoveShouldSetPanResponder:        (_, gs) => Math.abs(gs.dy) > 5,
-      onMoveShouldSetPanResponderCapture: (_, gs) => Math.abs(gs.dy) > 8,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 2,
+      onMoveShouldSetPanResponderCapture: () => false,
 
       onPanResponderGrant: () => {
-        // Capture current animated value as offset so movement starts from here
-        translateY.setOffset(currentY.current);
-        translateY.setValue(0);
+        translateY.extractOffset();
       },
 
       onPanResponderMove: (_, gs) => {
         let dy = gs.dy;
         const projected = currentY.current + dy;
-        // Rubber-band: heavy resistance beyond snap limits
-        if (projected < MIN_TRANS) dy *= 0.18;
-        else if (projected > MAX_TRANS) dy *= 0.18;
+        if (projected < MIN_TRANS) dy *= 0.25;
+        else if (projected > MAX_TRANS) dy *= 0.25;
         translateY.setValue(dy);
       },
 
       onPanResponderRelease: (_, gs) => {
         translateY.flattenOffset();
-        const cy  = currentY.current;
-        const vy  = gs.vy;
+        const cy = currentY.current;
+        const vy = gs.vy;
 
         let target;
-        if      (vy >  0.5) target = MAX_TRANS; // fast flick down → collapse
-        else if (vy < -0.5) target = MIN_TRANS;  // fast flick up   → expand
-        else target = cy < MAX_TRANS * 0.45 ? MIN_TRANS : MAX_TRANS;
+        if (vy > 0.4) target = MAX_TRANS;
+        else if (vy < -0.4) target = MIN_TRANS;
+        else target = cy < MAX_TRANS * 0.5 ? MIN_TRANS : MAX_TRANS;
 
         snapTo(target);
       },
@@ -189,43 +175,71 @@ export default function CartScreen() {
       },
     })
   ).current;
-
-  // ── Checkout ───────────────────────────────────────────────────────────────
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
     if (!isAuthenticated) {
       Alert.alert(
-        'Вхід не виконано',
-        'Будь ласка, увійдіть у профіль для оформлення замовлення.',
+        locale === 'en' ? 'Not signed in' : 'Вхід не виконано',
+        locale === 'en' ? 'Please sign in to place an order.' : 'Будь ласка, увійдіть у профіль для оформлення замовлення.',
         [
-          { text: 'Відміна', style: 'cancel' },
-          { text: 'Увійти', onPress: () => router.push('/(auth)/login') },
+          { text: t(locale, 'no'), style: 'cancel' },
+          { text: t(locale, 'login'), onPress: () => router.push('/(auth)/login') },
         ]
       );
       return;
     }
     const order = {
-      id:       Date.now().toString(),
-      items:    cartItems,
-      total:    totalAmount,
+      id: Date.now().toString(),
+      items: cartItems,
+      total: totalAmount,
       discount: discountAmount,
       delivery: deliveryFee,
-      promo:    appliedPromo?.code ?? null,
-      note:     orderNote,
-      type:     deliveryType,
-      date:     new Date().toISOString(),
-      status:   'pending',
-      address:  deliveryType === 'delivery' ? userAddress : 'Самовивіз з ресторану',
-      payment:  paymentInfo.name,
+      promo: appliedPromo?.code ?? null,
+      note: orderNote,
+      type: deliveryType,
+      date: new Date().toISOString(),
+      status: 'pending',
+      address: deliveryType === 'delivery' ? userAddress : (locale === 'en' ? 'Pickup from restaurant' : 'Самовивіз з ресторану'),
+      payment: paymentInfo.name,
     };
     dispatch(addOrder(order));
     dispatch(clearCart());
-    Alert.alert('Успішно!', 'Замовлення оформлено 🎉', [
-      { text: 'OK', onPress: () => router.push('/orders') },
-    ]);
-  };
 
-  // ── Cart item row ──────────────────────────────────────────────────────────
+    // Красиве In-App сповіщення
+    dispatch(showDynamicIsland({
+      title: locale === 'en' ? 'Success!' : 'Успішно!',
+      message: locale === 'en' ? 'Order placed 🎉' : 'Замовлення оформлено 🎉',
+      icon: 'checkmark-circle',
+      type: 'success',
+    }));
+
+    // Дані для нашого нового Ride-Sharing UI передаємо як JSON-рядок у полі `subtitle`
+    const rideData = JSON.stringify({
+      driverName: "4ABC123",
+      carModel: "Mercedes-Benz",
+      time: "24 min",
+      distance: "4,5 km",
+      startAddress: "2647 Grand Avenue",
+      endAddress: "2341 Oakdale Avenue",
+      paymentInfo: "1234"
+    });
+
+    // Нативний виклик Live Activity (iOS 16.1+)
+    LiveActivity.startActivity({
+      title: locale === 'en' ? 'Driver Arrival' : 'Водій в дорозі',
+      subtitle: rideData, // Swift розкодує цей JSON
+      progressBar: {
+        date: new Date(Date.now() + 24 * 60 * 1000).getTime(),
+      }
+    }, {
+      backgroundColor: '#0F0F0F',
+      titleColor: '#ffffff',
+      subtitleColor: '#ffffff',
+      timerType: 'circular'
+    });
+
+    router.push('/orders');
+  };
   const renderCartItem = ({ item }) => {
     const id = resolveId(item);
     return (
@@ -269,14 +283,6 @@ export default function CartScreen() {
       </View>
     );
   };
-
-  // ── Recommendation card ────────────────────────────────────────────────────
-  //
-  // BUG 2 FIX: The "+" button is its own TouchableOpacity that dispatches
-  // addToCart directly. It is NOT nested inside the card's TouchableOpacity.
-  // This prevents any event bubbling ambiguity and the wrong-item Redux bug
-  // (which is also fixed in cartSlice.js).
-  //
   const renderRecItem = ({ item }) => (
     <View style={[styles.recCard, { backgroundColor: theme.card }]}>
       {/* Card body — tap to see detail */}
@@ -298,8 +304,6 @@ export default function CartScreen() {
       </TouchableOpacity>
     </View>
   );
-
-  // ── Main render ────────────────────────────────────────────────────────────
   return (
     <SafeAreaView
       edges={['top']}
@@ -307,30 +311,32 @@ export default function CartScreen() {
     >
       {/* ── Header ── */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Кошик</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t(locale, 'cartTitle')}</Text>
         {cartItems.length > 0 && (
           <TouchableOpacity onPress={() => dispatch(clearCart())}>
-            <Text style={styles.clearBtn}>Очистити</Text>
+            <Text style={styles.clearBtn}>{t(locale, 'clearCart')}</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* ── Delivery toggle ── */}
-      <View style={styles.headerPad}>
-        <View style={[styles.toggle, { backgroundColor: theme.input }]}>
-          {['delivery', 'pickup'].map((type) => (
-            <TouchableOpacity
-              key={type}
-              style={[styles.toggleBtn, deliveryType === type && styles.toggleBtnActive]}
-              onPress={() => dispatch(setDeliveryType(type))}
-            >
-              <Text style={[styles.toggleText, deliveryType === type && styles.toggleTextActive]}>
-                {type === 'delivery' ? '🛵 Доставка' : '🏃 Самовивіз'}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      {/* ── Delivery toggle (тільки якщо є товари) ── */}
+      {cartItems.length > 0 && (
+        <View style={styles.headerPad}>
+          <View style={[styles.toggle, { backgroundColor: theme.input }]}>
+            {['delivery', 'pickup'].map((type) => (
+              <TouchableOpacity
+                key={type}
+                style={[styles.toggleBtn, deliveryType === type && styles.toggleBtnActive]}
+                onPress={() => dispatch(setDeliveryType(type))}
+              >
+                <Text style={[styles.toggleText, deliveryType === type && styles.toggleTextActive]}>
+                  {type === 'delivery' ? `🛵 ${t(locale, 'delivery')}` : `🏃 ${t(locale, 'pickup')}`}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </View>
+      )}
 
       {/* ── Content area ── */}
       {cartItems.length > 0 ? (
@@ -342,14 +348,13 @@ export default function CartScreen() {
             keyExtractor={(item, idx) => (resolveId(item) ?? idx).toString()}
             contentContainerStyle={{
               paddingTop: 10,
-              // Extra bottom padding so items are never hidden behind the sheet
               paddingBottom: COLLAPSED_HEIGHT + insets.bottom + 32,
             }}
             ListFooterComponent={
               recommendations.length > 0 ? (
                 <View style={styles.recSection}>
                   <Text style={[styles.recTitle, { color: theme.text }]}>
-                    З цим смакує 🔥
+                    {t(locale, 'recommended')}
                   </Text>
                   <FlatList
                     horizontal
@@ -382,14 +387,20 @@ export default function CartScreen() {
               styles.sheet,
               {
                 backgroundColor: theme.card,
-                shadowColor:      theme.text,
-                height:           EXPANDED_HEIGHT,
+                shadowColor: theme.text,
+                height: EXPANDED_HEIGHT,
                 transform: [{
-                  translateY: translateY.interpolate({
-                    inputRange:  [MIN_TRANS, MAX_TRANS],
-                    outputRange: [MIN_TRANS, MAX_TRANS],
-                    extrapolate: 'clamp',
-                  }),
+                  translateY: Animated.add(
+                    translateY.interpolate({
+                      inputRange: [MIN_TRANS, MAX_TRANS],
+                      outputRange: [MIN_TRANS, MAX_TRANS],
+                      extrapolate: 'clamp',
+                    }),
+                    keyboardOffset.interpolate({
+                      inputRange: [0, 1000],
+                      outputRange: [0, -1000],
+                    })
+                  ),
                 }],
               },
             ]}
@@ -399,12 +410,13 @@ export default function CartScreen() {
               <View style={styles.dragPill} />
             </View>
 
+
             {/* ════════════════════════════════════════════════════════
              * COLLAPSED ZONE — always visible, always interactive
              * ════════════════════════════════════════════════════════ */}
             <View style={styles.collapsedZone}>
               <View style={styles.totalRow}>
-                <Text style={[styles.totalLabel, { color: theme.text }]}>До сплати:</Text>
+                <Text style={[styles.totalLabel, { color: theme.text }]}>{t(locale, 'toPay')}</Text>
                 <Text style={[styles.totalValue, { color: theme.text }]}>
                   {totalAmount.toFixed(0)} ₴
                 </Text>
@@ -415,7 +427,7 @@ export default function CartScreen() {
                 activeOpacity={0.85}
                 onPress={handleCheckout}
               >
-                <Text style={styles.checkoutBtnText}>Оформити замовлення</Text>
+                <Text style={styles.checkoutBtnText}>{t(locale, 'placeOrder')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -427,7 +439,7 @@ export default function CartScreen() {
 
               {/* Price breakdown */}
               <View style={styles.priceRow}>
-                <Text style={[styles.priceLabel, { color: 'gray' }]}>Товари</Text>
+                <Text style={[styles.priceLabel, { color: 'gray' }]}>{t(locale, 'goods')}</Text>
                 <Text style={[styles.priceValue, { color: theme.text }]}>
                   {subtotal.toFixed(0)} ₴
                 </Text>
@@ -435,9 +447,9 @@ export default function CartScreen() {
 
               {deliveryType === 'delivery' && (
                 <View style={styles.priceRow}>
-                  <Text style={[styles.priceLabel, { color: 'gray' }]}>Доставка</Text>
+                  <Text style={[styles.priceLabel, { color: 'gray' }]}>{t(locale, 'deliveryFee')}</Text>
                   <Text style={[styles.priceValue, { color: theme.text }]}>
-                    {deliveryFee === 0 ? 'Безкоштовно' : `${deliveryFee.toFixed(0)} ₴`}
+                    {deliveryFee === 0 ? (locale === 'en' ? 'Free' : 'Безкоштовно') : `${deliveryFee.toFixed(0)} ₴`}
                   </Text>
                 </View>
               )}
@@ -445,7 +457,7 @@ export default function CartScreen() {
               {appliedPromo && discountAmount > 0 && (
                 <View style={styles.priceRow}>
                   <Text style={[styles.priceLabel, { color: '#e334e3' }]}>
-                    Знижка ({appliedPromo.code})
+                    {t(locale, 'discount')} ({appliedPromo.code})
                   </Text>
                   <Text style={[styles.priceValue, { color: '#e334e3' }]}>
                     −{discountAmount.toFixed(0)} ₴
@@ -464,7 +476,7 @@ export default function CartScreen() {
                 <View style={styles.actionRowLeft}>
                   <Ionicons name="ticket-outline" size={20} color="#e334e3" />
                   <Text style={[styles.actionRowText, { color: theme.text }]}>
-                    {appliedPromo ? appliedPromo.code : 'Промокод'}
+                    {appliedPromo ? appliedPromo.code : t(locale, 'promoCode')}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="gray" />
@@ -486,7 +498,7 @@ export default function CartScreen() {
                       {userAddress}
                     </Text>
                   </View>
-                  <Text style={styles.changeText}>Змінити</Text>
+                  <Text style={styles.changeText}>{t(locale, 'change')}</Text>
                 </TouchableOpacity>
               )}
 
@@ -515,17 +527,21 @@ export default function CartScreen() {
                       setNoteVisible(true);
                     }}
                   >
-                    <Text style={styles.addNoteText}>+ Коментар до замовлення</Text>
+                    <Text style={styles.addNoteText}>{t(locale, 'addComment')}</Text>
                   </TouchableOpacity>
                 ) : (
                   <View style={[styles.noteBox, { backgroundColor: theme.input }]}>
                     <TextInput
                       style={[styles.noteInput, { color: theme.text }]}
-                      placeholder="Код домофону, прибори..."
+                      placeholder={locale === 'en' ? 'Doorbell code, cutlery...' : 'Код домофону, прибори...'}
                       placeholderTextColor="gray"
                       value={orderNote}
-                      onChangeText={(t) => dispatch(setOrderNote(t))}
+                      onChangeText={(val) => dispatch(setOrderNote(val))}
                       multiline
+                      blurOnSubmit
+                      returnKeyType="done"
+                      returnKeyLabel="Готово"
+                      onSubmitEditing={() => Keyboard.dismiss()}
                     />
                   </View>
                 )}
@@ -537,12 +553,12 @@ export default function CartScreen() {
         /* ── Empty state ── */
         <View style={styles.emptyState}>
           <Ionicons name="cart-outline" size={80} color="gray" />
-          <Text style={[styles.emptyText, { color: theme.text }]}>Кошик порожній</Text>
+          <Text style={[styles.emptyText, { color: theme.text }]}>{t(locale, 'emptyCart')}</Text>
           <TouchableOpacity
             style={[styles.shopBtn, { backgroundColor: theme.card }]}
             onPress={() => router.push('/(tabs)')}
           >
-            <Text style={[styles.shopBtnText, { color: theme.text }]}>В меню</Text>
+            <Text style={[styles.shopBtnText, { color: theme.text }]}>{locale === 'en' ? 'To menu' : 'В меню'}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -615,69 +631,55 @@ export default function CartScreen() {
     </SafeAreaView>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container:    { flex: 1 },
-
-  // Header
-  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 6 },
-  headerTitle:  { fontSize: 28, fontWeight: 'bold' },
-  clearBtn:     { color: '#ff3b30', fontWeight: '600', fontSize: 15 },
-  headerPad:    { paddingHorizontal: 20, paddingBottom: 10 },
-
-  // Delivery toggle
-  toggle:          { flexDirection: 'row', borderRadius: 12, padding: 4, height: 44 },
-  toggleBtn:       { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 6 },
+  headerTitle: { fontSize: 28, fontWeight: 'bold' },
+  clearBtn: { color: '#ff3b30', fontWeight: '600', fontSize: 15 },
+  headerPad: { paddingHorizontal: 20, paddingBottom: 10 },
+  toggle: { flexDirection: 'row', borderRadius: 12, padding: 4, height: 44 },
+  toggleBtn: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
   toggleBtnActive: { backgroundColor: 'white', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
-  toggleText:      { fontWeight: '600', color: 'gray' },
-  toggleTextActive:{ color: 'black' },
-
-  // Cart item
-  itemCard:   { flexDirection: 'row', alignItems: 'center', marginBottom: 12, padding: 12, borderRadius: 20, marginHorizontal: 16 },
-  itemLeft:   { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  itemImage:  { width: 66, height: 66, borderRadius: 16, backgroundColor: '#eee' },
-  itemInfo:   { flex: 1, marginLeft: 12 },
-  itemName:   { fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  itemPrice:  { color: '#e334e3', fontWeight: 'bold', marginTop: 4 },
-  stepper:    { flexDirection: 'row', alignItems: 'center' },
+  toggleText: { fontWeight: '600', color: 'gray' },
+  toggleTextActive: { color: 'black' },
+  itemCard: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, padding: 12, borderRadius: 20, marginHorizontal: 16 },
+  itemLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  itemImage: { width: 66, height: 66, borderRadius: 16, backgroundColor: '#eee' },
+  itemInfo: { flex: 1, marginLeft: 12 },
+  itemName: { fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  itemPrice: { color: '#e334e3', fontWeight: 'bold', marginTop: 4 },
+  stepper: { flexDirection: 'row', alignItems: 'center' },
   stepperQty: { marginHorizontal: 10, fontSize: 18, fontWeight: 'bold' },
-
-  // Recommendations
   recSection: { marginTop: 22, marginBottom: 20 },
-  recTitle:   { fontSize: 18, fontWeight: 'bold', marginLeft: 16, marginBottom: 12 },
-  recCard:    { width: 138, marginRight: 14, borderRadius: 16, padding: 10, alignItems: 'center', elevation: 2 },
-  recImage:   { width: 100, height: 78, borderRadius: 12, marginBottom: 7, backgroundColor: '#eee' },
-  recName:    { fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 2 },
-  recPrice:   { color: '#e334e3', fontWeight: 'bold', fontSize: 12, marginBottom: 4 },
-  recAddBtn:  {
+  recTitle: { fontSize: 18, fontWeight: 'bold', marginLeft: 16, marginBottom: 12 },
+  recCard: { width: 138, marginRight: 14, borderRadius: 16, padding: 10, alignItems: 'center', elevation: 2 },
+  recImage: { width: 100, height: 78, borderRadius: 12, marginBottom: 7, backgroundColor: '#eee' },
+  recName: { fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 2 },
+  recPrice: { color: '#e334e3', fontWeight: 'bold', fontSize: 12, marginBottom: 4 },
+  recAddBtn: {
     position: 'absolute', bottom: 8, right: 8,
     backgroundColor: '#e334e3',
     borderRadius: 14, width: 28, height: 28,
     justifyContent: 'center', alignItems: 'center',
   },
-
-  // ── Bottom sheet ──────────────────────────────────────────────────────────
   sheet: {
-    position:             'absolute',
-    bottom:               0,
-    left:                 0,
-    right:                0,
-    borderTopLeftRadius:  28,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingHorizontal:    20,
-    paddingTop:           0,
-    elevation:            28,
-    shadowOpacity:        0.18,
-    shadowRadius:         14,
-    shadowOffset:         { width: 0, height: -6 },
-    zIndex:               999,
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    elevation: 28,
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: -6 },
+    zIndex: 999,
   },
-
-  // Drag handle — panHandlers are attached ONLY to this view
   dragHandleArea: {
-    alignItems:        'center',
-    paddingVertical:   14,
+    alignItems: 'center',
+    paddingVertical: 14,
     marginHorizontal: -20,
     paddingHorizontal: 20,
   },
@@ -686,46 +688,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#C6C6CC',
     borderRadius: 3,
   },
-
-  // Collapsed zone (total + checkout button)
   collapsedZone: { paddingBottom: 18 },
-  totalRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  totalLabel:    { fontSize: 17, fontWeight: '700' },
-  totalValue:    { fontSize: 26, fontWeight: 'bold' },
-  checkoutBtn:   { backgroundColor: '#e334e3', borderRadius: 18, padding: 16, alignItems: 'center' },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  totalLabel: { fontSize: 17, fontWeight: '700' },
+  totalValue: { fontSize: 26, fontWeight: 'bold' },
+  checkoutBtn: { backgroundColor: '#e334e3', borderRadius: 18, padding: 16, alignItems: 'center' },
   checkoutBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-
-  // Expanded zone
   expandedZone: { flex: 1 },
-  divider:      { height: 1, marginBottom: 14, opacity: 0.35 },
-  priceRow:     { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 9 },
-  priceLabel:   { fontSize: 15 },
-  priceValue:   { fontSize: 15, fontWeight: '600' },
+  divider: { height: 1, marginBottom: 14, opacity: 0.35 },
+  priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 9 },
+  priceLabel: { fontSize: 15 },
+  priceValue: { fontSize: 15, fontWeight: '600' },
 
-  actionRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 13, borderRadius: 14, marginBottom: 9 },
-  actionRowLeft:  { flexDirection: 'row', alignItems: 'center' },
-  actionRowText:  { fontSize: 14, fontWeight: '600', marginLeft: 10 },
-  changeText:     { color: '#e334e3', fontSize: 13, fontWeight: '600' },
-  addNoteText:    { color: '#e334e3', fontWeight: 'bold', paddingVertical: 6 },
-  noteBox:        { borderRadius: 14, padding: 12 },
-  noteInput:      { fontSize: 14, maxHeight: 70, lineHeight: 20 },
-
-  // Empty state
-  emptyState:   { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: -50 },
-  emptyText:    { fontSize: 18, marginTop: 16, marginBottom: 20 },
-  shopBtn:      { paddingHorizontal: 28, paddingVertical: 13, borderRadius: 14 },
-  shopBtnText:  { fontWeight: 'bold', fontSize: 16 },
-
-  // Product detail modal
-  modalBackdrop:        { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
-  productSheet:         { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 40, width: '100%', maxHeight: '82%' },
-  productSheetPill:     { width: 44, height: 5, backgroundColor: '#ccc', borderRadius: 3, alignSelf: 'center', marginTop: 12, marginBottom: 6 },
-  productSheetImage:    { width: '100%', height: 230, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
-  productSheetBody:     { padding: 20 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 13, borderRadius: 14, marginBottom: 9 },
+  actionRowLeft: { flexDirection: 'row', alignItems: 'center' },
+  actionRowText: { fontSize: 14, fontWeight: '600', marginLeft: 10 },
+  changeText: { color: '#e334e3', fontSize: 13, fontWeight: '600' },
+  addNoteText: { color: '#e334e3', fontWeight: 'bold', paddingVertical: 6 },
+  noteBox: { borderRadius: 14, padding: 12 },
+  noteInput: { fontSize: 14, maxHeight: 70, lineHeight: 20 },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: -50 },
+  emptyText: { fontSize: 18, marginTop: 16, marginBottom: 20 },
+  shopBtn: { paddingHorizontal: 28, paddingVertical: 13, borderRadius: 14 },
+  shopBtnText: { fontWeight: 'bold', fontSize: 16 },
+  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  productSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 40, width: '100%', maxHeight: '82%' },
+  productSheetPill: { width: 44, height: 5, backgroundColor: '#ccc', borderRadius: 3, alignSelf: 'center', marginTop: 12, marginBottom: 6 },
+  productSheetImage: { width: '100%', height: 230, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  productSheetBody: { padding: 20 },
   productSheetTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
-  productSheetTitle:    { fontSize: 22, fontWeight: 'bold', flex: 1, marginRight: 10 },
-  productSheetPrice:    { fontSize: 22, fontWeight: 'bold', color: '#e334e3' },
-  productSheetDesc:     { fontSize: 15, marginTop: 8, marginBottom: 24, lineHeight: 23 },
-  productSheetBtn:      { backgroundColor: '#e334e3', padding: 16, borderRadius: 18, alignItems: 'center' },
-  productSheetBtnText:  { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  productSheetTitle: { fontSize: 22, fontWeight: 'bold', flex: 1, marginRight: 10 },
+  productSheetPrice: { fontSize: 22, fontWeight: 'bold', color: '#e334e3' },
+  productSheetDesc: { fontSize: 15, marginTop: 8, marginBottom: 24, lineHeight: 23 },
+  productSheetBtn: { backgroundColor: '#e334e3', padding: 16, borderRadius: 18, alignItems: 'center' },
+  productSheetBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
 });

@@ -4,8 +4,6 @@ import { useMemo, useState } from 'react';
 import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from '../../constants/Colors';
-
-// 👇 ВИПРАВЛЕНО: Імпортуємо products напряму
 import { products } from '../../data/mockData.js';
 
 export default function CatalogScreen() {
@@ -15,29 +13,21 @@ export default function CatalogScreen() {
 
   const [sortOrder, setSortOrder] = useState(null); 
   const [modalVisible, setModalVisible] = useState(false);
-
-  // 👇 ВИПРАВЛЕНО: Просто беремо готовий список товарів
   const allProducts = useMemo(() => {
     return products || [];
   }, []);
-
-  // Сортування
   const sortedProducts = useMemo(() => {
     let list = [...allProducts];
     if (sortOrder === 'asc') list.sort((a, b) => a.price - b.price);
     if (sortOrder === 'desc') list.sort((a, b) => b.price - a.price);
     return list;
   }, [allProducts, sortOrder]);
-
-  // Топ і Новинки (беремо перші та останні для прикладу)
   const topProducts = allProducts.slice(0, 5);
   const newProducts = allProducts.slice(5, 10);
-
-  // Картка товару
   const renderProductItem = ({ item }) => (
     <TouchableOpacity 
       style={[styles.card, { backgroundColor: theme.card }]}
-      onPress={() => router.push(`/restaurant/${item.store_id}`)} // Перехід до магазину цього товару
+      onPress={() => router.push(`/restaurant/${item.store_id}`)}
     >
       <Image source={{ uri: item.image }} style={styles.cardImage} />
       <View style={styles.cardContent}>

@@ -1,489 +1,129 @@
-import React, { useRef, useState } from 'react';
-
+import React from 'react';
 import {
-
-View,
-
-Text,
-
-StyleSheet,
-
-Dimensions,
-
-Animated,
-
-PanResponder,
-
-TouchableOpacity,
-
-Platform
-
+    View,
+    Text,
+    StyleSheet,
+    Modal,
+    TouchableOpacity,
+    useColorScheme,
 } from 'react-native';
-
 import { Ionicons } from '@expo/vector-icons';
-
+import { useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
+import Colors from '../constants/Colors';
 
+export default function AddressBottomSheet({ visible, onClose }) {
+    const colorScheme = useColorScheme();
+    const theme = Colors[colorScheme ?? 'light'];
+    const router = useRouter();
+    const savedAddresses = useSelector((s) => s.location.savedAddresses);
 
+    return (
+        <Modal
+            animationType="slide"
+            transparent
+            visible={visible}
+            onRequestClose={onClose}
+        >
+            <TouchableOpacity
+                style={styles.backdrop}
+                activeOpacity={1}
+                onPress={onClose}
+            >
+                <TouchableOpacity
+                    activeOpacity={1}
+                    style={[styles.sheet, { backgroundColor: theme.card }]}
+                >
+                    <View style={styles.pill} />
+                    <Text style={[styles.title, { color: theme.text }]}>Адреса доставки</Text>
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
+                    {savedAddresses && savedAddresses.length > 0 ? (
+                        savedAddresses.map((addr, i) => (
+                            <TouchableOpacity
+                                key={i}
+                                style={[styles.addressRow, { backgroundColor: theme.input }]}
+                                onPress={onClose}
+                            >
+                                <Ionicons name="location-outline" size={20} color="#e334e3" />
+                                <Text style={[styles.addressText, { color: theme.text }]} numberOfLines={2}>
+                                    {addr.address}
+                                </Text>
+                            </TouchableOpacity>
+                        ))
+                    ) : (
+                        <Text style={[styles.noAddress, { color: 'gray' }]}>
+                            Збережених адрес немає
+                        </Text>
+                    )}
 
-
-
-// НАЛАШТУВАННЯ (Можеш підкрутити під себе)
-
-const CLOSED_HEIGHT = 120; // Висота, коли шторка згорнута (видно тільки кнопку і ціну)
-
-const OPEN_HEIGHT = SCREEN_HEIGHT * 0.7; // Висота, коли шторка відкрита (70% екрану)
-
-
-
-export default function CartBottomSheet({ totalAmount, onOrder }) {
-
-const router = useRouter();
-
-
-
-// Початкове положення - згорнута (схована вниз, стирчить тільки хвостик)
-
-// Ми рухаємо шторку через translateY.
-
-// 0 = повністю відкрита.
-
-// (OPEN_HEIGHT - CLOSED_HEIGHT) = повністю закрита.
-
-const maxOffset = OPEN_HEIGHT - CLOSED_HEIGHT;
-
-const panY = useRef(new Animated.Value(maxOffset)).current;
-
-
-// Зберігаємо останнє положення, щоб анімація не дьоргалась
-
-const lastGestureDy = useRef(0);
-
-
-
-const panResponder = useRef(
-
-PanResponder.create({
-
-onStartShouldSetPanResponder: () => true,
-
-onMoveShouldSetPanResponder: (_, gestureState) => {
-
-// Реагуємо тільки якщо тягнуть вертикально більше ніж на 5 пікселів
-
-return Math.abs(gestureState.dy) > 5;
-
-},
-
-onPanResponderGrant: () => {
-
-// Запам'ятовуємо поточне значення анімації, коли торкнулись пальцем
-
-panY.extractOffset();
-
-},
-
-onPanResponderMove: (_, gestureState) => {
-
-// Рухаємо шторку за пальцем
-
-panY.setValue(gestureState.dy);
-
-},
-
-onPanResponderRelease: (_, gestureState) => {
-
-// Коли відпустили палець - треба вирішити, куди летіти (вгору чи вниз)
-
-panY.flattenOffset();
-
-
-// Якщо потягнули різко вгору або пройшли половину шляху - відкриваємо
-
-// gestureState.dy < 0 - це рух вгору
-
-if (gestureState.dy < -50 || (gestureState.dy < 0 && gestureState.moveY < SCREEN_HEIGHT - 200)) {
-
-// Відкриваємо (їдемо в 0)
-
-Animated.spring(panY, {
-
-toValue: 0,
-
-friction: 6,
-
-tension: 50,
-
-useNativeDriver: true,
-
-}).start();
-
-} else {
-
-// Закриваємо (їдемо вниз до стопора)
-
-Animated.spring(panY, {
-
-toValue: maxOffset,
-
-friction: 6,
-
-tension: 50,
-
-useNativeDriver: true,
-
-}).start();
-
+                    <TouchableOpacity
+                        style={styles.addBtn}
+                        onPress={() => {
+                            onClose();
+                            router.push('/location-picker');
+                        }}
+                    >
+                        <Ionicons name="add-circle-outline" size={20} color="#e334e3" />
+                        <Text style={styles.addBtnText}>Додати адресу</Text>
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </TouchableOpacity>
+        </Modal>
+    );
 }
-
-},
-
-})
-
-).current;
-
-
-
-return (
-
-<Animated.View
-
-style={[
-
-styles.container,
-
-{
-
-height: OPEN_HEIGHT,
-
-transform: [
-
-{
-
-translateY: panY.interpolate({
-
-inputRange: [-100, 0, maxOffset, maxOffset + 100],
-
-outputRange: [-20, 0, maxOffset, maxOffset + 20], // Гумовий ефект
-
-extrapolate: 'clamp',
-
-}),
-
-},
-
-],
-
-},
-
-]}
-
->
-
-{/* ✋ ЗОНА ДЛЯ СВАЙПУ (Тягни за неї) */}
-
-<View {...panResponder.panHandlers} style={styles.dragHandleArea}>
-
-<View style={styles.dragIndicator} />
-
-</View>
-
-
-
-{/* ВМІСТ ШТОРКИ */}
-
-<View style={styles.content}>
-
-
-{/* ВЕРХНЯ ЧАСТИНА (Завжди видно) */}
-
-<View style={styles.headerRow}>
-
-<Text style={styles.totalLabel}>До сплати:</Text>
-
-<Text style={styles.totalPrice}>{totalAmount} ₴</Text>
-
-</View>
-
-
-
-<TouchableOpacity style={styles.orderButton} onPress={onOrder}>
-
-<Text style={styles.orderButtonText}>Оформити замовлення</Text>
-
-</TouchableOpacity>
-
-
-
-{/* ПРИХОВАНИЙ КОНТЕНТ (Видно тільки коли витягнеш) */}
-
-<View style={styles.detailsContainer}>
-
-{/* Лінія розділювач */}
-
-<View style={styles.divider} />
-
-
-<View style={styles.detailRow}>
-
-<Text style={styles.detailText}>Товари</Text>
-
-<Text style={styles.detailPrice}>{totalAmount - 50} ₴</Text>
-
-</View>
-
-<View style={styles.detailRow}>
-
-<Text style={styles.detailText}>Доставка</Text>
-
-<Text style={styles.detailPrice}>50 ₴</Text>
-
-</View>
-
-
-
-{/* Менюшки */}
-
-<TouchableOpacity style={styles.menuItem}>
-
-<View style={{flexDirection:'row', alignItems:'center', gap: 10}}>
-
-<Ionicons name="ticket-outline" size={24} color="#a855f7" />
-
-<Text style={styles.menuText}>Промокод</Text>
-
-</View>
-
-<Ionicons name="chevron-forward" size={20} color="gray" />
-
-</TouchableOpacity>
-
-
-
-<TouchableOpacity style={styles.menuItem}>
-
-<View style={{flexDirection:'row', alignItems:'center', gap: 10}}>
-
-<Ionicons name="location-outline" size={24} color="white" />
-
-<Text style={styles.menuText}>Оберіть адресу</Text>
-
-</View>
-
-<Text style={{color:'#a855f7'}}>Змінити</Text>
-
-</TouchableOpacity>
-
-
-
-<TouchableOpacity style={styles.menuItem}>
-
-<View style={{flexDirection:'row', alignItems:'center', gap: 10}}>
-
-<Ionicons name="logo-apple" size={24} color="white" />
-
-<Text style={styles.menuText}>Apple Pay</Text>
-
-</View>
-
-<Ionicons name="chevron-forward" size={20} color="gray" />
-
-</TouchableOpacity>
-
-
-
-<TouchableOpacity style={{marginTop: 15}}>
-
-<Text style={{color:'#a855f7', fontWeight:'bold'}}>+ Коментар до замовлення</Text>
-
-</TouchableOpacity>
-
-</View>
-
-</View>
-
-</Animated.View>
-
-);
-
-}
-
-
 
 const styles = StyleSheet.create({
-
-container: {
-
-position: 'absolute',
-
-bottom: 0,
-
-left: 0,
-
-right: 0,
-
-backgroundColor: '#1c1c1e', // Темний фон як на скріні
-
-borderTopLeftRadius: 24,
-
-borderTopRightRadius: 24,
-
-shadowColor: "#000",
-
-shadowOffset: { width: 0, height: -5 },
-
-shadowOpacity: 0.3,
-
-shadowRadius: 10,
-
-elevation: 20,
-
-zIndex: 999,
-
-},
-
-dragHandleArea: {
-
-width: '100%',
-
-height: 30,
-
-alignItems: 'center',
-
-justifyContent: 'center',
-
-backgroundColor: 'transparent',
-
-},
-
-dragIndicator: {
-
-width: 40,
-
-height: 4,
-
-backgroundColor: '#555',
-
-borderRadius: 2,
-
-},
-
-content: {
-
-paddingHorizontal: 20,
-
-flex: 1,
-
-},
-
-headerRow: {
-
-flexDirection: 'row',
-
-justifyContent: 'space-between',
-
-alignItems: 'center',
-
-marginBottom: 15,
-
-},
-
-totalLabel: {
-
-color: 'white',
-
-fontSize: 18,
-
-fontWeight: 'bold',
-
-},
-
-totalPrice: {
-
-color: 'white',
-
-fontSize: 22,
-
-fontWeight: 'bold',
-
-},
-
-orderButton: {
-
-backgroundColor: '#d946ef', // Рожевий/Фіолетовий
-
-paddingVertical: 16,
-
-borderRadius: 16,
-
-alignItems: 'center',
-
-marginBottom: 20,
-
-},
-
-orderButtonText: {
-
-color: 'white',
-
-fontSize: 18,
-
-fontWeight: 'bold',
-
-},
-
-// ДЕТАЛІ
-
-detailsContainer: {
-
-marginTop: 10,
-
-},
-
-divider: {
-
-height: 1,
-
-backgroundColor: '#333',
-
-marginBottom: 15,
-
-},
-
-detailRow: {
-
-flexDirection: 'row',
-
-justifyContent: 'space-between',
-
-marginBottom: 10,
-
-},
-
-detailText: { color: 'gray', fontSize: 16 },
-
-detailPrice: { color: 'white', fontSize: 16 },
-
-menuItem: {
-
-flexDirection: 'row',
-
-justifyContent: 'space-between',
-
-alignItems: 'center',
-
-backgroundColor: '#2c2c2e',
-
-padding: 15,
-
-borderRadius: 12,
-
-marginTop: 10,
-
-},
-
-menuText: { color: 'white', fontSize: 16, fontWeight:'500' }
-
+    backdrop: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    sheet: {
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingHorizontal: 20,
+        paddingBottom: 40,
+        paddingTop: 12,
+    },
+    pill: {
+        width: 44,
+        height: 5,
+        backgroundColor: '#C6C6CC',
+        borderRadius: 3,
+        alignSelf: 'center',
+        marginBottom: 16,
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 16,
+    },
+    addressRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 14,
+        borderRadius: 14,
+        marginBottom: 10,
+        gap: 10,
+    },
+    addressText: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '500',
+    },
+    noAddress: {
+        fontSize: 15,
+        marginBottom: 16,
+    },
+    addBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 8,
+    },
+    addBtnText: {
+        color: '#e334e3',
+        fontSize: 15,
+        fontWeight: '600',
+    },
 });

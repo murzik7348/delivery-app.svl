@@ -5,39 +5,34 @@ import { Alert, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableO
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../../constants/Colors';
+import { t } from '../../constants/translations';
 import { logoutUser } from '../../store/authSlice';
-import { deleteAddress } from '../../store/locationSlice';
+import { removeAddress } from '../../store/locationSlice';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-  
-  // Дані з Redux
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const { savedAddresses } = useSelector((state) => state.location);
-  // Щоб показувати кількість улюблених закладів
   const favoriteIds = useSelector((state) => state.favorites.ids);
+  const locale = useSelector((state) => state.language?.locale ?? 'uk');
 
   const [modalVisible, setModalVisible] = useState(false);
-
-  // --- ЛОГІКА ВИХОДУ ---
   const handleLogout = () => {
-    Alert.alert("Вихід", "Вийти з акаунту?", [
-      { text: "Ні", style: "cancel" },
-      { text: "Так", style: "destructive", onPress: () => dispatch(logoutUser()) }
+    Alert.alert(t(locale, 'logout'), t(locale, 'logout') + '?', [
+      { text: t(locale, 'no') ?? 'Ні', style: 'cancel' },
+      { text: t(locale, 'yes') ?? 'Так', style: 'destructive', onPress: () => dispatch(logoutUser()) }
     ]);
   };
 
   const handleDeleteAddress = (id) => {
     Alert.alert("Видалення", "Видалити цю адресу?", [
       { text: "Ні", style: "cancel" },
-      { text: "Так", style: "destructive", onPress: () => dispatch(deleteAddress(id)) }
+      { text: "Так", style: "destructive", onPress: () => dispatch(removeAddress(id)) }
     ]);
   };
-
-  // --- ЕКРАН ДЛЯ ГОСТЯ (Якщо не увійшов) ---
   if (!isAuthenticated) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -45,27 +40,25 @@ export default function ProfileScreen() {
           <View style={styles.iconCircle}>
             <Ionicons name="person" size={60} color="white" />
           </View>
-          <Text style={[styles.guestTitle, { color: theme.text }]}>Вітаємо!</Text>
+          <Text style={[styles.guestTitle, { color: theme.text }]}>{t(locale, 'welcome')}</Text>
           <Text style={[styles.guestSubtitle, { color: theme.textSecondary }]}>
-            Увійдіть, щоб бачити історію замовлень та свої дані.
+            {t(locale, 'loginPrompt')}
           </Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/register')}>
-            <Text style={styles.primaryBtnText}>Створити акаунт</Text>
+            <Text style={styles.primaryBtnText}>{t(locale, 'createAccount')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.secondaryBtn, { borderColor: theme.border }]} onPress={() => router.push('/(auth)/login')}>
-            <Text style={[styles.secondaryBtnText, { color: theme.text }]}>Увійти</Text>
+            <Text style={[styles.secondaryBtnText, { color: theme.text }]}>{t(locale, 'login')}</Text>
           </TouchableOpacity>
         </SafeAreaView>
       </View>
     );
   }
-
-  // Компонент одного пункту меню
   const MenuItem = ({ icon, label, isLast, badge, onPress }) => (
-    <TouchableOpacity 
-      onPress={onPress} 
+    <TouchableOpacity
+      onPress={onPress}
       style={[
-        styles.menuItem, 
+        styles.menuItem,
         { backgroundColor: theme.card, borderBottomColor: theme.border, borderBottomWidth: isLast ? 0 : 1 }
       ]}
     >
@@ -86,13 +79,13 @@ export default function ProfileScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-          
+
           {/* Шапка профілю */}
           <View style={styles.header}>
             <View style={styles.avatarContainer}>
-              <Image 
-                source={{ uri: user?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500' }} 
-                style={styles.avatar} 
+              <Image
+                source={{ uri: user?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500' }}
+                style={styles.avatar}
               />
               {/* 👇 ОСЬ ТУТ КНОПКА РЕДАГУВАННЯ (ОЛІВЕЦЬ) */}
               <TouchableOpacity style={styles.editBtn} onPress={() => router.push('/profile-edit')}>
@@ -103,56 +96,30 @@ export default function ProfileScreen() {
             <Text style={[styles.phone, { color: theme.textSecondary }]}>{user?.phone || 'Телефон не вказано'}</Text>
           </View>
 
-          {/* --- БЛОК 1: АКТИВНІСТЬ --- */}
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Активність</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t(locale, 'activity').toUpperCase()}</Text>
           <View style={[styles.section, { backgroundColor: theme.card }]}>
-            
-            <MenuItem 
-              icon="receipt-outline" 
-              label="Мої замовлення" 
-              onPress={() => router.push('/orders')} 
-            />
-            
-            <MenuItem 
-              icon="heart-outline" 
-              label="Улюблені заклади" 
+            <MenuItem icon="receipt-outline" label={t(locale, 'myOrders')} onPress={() => router.push('/orders')} />
+            <MenuItem
+              icon="heart-outline"
+              label={t(locale, 'favoriteStores')}
               badge={favoriteIds.length > 0 ? favoriteIds.length.toString() : null}
-              onPress={() => router.push('/favorites')} 
+              onPress={() => router.push('/favorites')}
             />
-
-            <MenuItem 
-              icon="ticket-outline" 
-              label="Промокоди" 
-              isLast 
-              onPress={() => router.push('/promocodes')}
-            />
+            <MenuItem icon="ticket-outline" label={t(locale, 'promoCodes')} isLast onPress={() => router.push('/promocodes')} />
           </View>
 
-          {/* --- БЛОК 2: НАЛАШТУВАННЯ --- */}
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Налаштування</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t(locale, 'settings').toUpperCase()}</Text>
           <View style={[styles.section, { backgroundColor: theme.card }]}>
-            
-            <MenuItem 
-              icon="card-outline" 
-              label="Методи оплати" 
-              onPress={() => router.push('/payment')}
-            />
-            
-            <MenuItem 
-              icon="location-outline" 
-              label="Збережені адреси" 
-              onPress={() => setModalVisible(true)} 
-            />
-            
-            <MenuItem icon="notifications-outline" label="Сповіщення" />
-            <MenuItem icon="language-outline" label="Мова" isLast />
+            <MenuItem icon="card-outline" label={t(locale, 'paymentMethods')} onPress={() => router.push('/payment')} />
+            <MenuItem icon="location-outline" label={t(locale, 'savedAddresses')} onPress={() => setModalVisible(true)} />
+            <MenuItem icon="notifications-outline" label={t(locale, 'notifications')} />
+            <MenuItem icon="language-outline" label={t(locale, 'language')} isLast onPress={() => router.push('/language')} />
           </View>
 
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-            <Text style={styles.logoutText}>Вийти з акаунту</Text>
+            <Text style={styles.logoutText}>{t(locale, 'logout')}</Text>
           </TouchableOpacity>
-          
-          <Text style={[styles.version, { color: theme.textSecondary }]}>Версія 1.0.0</Text>
+          <Text style={[styles.version, { color: theme.textSecondary }]}>{t(locale, 'version')}</Text>
 
         </ScrollView>
       </SafeAreaView>
@@ -162,57 +129,57 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Мої адреси 🏠</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>{t(locale, 'myAddresses')}</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close-circle" size={30} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
-<FlatList
-  data={savedAddresses}
-  keyExtractor={(item) => item.id.toString()}
-  ListEmptyComponent={
-    <Text style={{ textAlign: 'center', color: 'gray', marginTop: 20 }}>
-      Немає збережених адрес
-    </Text>
-  }
-  renderItem={({ item }) => (
-    <View style={{
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 15,
-      marginBottom: 10,
-      backgroundColor: '#f9f9f9', // Світлий фон
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#eee'
-    }}>
-      {/* Ліва частина: Назва і Вулиця */}
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 16, fontWeight: 'bold', color: 'black' }}>
-          {item.name}
-        </Text>
-        <Text style={{ fontSize: 14, color: 'gray', marginTop: 2 }}>
-          {item.address}
-        </Text>
-      </View>
+            <FlatList
+              data={savedAddresses}
+              keyExtractor={(item) => item.id.toString()}
+              ListEmptyComponent={
+                <Text style={{ textAlign: 'center', color: 'gray', marginTop: 20 }}>
+                  {t(locale, 'noAddresses')}
+                </Text>
+              }
+              renderItem={({ item }) => (
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: 15,
+                  marginBottom: 10,
+                  backgroundColor: '#f9f9f9',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: '#eee'
+                }}>
+                  {/* Ліва частина: Назва і Вулиця */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: 'black' }}>
+                      {item.name}
+                    </Text>
+                    <Text style={{ fontSize: 14, color: 'gray', marginTop: 2 }}>
+                      {item.address}
+                    </Text>
+                  </View>
 
-      {/* Права частина: Кнопка видалити */}
-      <TouchableOpacity onPress={() => handleDeleteAddress(item.id)} style={{ padding: 5 }}>
-        <Ionicons name="trash-outline" size={24} color="red" />
-      </TouchableOpacity>
-    </View>
-  )}
-/>
+                  {/* Права частина: Кнопка видалити */}
+                  <TouchableOpacity onPress={() => handleDeleteAddress(item.id)} style={{ padding: 5 }}>
+                    <Ionicons name="trash-outline" size={24} color="red" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
 
-{/* 👇 ТІЛЬКИ ОДНА ЧОРНА КНОПКА (рожеву видалено повністю) */}
-           <TouchableOpacity 
-              style={styles.pinkAddBtn} 
+            {/* 👇 ТІЛЬКИ ОДНА ЧОРНА КНОПКА (рожеву видалено повністю) */}
+            <TouchableOpacity
+              style={styles.pinkAddBtn}
               onPress={() => { setModalVisible(false); router.push('/location-picker'); }}
               activeOpacity={0.8}
             >
               <Ionicons name="add" size={24} color="white" />
-              <Text style={styles.pinkAddBtnText}>Додати нову адресу</Text>
+              <Text style={styles.pinkAddBtnText}>{t(locale, 'addNewAddress')}</Text>
             </TouchableOpacity>
 
           </View>
@@ -235,7 +202,7 @@ const styles = StyleSheet.create({
   secondaryBtnText: { fontSize: 18, fontWeight: '600' },
   header: { alignItems: 'center', marginVertical: 20 },
   avatarContainer: { position: 'relative', marginBottom: 15 },
-  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: '#e334e3' }, // Додав рамку для краси
+  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: '#e334e3' },
   editBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#e334e3', padding: 8, borderRadius: 20, borderWidth: 3, borderColor: 'white' },
   name: { fontSize: 24, fontWeight: 'bold', marginBottom: 5 },
   phone: { fontSize: 16 },
@@ -261,13 +228,13 @@ const styles = StyleSheet.create({
   deleteBtn: { padding: 10, borderRadius: 10, marginLeft: 10 },
   addNewBtn: { flexDirection: 'row', backgroundColor: 'black', padding: 18, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
   addNewText: { color: 'white', fontWeight: 'bold', marginLeft: 10, fontSize: 16 },
-pinkAddBtn: { 
-    flexDirection: 'row', 
-    backgroundColor: '#e334e3', 
-    padding: 16, 
-    borderRadius: 16, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginTop: 20 
+  pinkAddBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#e334e3',
+    padding: 16,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20
   },
 });
