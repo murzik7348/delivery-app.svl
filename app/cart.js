@@ -38,6 +38,7 @@ import { showDynamicIsland } from '../store/uiSlice';
 import { addOrder } from '../store/ordersSlice';
 import * as LiveActivity from 'expo-live-activity';
 import AddressBottomSheet from '../components/AddressBottomSheet';
+import FakeApplePayModal from '../components/FakeApplePayModal';
 import { products } from '../data/mockData';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -68,6 +69,7 @@ export default function CartScreen() {
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
   const [noteVisible, setNoteVisible] = useState(false);
   const [viewProduct, setViewProduct] = useState(null);
+  const [payModalVisible, setPayModalVisible] = useState(false);
   const {
     items: cartItems,
     subtotal: rawSubtotal,
@@ -188,6 +190,14 @@ export default function CartScreen() {
       );
       return;
     }
+
+    // Instead of instally placing order, show Fake Apple Pay Modal
+    setPayModalVisible(true);
+  };
+
+  const processActualCheckout = () => {
+    setPayModalVisible(false);
+
     const order = {
       id: Date.now().toString(),
       items: cartItems,
@@ -213,20 +223,18 @@ export default function CartScreen() {
       type: 'success',
     }));
 
-    // Дані для нашого нового Ride-Sharing UI передаємо як JSON-рядок у полі `subtitle`
+    // Дані для нашого нового Food Delivery Live Activity
     const rideData = JSON.stringify({
-      driverName: "4ABC123",
-      carModel: "Mercedes-Benz",
+      status: "accepted",
+      driverName: "Олександр",
       time: "24 min",
-      distance: "4,5 km",
-      startAddress: "2647 Grand Avenue",
-      endAddress: "2341 Oakdale Avenue",
-      paymentInfo: "1234"
+      orderId: order.id.slice(-4),
+      totalPrice: `${totalAmount.toFixed(0)} ₴`
     });
 
     // Нативний виклик Live Activity (iOS 16.1+)
     LiveActivity.startActivity({
-      title: locale === 'en' ? 'Driver Arrival' : 'Водій в дорозі',
+      title: locale === 'en' ? 'Order accepted' : 'Замовлення прийнято',
       subtitle: rideData, // Swift розкодує цей JSON
       progressBar: {
         date: new Date(Date.now() + 24 * 60 * 1000).getTime(),
@@ -627,6 +635,14 @@ export default function CartScreen() {
       <AddressBottomSheet
         visible={addressSheetOpen}
         onClose={() => setAddressSheetOpen(false)}
+      />
+
+      {/* Fake Apple Pay Module */}
+      <FakeApplePayModal
+        visible={payModalVisible}
+        amount={totalAmount.toFixed(0)}
+        onClose={() => setPayModalVisible(false)}
+        onPaymentSuccess={processActualCheckout}
       />
     </SafeAreaView>
   );

@@ -112,6 +112,7 @@ export default function ProfileScreen() {
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <MenuItem icon="card-outline" label={t(locale, 'paymentMethods')} onPress={() => router.push('/payment')} />
             <MenuItem icon="location-outline" label={t(locale, 'savedAddresses')} onPress={() => setModalVisible(true)} />
+            <MenuItem icon="shield-checkmark-outline" label="Admin Panel (Персонал)" onPress={() => router.push('/admin')} />
             <MenuItem icon="notifications-outline" label={t(locale, 'notifications')} />
             <MenuItem icon="language-outline" label={t(locale, 'language')} isLast onPress={() => router.push('/language')} />
           </View>
