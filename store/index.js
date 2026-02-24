@@ -8,6 +8,8 @@ import notificationReducer from './notificationSlice';
 import paymentReducer from './paymentSlice';
 import languageReducer from './languageSlice';
 import uiReducer from './uiSlice';
+import aiReducer from './aiSlice';
+
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -19,5 +21,6 @@ export const store = configureStore({
     payment: paymentReducer,
     language: languageReducer,
     ui: uiReducer,
+    ai: aiReducer,
   },
 });

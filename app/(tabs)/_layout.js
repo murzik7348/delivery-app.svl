@@ -6,6 +6,8 @@ import Colors from '../../constants/Colors';
 import { useSelector } from 'react-redux';
 import { View, Text, StyleSheet } from 'react-native';
 import { t } from '../../constants/translations';
+import AiAssistantFAB from '../../components/AiAssistantFAB';
+import AiChatSheet from '../../components/AiChatSheet';
 
 function CartBadge({ color, focused }) {
   const cartItems = useSelector((s) => s.cart.items);
@@ -38,61 +40,66 @@ export default function TabLayout() {
   const locale = useSelector(s => s.language?.locale ?? 'uk');
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#e334e3',
-        tabBarInactiveTintColor: 'gray',
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: theme.background,
-          borderTopColor: theme.border,
-          height: Platform.OS === 'ios' ? 85 : 60,
-          paddingBottom: Platform.OS === 'ios' ? 30 : 10,
-        },
-      }}>
+    <View style={{ flex: 1 }}>
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: '#e334e3',
+          tabBarInactiveTintColor: 'gray',
+          headerShown: false,
+          tabBarStyle: {
+            backgroundColor: theme.background,
+            borderTopColor: theme.border,
+            height: Platform.OS === 'ios' ? 85 : 60,
+            paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+          },
+        }}>
 
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t(locale, 'home'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
-          ),
-        }}
-      />
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: t(locale, 'home'),
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen
-        name="catalog"
-        options={{
-          title: t(locale, 'catalog'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'grid' : 'grid-outline'} size={24} color={color} />
-          ),
-        }}
-      />
+        <Tabs.Screen
+          name="catalog"
+          options={{
+            title: t(locale, 'catalog'),
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'grid' : 'grid-outline'} size={24} color={color} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen
-        name="favorites"
-        options={{
-          title: t(locale, 'favorites'),
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'heart' : 'heart-outline'} size={24} color={color} />
-          ),
-        }}
-      />
+        <Tabs.Screen
+          name="favorites"
+          options={{
+            title: t(locale, 'favorites'),
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'heart' : 'heart-outline'} size={24} color={color} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen
-        name="cart"
-        options={{
-          title: t(locale, 'cart'),
-          tabBarIcon: ({ color, focused }) => (
-            <CartBadge color={color} focused={focused} />
-          ),
-        }}
-      />
+        <Tabs.Screen
+          name="cart"
+          options={{
+            title: t(locale, 'cart'),
+            tabBarIcon: ({ color, focused }) => (
+              <CartBadge color={color} focused={focused} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen name="profile" options={{ href: null }} />
-      <Tabs.Screen name="search" options={{ href: null }} />
-    </Tabs>
+        <Tabs.Screen name="profile" options={{ href: null }} />
+        <Tabs.Screen name="search" options={{ href: null }} />
+      </Tabs>
+
+      <AiAssistantFAB />
+      <AiChatSheet />
+    </View>
   );
 }

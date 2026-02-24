@@ -191,6 +191,16 @@ export default function CartScreen() {
       return;
     }
 
+    // Require address if delivery
+    if (deliveryType === 'delivery' && (!savedAddresses || savedAddresses.length === 0)) {
+      setAddressSheetOpen(true);
+      Alert.alert(
+        locale === 'en' ? 'Address required' : 'Потрібна адреса',
+        locale === 'en' ? 'Please add a delivery address first.' : 'Будь ласка, додайте адресу доставки перед оформленням.'
+      );
+      return;
+    }
+
     // Instead of instally placing order, show Fake Apple Pay Modal
     setPayModalVisible(true);
   };
