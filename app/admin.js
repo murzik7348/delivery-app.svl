@@ -14,6 +14,26 @@ export default function DriverAdminScreen() {
     const isDark = colorScheme === 'dark';
 
     const orders = useSelector(state => state.orders.orders);
+    const { user, isAuthenticated } = useSelector(state => state.auth);
+
+    // Guard: Role Check
+    if (!isAuthenticated || (user?.role !== 'admin' && user?.email !== 'admin@svl.com' && user?.email !== 'admin@gmail.com')) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#000000' : '#F2F2F7', justifyContent: 'center', alignItems: 'center' }]}>
+                <Ionicons name="lock-closed" size={60} color="red" style={{ marginBottom: 20 }} />
+                <Text style={{ color: isDark ? 'white' : 'black', fontSize: 22, fontWeight: 'bold', marginBottom: 10 }}>Доступ заборонено</Text>
+                <Text style={{ color: 'gray', textAlign: 'center', marginHorizontal: 30, marginBottom: 30 }}>
+                    Цей розділ доступний тільки для персоналу ресторану та купується за ліцензією Administrator.
+                </Text>
+                <TouchableOpacity
+                    style={{ backgroundColor: '#E22BC6', padding: 16, borderRadius: 12 }}
+                    onPress={() => router.replace('/')}
+                >
+                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Повернутися на головну</Text>
+                </TouchableOpacity>
+            </SafeAreaView>
+        );
+    }
 
     // Status mapping
     const statuses = [
@@ -60,13 +80,16 @@ export default function DriverAdminScreen() {
 
         try {
             if (Platform.OS === 'ios') {
-                // Якщо статусу ще не було (Live Activity щойно створено при чекауті)
-                // Або якщо ми оновлюємо
-                await LiveActivity.startActivity(title, rideData);
+                const dynamicVal = {
+                    title: title,
+                    subtitle: rideData,
+                };
+
+                await LiveActivity.startActivity(dynamicVal);
 
                 if (nextStatusId === 'completed') {
                     setTimeout(async () => {
-                        await LiveActivity.endActivity(title, rideData);
+                        await LiveActivity.endActivity(dynamicVal);
                     }, 5000);
                 }
             }

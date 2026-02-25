@@ -201,6 +201,19 @@ export default function CartScreen() {
       return;
     }
 
+    // Require payment method
+    if (!paymentId) {
+      Alert.alert(
+        locale === 'en' ? 'Payment method required' : 'Потрібен метод оплати',
+        locale === 'en' ? 'Please select a payment method before checkout.' : 'Будь ласка, оберіть спосіб оплати перед оформленням.',
+        [
+          { text: t(locale, 'no') || 'Відміна', style: 'cancel' },
+          { text: t(locale, 'paymentMethods') || 'Вибрати', onPress: () => router.push('/payment') }
+        ]
+      );
+      return;
+    }
+
     // Instead of instally placing order, show Fake Apple Pay Modal
     setPayModalVisible(true);
   };

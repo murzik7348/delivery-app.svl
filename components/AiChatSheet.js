@@ -79,7 +79,7 @@ export default function AiChatSheet() {
             // 4. Send to isolated AI Service (Scalable to API later)
             const aiResponse = await AiService.processQuery(userText, appContext);
 
-            dispatch(addMessage({ role: 'assistant', text: aiResponse }));
+            dispatch(addMessage({ role: 'assistant', text: aiResponse.reply }));
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (error) {
             dispatch(addMessage({ role: 'assistant', text: 'Вибачте, сталася помилка з\'єднання з AI. Спробуйте пізніше.' }));
