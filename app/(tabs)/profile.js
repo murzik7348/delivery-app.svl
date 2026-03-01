@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { Alert, ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../../constants/Colors';
 import { t } from '../../constants/translations';
 import { logoutUser } from '../../store/authSlice';
 import { removeAddress } from '../../store/locationSlice';
+import { deleteAddress as apiDeleteAddress, getAddresses } from '../../src/api';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -20,6 +21,24 @@ export default function ProfileScreen() {
   const locale = useSelector((state) => state.language?.locale ?? 'uk');
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+  const [liveAddresses, setLiveAddresses] = useState(null); // null = not yet loaded
+
+  const openAddressModal = async () => {
+    setModalVisible(true);
+    setAddressesLoading(true);
+    try {
+      const fetched = await getAddresses();
+      setLiveAddresses(Array.isArray(fetched) ? fetched : fetched?.items ?? []);
+    } catch {
+      // Fall back to Redux-persisted addresses if API fails
+      setLiveAddresses(null);
+    } finally {
+      setAddressesLoading(false);
+    }
+  };
+
+  const displayAddresses = liveAddresses ?? savedAddresses;
   const handleLogout = () => {
     Alert.alert(t(locale, 'logout'), t(locale, 'logout') + '?', [
       { text: t(locale, 'no') ?? 'Ні', style: 'cancel' },
@@ -28,9 +47,22 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAddress = (id) => {
-    Alert.alert("Видалення", "Видалити цю адресу?", [
-      { text: "Ні", style: "cancel" },
-      { text: "Так", style: "destructive", onPress: () => dispatch(removeAddress(id)) }
+    Alert.alert('Видалення', 'Видалити цю адресу?', [
+      { text: 'Ні', style: 'cancel' },
+      {
+        text: 'Так',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await apiDeleteAddress(id);
+          } catch (err) {
+            // If API call fails we still update UI (optimistic)
+            console.warn('[Profile] deleteAddress API error:', err.message);
+          }
+          dispatch(removeAddress(id));
+          setLiveAddresses((prev) => prev ? prev.filter((a) => a.id !== id) : null);
+        },
+      },
     ]);
   };
   if (!isAuthenticated) {
@@ -111,7 +143,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t(locale, 'settings').toUpperCase()}</Text>
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <MenuItem icon="card-outline" label={t(locale, 'paymentMethods')} onPress={() => router.push('/payment')} />
-            <MenuItem icon="location-outline" label={t(locale, 'savedAddresses')} onPress={() => setModalVisible(true)} />
+            <MenuItem icon="location-outline" label={t(locale, 'savedAddresses')} onPress={openAddressModal} />
             <MenuItem icon="shield-checkmark-outline" label="Admin Panel (Персонал)" onPress={() => router.push('/admin')} />
             <MenuItem icon="notifications-outline" label={t(locale, 'notifications')} />
             <MenuItem icon="language-outline" label={t(locale, 'language')} isLast onPress={() => router.push('/language')} />
@@ -136,12 +168,12 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
             <FlatList
-              data={savedAddresses}
+              data={displayAddresses}
               keyExtractor={(item) => item.id.toString()}
               ListEmptyComponent={
-                <Text style={{ textAlign: 'center', color: 'gray', marginTop: 20 }}>
-                  {t(locale, 'noAddresses')}
-                </Text>
+                addressesLoading
+                  ? <ActivityIndicator color="#e334e3" style={{ marginTop: 30 }} />
+                  : <Text style={{ textAlign: 'center', color: 'gray', marginTop: 20 }}>{t(locale, 'noAddresses')}</Text>
               }
               renderItem={({ item }) => (
                 <View style={{

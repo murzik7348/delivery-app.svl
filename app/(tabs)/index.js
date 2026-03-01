@@ -13,18 +13,22 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../../constants/Colors';
 import { t } from '../../constants/translations';
-import { categories, promotions, stores } from '../../data/mockData.js';
+import { promotions, stores } from '../../data/mockData.js';
 import PromoSheet from '../../components/PromoSheet';
+import { fetchCatalog, selectAllCategories } from '../../store/catalogSlice';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const { user } = useSelector((state) => state.auth);
   const locale = useSelector((s) => s.language?.locale ?? 'uk');
+  // Use real categories from Redux (populated by fetchCatalog thunk)
+  const categories = useSelector(selectAllCategories);
 
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedPromo, setSelectedPromo] = useState(null);
@@ -32,6 +36,10 @@ export default function HomeScreen() {
   const searchScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    // Fetch real catalog data from API
+    dispatch(fetchCatalog());
+
+    // Existing pulse animation
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.2, duration: 900, useNativeDriver: true }),

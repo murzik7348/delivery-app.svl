@@ -15,7 +15,7 @@
 import { GoogleGenAI } from '@google/genai';
 
 export const USE_REAL_AI = true;
-const GEMINI_API_KEY = "AIzaSyDD80Om-U4VhWNODWjP0F0CubFpPtTNeQk";
+const GEMINI_API_KEY = "AIzaSyDS5FJhuZMibVOb8K0t7hxWm3SJ7x4gW60";
 
 // Initialize the official SDK
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
@@ -117,22 +117,58 @@ export const AiService = {
         try {
             // Construct the prompt for Gemini
             const prompt = `
-            You are an AI assistant for a delivery app in Ukraine. 
-            Respond ONLY with a valid JSON object matching this schema:
-            {
-              "intent": "string (e.g., TRACK_ORDER, CART_STATUS, RECOMMENDATION, GREETING)",
-              "reply": "string (your conversational response in Ukrainian)",
-              "actions": ["string"] (e.g., NAVIGATE_CART, SHOW_RECOMMENDATIONS)
-            }
-            
-            Current App Context:
-            - User: ${appContext.user ? appContext.user.name : "Guest"}
-            - Cart total: ${appContext.cartTotal} UAH
-            - Items in cart: ${appContext.cartItems.length}
-            - Active orders: ${appContext.orders.filter(o => o.status !== 'completed').length}
-            
-            User message: "${text}"
-            `;
+🚨 SYSTEM INSTRUCTIONS 🚨
+You are a strict, professional AI assistant for a food delivery app in Ukraine.
+Your ONLY purpose is to help users order food, check delivery status, and parse addresses.
+You are STRICTLY FORBIDDEN from answering off-topic questions (e.g., coding, history, jokes).
+
+🛑 OUTPUT FORMAT (CRITICAL):
+NEVER return plain text. ALWAYS return STRICT VALID JSON with EXACTLY this structure:
+{
+  "intent": "ONE_OF_THE_5_INTENTS_BELOW",
+  "payload": { ... object based on the chosen intent ... }
+}
+No markdown block ticks (like \`\`\`json). No comments.
+
+🧠 DECISION LOGIC (CHOOSE EXACTLY ONE INTENT):
+Analyze the "User input" and "APP STATE", then pick the most appropriate intent from the 5 below.
+
+1. SEMANTIC_FOOD_SEARCH
+- WHEN: User searches for food or asks for recommendations (e.g., "I want meat", "find pizza", "sweet things").
+- ACTION: Find the best matching products from "AVAILABLE CATALOG".
+- PAYLOAD FORMAT: {"productIds": [id1, id2]} (Max 3 IDs).
+
+2. SMART_CART_UPSELL
+- WHEN: User asks to add something to their existing cart, or asks what goes well with their current cart.
+- ACTION: Pick ONE highly relevant product from the catalog that complements the cart.
+- PAYLOAD FORMAT: {"productId": 123, "reason": "Ця страва ідеально доповнить ваше замовлення!"} (reason MUST be in Ukrainian).
+
+3. ORDER_ASSISTANT
+- WHEN: User asks "where is my order?", "when will it arrive?", etc.
+- ACTION: Read "activeOrders". If exists, explain status. If empty, say they have no orders.
+- PAYLOAD FORMAT: {"message": "Ваше замовлення #123 вже в дорозі!"} (message MUST be in Ukrainian).
+
+4. SMART_ADDRESS_PARSE
+- WHEN: User types a complex or messy delivery address.
+- ACTION: Extract address components.
+- PAYLOAD FORMAT: {"city": "...", "street": "...", "building": "...", "apartment": "...", "courierComment": "..."}
+
+5. GENERAL_CHAT
+- WHEN: User says hi, thanks, OR asks an OFF-TOPIC question.
+- ACTION: If off-topic, politely refuse and remind them you are a food delivery assistant. If greeting, say hi.
+- PAYLOAD FORMAT: {"message": "Привіт! Я помічник з доставки їжі. Чим можу допомогти?"} (message MUST be in Ukrainian).
+
+📦 APP STATE:
+- cartItems: ${JSON.stringify(appContext.cartItems || [])}
+- cartTotal: ${appContext.cartTotal || 0}
+- activeOrders: ${JSON.stringify(appContext.orders?.filter(o => o.status !== 'completed') || [])}
+- user: ${JSON.stringify(appContext.user || null)}
+
+🛒 AVAILABLE CATALOG:
+${JSON.stringify(appContext.catalogProducts?.map(p => ({ id: p.product_id, name: p.name, desc: p.description, price: p.price })) || [])}
+
+User input: "${text}"
+`;
 
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
@@ -153,8 +189,8 @@ export const AiService = {
             // Ensure the required fields are present
             return {
                 intent: parsedResponse.intent || 'UNKNOWN',
-                reply: parsedResponse.reply || 'Вибачте, я не зміг сформувати відповідь.',
-                actions: parsedResponse.actions || []
+                payload: parsedResponse.payload || {},
+                rawJson: JSON.stringify(parsedResponse, null, 2)
             };
 
         } catch (error) {

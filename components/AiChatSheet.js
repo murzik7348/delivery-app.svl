@@ -8,17 +8,22 @@ import {
     Dimensions,
     TouchableOpacity,
     TextInput,
-    KeyboardAvoidingView,
     Platform,
+    KeyboardAvoidingView,
     FlatList,
     Keyboard,
-    useColorScheme
+    useColorScheme,
+    Image,
+    ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleAiChat, addMessage, setTyping } from '../store/aiSlice';
 import { AiService } from '../services/AiService';
 import * as Haptics from 'expo-haptics';
+import { products } from '../data/mockData';
+import ProductSheet from './ProductSheet';
+import Colors from '../constants/Colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -26,6 +31,7 @@ export default function AiChatSheet() {
     const dispatch = useDispatch();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+    const theme = Colors[colorScheme ?? 'light'];
 
     const { isOpen, messages, isTyping } = useSelector(state => state.ai);
 
@@ -37,11 +43,14 @@ export default function AiChatSheet() {
 
     const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
     const flatListRef = useRef(null);
+    const [isMounted, setIsMounted] = useState(false);
 
     const [inputText, setInputText] = useState('');
+    const [selectedProduct, setSelectedProduct] = useState(null);
 
     useEffect(() => {
         if (isOpen) {
+            setIsMounted(true);
             Animated.spring(slideAnim, {
                 toValue: 0,
                 friction: 8,
@@ -53,7 +62,10 @@ export default function AiChatSheet() {
                 toValue: SCREEN_HEIGHT,
                 duration: 250,
                 useNativeDriver: true,
-            }).start();
+            }).start(() => {
+                // Only unmount AFTER animation finishes — prevents touch blocking
+                setIsMounted(false);
+            });
             Keyboard.dismiss();
         }
     }, [isOpen]);
@@ -73,13 +85,50 @@ export default function AiChatSheet() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
         // 3. Collect App Context to give to AI Engine
-        const appContext = { orders, cartItems, cartTotal, user };
+        const appContext = { orders, cartItems, cartTotal, user, catalogProducts: products };
 
         try {
             // 4. Send to isolated AI Service (Scalable to API later)
             const aiResponse = await AiService.processQuery(userText, appContext);
 
-            dispatch(addMessage({ role: 'assistant', text: aiResponse.reply }));
+            // 5. Handle Specific Intents
+            let finalReplyText = "";
+            let actionPayload = null;
+
+            if (aiResponse.intent === 'SEMANTIC_FOOD_SEARCH') {
+                const recommendedIds = aiResponse.payload?.productIds || [];
+                if (recommendedIds.length > 0) {
+                    const matchedProducts = products.filter(p => recommendedIds.includes(p.product_id));
+                    finalReplyText = `Я знайшов кілька ідеальних варіантів для тебе. Щось із цього додати в кошик?`;
+                    actionPayload = matchedProducts; // Pass objects to UI renderer
+                } else {
+                    finalReplyText = "На жаль, за твоїм описом я не зміг підібрати нічого з нашого каталогу.";
+                }
+            } else if (aiResponse.intent === 'SMART_CART_UPSELL') {
+                const upsellId = aiResponse.payload?.productId;
+                const upsellReason = aiResponse.payload?.reason || "Спробуй цю страву, вона чудово підійде!";
+
+                if (upsellId) {
+                    const upsellProduct = products.find(p => p.product_id === upsellId);
+                    if (upsellProduct) {
+                        finalReplyText = upsellReason;
+                        actionPayload = [upsellProduct];
+                    } else {
+                        finalReplyText = "Я б хотів порадити тобі щось цікаве, але не можу його знайти. 🧐";
+                    }
+                } else {
+                    finalReplyText = upsellReason;
+                }
+            } else if (aiResponse.intent === 'ORDER_ASSISTANT' || aiResponse.intent === 'GENERAL_CHAT') {
+                finalReplyText = aiResponse.payload?.message || "Вибачте, не зміг сформулювати відповідь.";
+            } else if (aiResponse.intent === 'SMART_ADDRESS_PARSE') {
+                finalReplyText = "Ось що я розпізнав (готуємо до інтеграції на сторінці чекауту):\n" + JSON.stringify(aiResponse.payload, null, 2);
+            } else {
+                // Fallback: Dump raw JSON for unrecognized intents for inspection
+                finalReplyText = aiResponse.rawJson || "Немає відповіді.";
+            }
+
+            dispatch(addMessage({ role: 'assistant', text: finalReplyText, actionPayload }));
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (error) {
             dispatch(addMessage({ role: 'assistant', text: 'Вибачте, сталася помилка з\'єднання з AI. Спробуйте пізніше.' }));
@@ -91,19 +140,50 @@ export default function AiChatSheet() {
     const renderMessage = ({ item }) => {
         const isUser = item.role === 'user';
         return (
-            <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble, { backgroundColor: isUser ? '#e334e3' : (isDark ? '#2C2C2E' : '#E5E5EA') }]}>
-                {!isUser && <Ionicons name="sparkles" size={14} color={isDark ? '#e334e3' : '#FF2D55'} style={{ marginBottom: 4 }} />}
-                <Text style={[styles.messageText, { color: isUser ? 'white' : (isDark ? 'white' : 'black') }]}>
-                    {item.text}
-                </Text>
+            <View style={{ marginBottom: 16 }}>
+                <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble, { backgroundColor: isUser ? '#e334e3' : (isDark ? '#2C2C2E' : '#E5E5EA') }]}>
+                    {!isUser && <Ionicons name="sparkles" size={14} color={isDark ? '#e334e3' : '#FF2D55'} style={{ marginBottom: 4 }} />}
+                    <Text style={[styles.messageText, { color: isUser ? 'white' : (isDark ? 'white' : 'black') }]}>
+                        {item.text}
+                    </Text>
+                </View>
+
+                {/* Render Native App Horizontal Cards OUTSIDE the text bubble */}
+                {item.actionPayload && Array.isArray(item.actionPayload) && (
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ marginTop: 8, paddingLeft: 16, paddingRight: 4, paddingBottom: 4 }}
+                    >
+                        {item.actionPayload.map((product) => (
+                            <TouchableOpacity
+                                key={product.product_id.toString()}
+                                style={[styles.gridCard, { backgroundColor: theme.card }]}
+                                activeOpacity={0.8}
+                                onPress={() => setSelectedProduct(product)}
+                            >
+                                <Image source={{ uri: product.image }} style={styles.gridCardImage} />
+                                <View style={styles.gridCardContent}>
+                                    <Text style={[styles.gridCardTitle, { color: theme.text }]} numberOfLines={1}>
+                                        {product.name}
+                                    </Text>
+                                    <Text style={[styles.gridCardPrice, { color: '#e334e3' }]}>{product.price} ₴</Text>
+                                    <View style={styles.gridAddBtn}>
+                                        <Ionicons name="add" size={20} color="white" />
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                )}
             </View>
         );
     };
 
-    if (!isOpen && slideAnim._value === SCREEN_HEIGHT) return null;
+    if (!isMounted) return null;
 
     return (
-        <Modal transparent visible={isOpen || slideAnim._value !== SCREEN_HEIGHT} animationType="none">
+        <Modal transparent visible animationType="none">
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={styles.backdrop}
@@ -160,6 +240,13 @@ export default function AiChatSheet() {
 
                 </Animated.View>
             </KeyboardAvoidingView>
+
+            {selectedProduct && (
+                <ProductSheet
+                    product={selectedProduct}
+                    onClose={() => setSelectedProduct(null)}
+                />
+            )}
         </Modal>
     );
 }
@@ -242,5 +329,46 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 10,
+    },
+    gridCard: {
+        width: 140,
+        height: 184, // Strict bounds to stop infinite vertical stretching
+        marginRight: 12,
+        borderRadius: 16,
+        overflow: 'hidden',
+        justifyContent: 'flex-start',
+        // Match the elevation/shadow style of catalog.js
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 2,
+    },
+    gridCardImage: {
+        width: '100%',
+        height: 120,
+        backgroundColor: '#eee'
+    },
+    gridCardContent: {
+        padding: 10,
+    },
+    gridCardTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    gridCardPrice: {
+        color: '#e334e3',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    gridAddBtn: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: '#e334e3',
+        padding: 8,
+        borderTopLeftRadius: 10,
+        borderBottomRightRadius: 16,
     }
 });

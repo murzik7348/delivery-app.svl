@@ -1,17 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { useEffect } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
+import { fetchOrders } from '../store/ordersSlice';
 
 export default function OrdersScreen() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const orders = useSelector((state) => state.orders.orders);
+  const isLoading = useSelector((state) => state.orders.isLoading);
   const locale = useSelector(s => s.language?.locale ?? 'uk');
+
+  // Load orders from backend on screen mount
+  useEffect(() => {
+    dispatch(fetchOrders());
+  }, [dispatch]);
 
   const renderOrderItem = ({ item }) => (
     <TouchableOpacity
@@ -43,6 +52,14 @@ export default function OrdersScreen() {
       </View>
     </TouchableOpacity>
   );
+
+  if (isLoading && orders.length === 0) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color="#e334e3" style={{ flex: 1 }} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>

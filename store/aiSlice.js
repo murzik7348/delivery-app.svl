@@ -30,6 +30,7 @@ const aiSlice = createSlice({
                 id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                 role: action.payload.role, // 'user' | 'assistant'
                 text: action.payload.text,
+                actionPayload: action.payload.actionPayload || null,
                 timestamp: Date.now()
             });
         },

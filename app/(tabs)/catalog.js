@@ -4,28 +4,20 @@ import { useMemo, useState } from 'react';
 import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from '../../constants/Colors';
-import { products } from '../../data/mockData.js';
+import useCatalogFilter from '../../hooks/useCatalogFilter';
 
 export default function CatalogScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
 
-  const [sortOrder, setSortOrder] = useState(null); 
   const [modalVisible, setModalVisible] = useState(false);
-  const allProducts = useMemo(() => {
-    return products || [];
-  }, []);
-  const sortedProducts = useMemo(() => {
-    let list = [...allProducts];
-    if (sortOrder === 'asc') list.sort((a, b) => a.price - b.price);
-    if (sortOrder === 'desc') list.sort((a, b) => b.price - a.price);
-    return list;
-  }, [allProducts, sortOrder]);
-  const topProducts = allProducts.slice(0, 5);
-  const newProducts = allProducts.slice(5, 10);
+  const { sortOrder, setSortOrder, finalProducts } = useCatalogFilter();
+
+  const topProducts = finalProducts.slice(0, 5);
+  const newProducts = finalProducts.slice(5, 10);
   const renderProductItem = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.card, { backgroundColor: theme.card }]}
       onPress={() => router.push(`/restaurant/${item.store_id}`)}
     >
@@ -42,16 +34,16 @@ export default function CatalogScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      
+
       {/* ШАПКА + КНОПКА ПОШУКУ */}
       <View style={styles.headerContainer}>
         <Text style={[styles.pageTitle, { color: theme.text }]}>Каталог</Text>
-        
+
         <View style={styles.searchRow}>
           {/* Натискання перекидає на search.js */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.searchBar, { backgroundColor: theme.input }]}
-            onPress={() => router.push('/(tabs)/search')} 
+            onPress={() => router.push('/(tabs)/search')}
             activeOpacity={0.8}
           >
             <Ionicons name="search" size={20} color="gray" style={{ marginRight: 8 }} />
@@ -66,7 +58,7 @@ export default function CatalogScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
-        
+
         {/* Секція: Топ сезону */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>🔥 Топ сезону</Text>
@@ -88,7 +80,7 @@ export default function CatalogScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16 }}>
             {newProducts.map((item, index) => (
               <TouchableOpacity key={index} style={[styles.horizontalCard, { backgroundColor: theme.card }]} onPress={() => router.push(`/restaurant/${item.store_id}`)}>
-                 <View style={[styles.badgeTop, { backgroundColor: '#4CAF50' }]}><Text style={styles.badgeText}>NEW</Text></View>
+                <View style={[styles.badgeTop, { backgroundColor: '#4CAF50' }]}><Text style={styles.badgeText}>NEW</Text></View>
                 <Image source={{ uri: item.image }} style={styles.horizontalImage} />
                 <Text style={[styles.hCardTitle, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
                 <Text style={[styles.hCardPrice, { color: theme.tint }]}>{item.price} грн</Text>
@@ -116,7 +108,7 @@ export default function CatalogScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>Сортування</Text>
-            
+
             <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder('asc'); setModalVisible(false); }}>
               <Ionicons name="arrow-up" size={20} color={theme.text} />
               <Text style={[styles.sortText, { color: theme.text }]}>Від дешевих до дорогих</Text>
@@ -126,8 +118,8 @@ export default function CatalogScreen() {
               <Ionicons name="arrow-down" size={20} color={theme.text} />
               <Text style={[styles.sortText, { color: theme.text }]}>Від дорогих до дешевих</Text>
             </TouchableOpacity>
-            
-             <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder(null); setModalVisible(false); }}>
+
+            <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder(null); setModalVisible(false); }}>
               <Ionicons name="refresh" size={20} color={theme.text} />
               <Text style={[styles.sortText, { color: theme.text }]}>За замовчуванням</Text>
             </TouchableOpacity>
@@ -150,7 +142,7 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', alignItems: 'center' },
   searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 46, borderRadius: 12, paddingHorizontal: 12, marginRight: 10 },
   sortButton: { width: 46, height: 46, backgroundColor: '#e334e3', borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  
+
   section: { marginTop: 20 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 16, marginBottom: 10 },
   horizontalCard: { width: 140, marginRight: 15, borderRadius: 12, padding: 8, alignItems: 'center' },
@@ -159,7 +151,7 @@ const styles = StyleSheet.create({
   hCardPrice: { fontSize: 14, fontWeight: 'bold', marginTop: 4 },
   badgeTop: { position: 'absolute', top: 5, left: 5, zIndex: 1, backgroundColor: '#FF5722', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
-  
+
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 16 },
   card: { borderRadius: 16, overflow: 'hidden', paddingBottom: 10 },
   cardImage: { width: '100%', height: 120 },

@@ -29,26 +29,31 @@ import { t } from '../constants/translations';
 import {
   addToCart,
   clearCart,
-  removeFromCart,
+  decrementItem,
+  removeItem,
+  updateQuantity,
+  selectCartSummary,
   setDeliveryType,
   setOrderNote,
-  updateQuantity,
+  FREE_DELIVERY_THRESHOLD,
+  MIN_ORDER_AMOUNT,
 } from '../store/cartSlice';
-import { showDynamicIsland } from '../store/uiSlice';
-import { addOrder } from '../store/ordersSlice';
-import * as LiveActivity from 'expo-live-activity';
 import AddressBottomSheet from '../components/AddressBottomSheet';
 import FakeApplePayModal from '../components/FakeApplePayModal';
+import useCheckoutFlow from '../hooks/useCheckoutFlow';
 import { products } from '../data/mockData';
+
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const COLLAPSED_HEIGHT = 158;
-const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.58;
+const COLLAPSED_HEIGHT = 200; // slightly taller to fit progress bar
+const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.62;
 const MAX_TRANS = EXPANDED_HEIGHT - COLLAPSED_HEIGHT;
 const MIN_TRANS = 0;
+
+const NEON = '#e334e3';
 
 /** Parse any value safely — never returns NaN. */
 const safeNum = (v) => {
@@ -57,51 +62,149 @@ const safeNum = (v) => {
 };
 
 /** Resolve a canonical ID from a product/cart item. */
-const resolveId = (item) =>
-  item?.product_id ?? item?.id ?? null;
+const resolveId = (item) => item?.product_id ?? item?.id ?? null;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delivery-progress bar (Feature 1)
+// ─────────────────────────────────────────────────────────────────────────────
+function DeliveryProgressBar({ progress, amountToFreeDelivery, locale, theme }) {
+  const anim = useRef(new Animated.Value(progress)).current;
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: progress,
+      duration: 480,
+      easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
+      useNativeDriver: false,
+    }).start();
+  }, [progress]);
+
+  const isFree = amountToFreeDelivery === 0;
+
+  return (
+    <View style={progressStyles.wrapper}>
+      <Text style={[progressStyles.label, { color: theme.text }]}>
+        {isFree
+          ? (locale === 'en' ? '🎉 Free delivery unlocked!' : '🎉 Безкоштовна доставка!')
+          : (locale === 'en'
+            ? `${amountToFreeDelivery.toFixed(0)} ₴ more for free delivery`
+            : `Ще ${amountToFreeDelivery.toFixed(0)} ₴ до безкоштовної доставки`)}
+      </Text>
+      <View style={[progressStyles.track, { backgroundColor: theme.input }]}>
+        <Animated.View
+          style={[
+            progressStyles.fill,
+            {
+              backgroundColor: isFree ? '#22c55e' : NEON,
+              width: anim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0%', '100%'],
+                extrapolate: 'clamp',
+              }),
+            },
+          ]}
+        />
+      </View>
+    </View>
+  );
+}
+
+const progressStyles = StyleSheet.create({
+  wrapper: { marginBottom: 12 },
+  label: { fontSize: 12, fontWeight: '600', marginBottom: 6, letterSpacing: 0.2 },
+  track: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  fill: { height: 6, borderRadius: 3 },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modifier chips (Feature 2)
+// ─────────────────────────────────────────────────────────────────────────────
+function ModifierChips({ modifiers }) {
+  if (!modifiers || modifiers.length === 0) return null;
+  return (
+    <View style={chipStyles.row}>
+      {modifiers.map((m, i) => (
+        <View key={i} style={chipStyles.chip}>
+          <Text style={chipStyles.text}>
+            {m.price >= 0 ? '+' : '−'} {m.name}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const chipStyles = StyleSheet.create({
+  row: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 5, gap: 4 },
+  chip: {
+    borderWidth: 1,
+    borderColor: NEON,
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    backgroundColor: 'rgba(227,52,227,0.08)',
+  },
+  text: { fontSize: 10, color: NEON, fontWeight: '600' },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Screen
+// ─────────────────────────────────────────────────────────────────────────────
 export default function CartScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-  const locale = useSelector(s => s.language?.locale ?? 'uk');
+  const locale = useSelector((s) => s.language?.locale ?? 'uk');
   const insets = useSafeAreaInsets();
+
+  const { initiateCheckout, processActualCheckout, payModalVisible, setPayModalVisible, isLoading } =
+    useCheckoutFlow();
+
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
   const [noteVisible, setNoteVisible] = useState(false);
   const [viewProduct, setViewProduct] = useState(null);
-  const [payModalVisible, setPayModalVisible] = useState(false);
+
+  // ── Redux state ────────────────────────────────────────────────────────────
+  const cartItems = useSelector((s) => s.cart.items);
+  const appliedPromo = useSelector((s) => s.cart.appliedPromo);
+  const deliveryType = useSelector((s) => s.cart.deliveryType);
+  const orderNote = useSelector((s) => s.cart.orderNote);
   const {
-    items: cartItems,
-    subtotal: rawSubtotal,
-    totalAmount: rawTotal,
-    discountAmount: rawDiscount,
-    appliedPromo,
-    deliveryType,
-    deliveryFee: rawFee,
-    orderNote,
-  } = useSelector((s) => s.cart);
+    subtotal,
+    discountAmount,
+    deliveryFee,
+    total: totalAmount,
+    originalTotal,
+    isMinOrderMet,
+    amountToFreeDelivery,
+    freeDeliveryProgress,
+  } = useSelector(selectCartSummary);
 
   const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
   const paymentId = useSelector((s) => s.payment?.selectedMethodId);
   const paymentMethods = useSelector((s) => s.payment?.methods ?? []);
   const savedAddresses = useSelector((s) => s.location.savedAddresses);
-  const subtotal = safeNum(rawSubtotal);
-  const totalAmount = safeNum(rawTotal);
-  const discountAmount = safeNum(rawDiscount);
-  const deliveryFee = deliveryType === 'delivery' ? safeNum(rawFee) : 0;
 
-  const userAddress = savedAddresses?.length > 0 ? savedAddresses[0].address : t(locale, 'chooseAddressBtn');
-  const activeMethod = paymentMethods.find(m => m.id === paymentId);
+  const userAddress =
+    savedAddresses?.length > 0 ? savedAddresses[0].address : t(locale, 'chooseAddressBtn');
+  const activeMethod = paymentMethods.find((m) => m.id === paymentId);
   const paymentInfo = activeMethod
     ? { name: activeMethod.type, icon: activeMethod.icon }
     : { name: t(locale, 'choosePayment'), icon: 'card-outline' };
+
   const recommendations = products
     .filter((p) => !cartItems.find((i) => resolveId(i) === p.product_id))
     .slice(0, 6);
+
+  // ── Bottom sheet animation ─────────────────────────────────────────────────
   const translateY = useRef(new Animated.Value(MAX_TRANS)).current;
   const currentY = useRef(MAX_TRANS);
+
   useEffect(() => {
-    const sub = translateY.addListener(({ value }) => { currentY.current = value; });
+    const sub = translateY.addListener(({ value }) => {
+      currentY.current = value;
+    });
     return () => translateY.removeListener(sub);
   }, [translateY]);
 
@@ -129,27 +232,30 @@ export default function CartScreen() {
         }).start();
       }
     );
-    return () => { show.remove(); hide.remove(); };
+    return () => {
+      show.remove();
+      hide.remove();
+    };
   }, [keyboardOffset]);
 
-  const snapTo = useCallback((toValue) => {
-    Animated.timing(translateY, {
-      toValue,
-      duration: 420,
-      easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
-      useNativeDriver: true,
-    }).start();
-  }, [translateY]);
+  const snapTo = useCallback(
+    (toValue) => {
+      Animated.timing(translateY, {
+        toValue,
+        duration: 420,
+        easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
+        useNativeDriver: true,
+      }).start();
+    },
+    [translateY]
+  );
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 2,
       onMoveShouldSetPanResponderCapture: () => false,
-
-      onPanResponderGrant: () => {
-        translateY.extractOffset();
-      },
-
+      onPanResponderGrant: () => { translateY.extractOffset(); },
       onPanResponderMove: (_, gs) => {
         let dy = gs.dy;
         const projected = currentY.current + dy;
@@ -157,125 +263,65 @@ export default function CartScreen() {
         else if (projected > MAX_TRANS) dy *= 0.25;
         translateY.setValue(dy);
       },
-
       onPanResponderRelease: (_, gs) => {
         translateY.flattenOffset();
         const cy = currentY.current;
         const vy = gs.vy;
-
         let target;
         if (vy > 0.4) target = MAX_TRANS;
         else if (vy < -0.4) target = MIN_TRANS;
         else target = cy < MAX_TRANS * 0.5 ? MIN_TRANS : MAX_TRANS;
-
         snapTo(target);
       },
-
       onPanResponderTerminate: () => {
         translateY.flattenOffset();
         snapTo(currentY.current > MAX_TRANS / 2 ? MAX_TRANS : MIN_TRANS);
       },
     })
   ).current;
+
+  // ── Checkout ───────────────────────────────────────────────────────────────
   const handleCheckout = () => {
-    if (cartItems.length === 0) return;
-    if (!isAuthenticated) {
-      Alert.alert(
-        locale === 'en' ? 'Not signed in' : 'Вхід не виконано',
-        locale === 'en' ? 'Please sign in to place an order.' : 'Будь ласка, увійдіть у профіль для оформлення замовлення.',
-        [
-          { text: t(locale, 'no'), style: 'cancel' },
-          { text: t(locale, 'login'), onPress: () => router.push('/(auth)/login') },
-        ]
-      );
-      return;
-    }
-
-    // Require address if delivery
-    if (deliveryType === 'delivery' && (!savedAddresses || savedAddresses.length === 0)) {
-      setAddressSheetOpen(true);
-      Alert.alert(
-        locale === 'en' ? 'Address required' : 'Потрібна адреса',
-        locale === 'en' ? 'Please add a delivery address first.' : 'Будь ласка, додайте адресу доставки перед оформленням.'
-      );
-      return;
-    }
-
-    // Require payment method
-    if (!paymentId) {
-      Alert.alert(
-        locale === 'en' ? 'Payment method required' : 'Потрібен метод оплати',
-        locale === 'en' ? 'Please select a payment method before checkout.' : 'Будь ласка, оберіть спосіб оплати перед оформленням.',
-        [
-          { text: t(locale, 'no') || 'Відміна', style: 'cancel' },
-          { text: t(locale, 'paymentMethods') || 'Вибрати', onPress: () => router.push('/payment') }
-        ]
-      );
-      return;
-    }
-
-    // Instead of instally placing order, show Fake Apple Pay Modal
-    setPayModalVisible(true);
+    if (!isMinOrderMet) return; // guard — button is also visually disabled
+    initiateCheckout();
   };
 
-  const processActualCheckout = () => {
-    setPayModalVisible(false);
-
-    const order = {
-      id: Date.now().toString(),
-      items: cartItems,
-      total: totalAmount,
-      discount: discountAmount,
-      delivery: deliveryFee,
-      promo: appliedPromo?.code ?? null,
-      note: orderNote,
-      type: deliveryType,
-      date: new Date().toISOString(),
-      status: 'pending',
-      address: deliveryType === 'delivery' ? userAddress : (locale === 'en' ? 'Pickup from restaurant' : 'Самовивіз з ресторану'),
-      payment: paymentInfo.name,
-    };
-    dispatch(addOrder(order));
-    dispatch(clearCart());
-
-    // Красиве In-App сповіщення
-    dispatch(showDynamicIsland({
-      title: locale === 'en' ? 'Success!' : 'Успішно!',
-      message: locale === 'en' ? 'Order placed 🎉' : 'Замовлення оформлено 🎉',
-      icon: 'checkmark-circle',
-      type: 'success',
-    }));
-
-    // Дані для нашого нового Food Delivery Live Activity
-    const rideData = JSON.stringify({
-      status: "accepted",
-      driverName: "Олександр",
-      time: "24 min",
-      orderId: order.id.slice(-4),
-      totalPrice: `${totalAmount.toFixed(0)} ₴`
-    });
-
-    // Нативний виклик Live Activity (iOS 16.1+)
-    LiveActivity.startActivity({
-      title: locale === 'en' ? 'Order accepted' : 'Замовлення прийнято',
-      subtitle: rideData, // Swift розкодує цей JSON
-      progressBar: {
-        date: new Date(Date.now() + 24 * 60 * 1000).getTime(),
+  // ── Feature 4: Safe decrement with Alert────────────────────────────────────
+  const handleDecrement = useCallback(
+    (item) => {
+      if (item.quantity > 1) {
+        dispatch(decrementItem(item.cartKey));
+      } else {
+        Alert.alert(
+          locale === 'en' ? 'Remove item?' : 'Видалити товар?',
+          locale === 'en'
+            ? `Remove "${item.name}" from your cart?`
+            : `Прибрати "${item.name}" з кошика?`,
+          [
+            { text: locale === 'en' ? 'Cancel' : 'Скасувати', style: 'cancel' },
+            {
+              text: locale === 'en' ? 'Remove' : 'Видалити',
+              style: 'destructive',
+              onPress: () => {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                dispatch(removeItem(item.cartKey));
+              },
+            },
+          ]
+        );
       }
-    }, {
-      backgroundColor: '#0F0F0F',
-      titleColor: '#ffffff',
-      subtitleColor: '#ffffff',
-      timerType: 'circular'
-    });
+    },
+    [dispatch, locale]
+  );
 
-    router.push('/orders');
-  };
+  // ── Render helpers ─────────────────────────────────────────────────────────
   const renderCartItem = ({ item }) => {
-    const id = resolveId(item);
+    const unitPrice = safeNum(item.price) +
+      (item.modifiers ?? []).reduce((s, m) => s + safeNum(m.price) * (m.qty ?? 1), 0);
+
     return (
       <View style={[styles.itemCard, { backgroundColor: theme.card }]}>
-        {/* Left: image + name + price — tapping opens detail modal */}
+        {/* Left: image + info */}
         <TouchableOpacity
           style={styles.itemLeft}
           activeOpacity={0.75}
@@ -286,37 +332,38 @@ export default function CartScreen() {
             <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={2}>
               {item.name}
             </Text>
-            <Text style={styles.itemPrice}>{safeNum(item.price).toFixed(0)} ₴</Text>
+            {/* Feature 2: modifier chips */}
+            <ModifierChips modifiers={item.modifiers} />
+            <Text style={styles.itemPrice}>{unitPrice.toFixed(0)} ₴</Text>
           </View>
         </TouchableOpacity>
 
-        {/* Right: quantity stepper */}
+        {/* Right: quantity stepper — Feature 4 */}
         <View style={styles.stepper}>
           <TouchableOpacity
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() => {
-              if (item.quantity > 1) dispatch(updateQuantity({ id, quantity: item.quantity - 1 }));
-              else dispatch(removeFromCart(id));
-            }}
+            onPress={() => handleDecrement(item)}
           >
-            <Ionicons name="remove-circle" size={32} color="#e334e3" />
+            <Ionicons name="remove-circle" size={32} color={NEON} />
           </TouchableOpacity>
 
           <Text style={[styles.stepperQty, { color: theme.text }]}>{item.quantity}</Text>
 
           <TouchableOpacity
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() => dispatch(updateQuantity({ id, quantity: item.quantity + 1 }))}
+            onPress={() =>
+              dispatch(updateQuantity({ cartKey: item.cartKey, quantity: item.quantity + 1 }))
+            }
           >
-            <Ionicons name="add-circle" size={32} color="#e334e3" />
+            <Ionicons name="add-circle" size={32} color={NEON} />
           </TouchableOpacity>
         </View>
       </View>
     );
   };
+
   const renderRecItem = ({ item }) => (
     <View style={[styles.recCard, { backgroundColor: theme.card }]}>
-      {/* Card body — tap to see detail */}
       <TouchableOpacity activeOpacity={0.8} onPress={() => setViewProduct(item)}>
         <Image source={{ uri: item.image }} style={styles.recImage} />
         <Text style={[styles.recName, { color: theme.text }]} numberOfLines={1}>
@@ -324,8 +371,6 @@ export default function CartScreen() {
         </Text>
         <Text style={styles.recPrice}>{safeNum(item.price).toFixed(0)} ₴</Text>
       </TouchableOpacity>
-
-      {/* "+" button — separate TouchableOpacity, direct dispatch */}
       <TouchableOpacity
         style={styles.recAddBtn}
         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
@@ -335,11 +380,10 @@ export default function CartScreen() {
       </TouchableOpacity>
     </View>
   );
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView
-      edges={['top']}
-      style={[styles.container, { backgroundColor: theme.background }]}
-    >
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       {/* ── Header ── */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>{t(locale, 'cartTitle')}</Text>
@@ -350,7 +394,7 @@ export default function CartScreen() {
         )}
       </View>
 
-      {/* ── Delivery toggle (тільки якщо є товари) ── */}
+      {/* ── Delivery toggle ── */}
       {cartItems.length > 0 && (
         <View style={styles.headerPad}>
           <View style={[styles.toggle, { backgroundColor: theme.input }]}>
@@ -361,7 +405,9 @@ export default function CartScreen() {
                 onPress={() => dispatch(setDeliveryType(type))}
               >
                 <Text style={[styles.toggleText, deliveryType === type && styles.toggleTextActive]}>
-                  {type === 'delivery' ? `🛵 ${t(locale, 'delivery')}` : `🏃 ${t(locale, 'pickup')}`}
+                  {type === 'delivery'
+                    ? `🛵 ${t(locale, 'delivery')}`
+                    : `🏃 ${t(locale, 'pickup')}`}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -369,14 +415,13 @@ export default function CartScreen() {
         </View>
       )}
 
-      {/* ── Content area ── */}
+      {/* ── Content ── */}
       {cartItems.length > 0 ? (
         <>
-          {/* Scrollable list */}
           <FlatList
             data={cartItems}
             renderItem={renderCartItem}
-            keyExtractor={(item, idx) => (resolveId(item) ?? idx).toString()}
+            keyExtractor={(item, idx) => item.cartKey ?? (resolveId(item) ?? idx).toString()}
             contentContainerStyle={{
               paddingTop: 10,
               paddingBottom: COLLAPSED_HEIGHT + insets.bottom + 32,
@@ -400,19 +445,7 @@ export default function CartScreen() {
             }
           />
 
-          {/* ── THE ONE AND ONLY BOTTOM SHEET ──────────────────────────────
-           *
-           * Architecture:
-           *   • Fixed height = EXPANDED_HEIGHT
-           *   • position: absolute, bottom: 0, left: 0, right: 0
-           *   • Starts at translateY = MAX_TRANS (collapsed, COLLAPSED_HEIGHT visible)
-           *   • Swipe up  → translateY → 0    (fully expanded)
-           *   • Swipe down → translateY → MAX_TRANS (back to collapsed)
-           *   • Sheet never goes below MAX_TRANS (never fully hides)
-           *
-           * PanResponder ONLY on dragHandleArea — this is what lets buttons
-           * inside the sheet receive onPress events normally.
-           */}
+          {/* ── Bottom Sheet ── */}
           <Animated.View
             style={[
               styles.sheet,
@@ -420,77 +453,119 @@ export default function CartScreen() {
                 backgroundColor: theme.card,
                 shadowColor: theme.text,
                 height: EXPANDED_HEIGHT,
-                transform: [{
-                  translateY: Animated.add(
-                    translateY.interpolate({
-                      inputRange: [MIN_TRANS, MAX_TRANS],
-                      outputRange: [MIN_TRANS, MAX_TRANS],
-                      extrapolate: 'clamp',
-                    }),
-                    keyboardOffset.interpolate({
-                      inputRange: [0, 1000],
-                      outputRange: [0, -1000],
-                    })
-                  ),
-                }],
+                transform: [
+                  {
+                    translateY: Animated.add(
+                      translateY.interpolate({
+                        inputRange: [MIN_TRANS, MAX_TRANS],
+                        outputRange: [MIN_TRANS, MAX_TRANS],
+                        extrapolate: 'clamp',
+                      }),
+                      keyboardOffset.interpolate({
+                        inputRange: [0, 1000],
+                        outputRange: [0, -1000],
+                      })
+                    ),
+                  },
+                ],
               },
             ]}
           >
-            {/* ── Drag handle (PanResponder lives HERE only) ── */}
+            {/* Drag handle */}
             <View style={styles.dragHandleArea} {...panResponder.panHandlers}>
               <View style={styles.dragPill} />
             </View>
 
-
-            {/* ════════════════════════════════════════════════════════
-             * COLLAPSED ZONE — always visible, always interactive
-             * ════════════════════════════════════════════════════════ */}
+            {/* ── COLLAPSED ZONE ── */}
             <View style={styles.collapsedZone}>
+              {/* Feature 1: Delivery progress bar */}
+              {deliveryType === 'delivery' && (
+                <DeliveryProgressBar
+                  progress={freeDeliveryProgress}
+                  amountToFreeDelivery={amountToFreeDelivery}
+                  locale={locale}
+                  theme={theme}
+                />
+              )}
+
+              {/* Total row — Feature 3: crossed-out when promo active */}
               <View style={styles.totalRow}>
-                <Text style={[styles.totalLabel, { color: theme.text }]}>{t(locale, 'toPay')}</Text>
-                <Text style={[styles.totalValue, { color: theme.text }]}>
-                  {totalAmount.toFixed(0)} ₴
+                <Text style={[styles.totalLabel, { color: theme.text }]}>
+                  {t(locale, 'toPay')}
                 </Text>
+                <View style={styles.totalPriceGroup}>
+                  {discountAmount > 0 && (
+                    <Text style={styles.totalStrike}>
+                      {originalTotal.toFixed(0)} ₴
+                    </Text>
+                  )}
+                  <Text style={[styles.totalValue, { color: theme.text }]}>
+                    {totalAmount.toFixed(0)} ₴
+                  </Text>
+                </View>
               </View>
 
+              {/* Feature 1: Disabled checkout when min order not met */}
               <TouchableOpacity
-                style={styles.checkoutBtn}
-                activeOpacity={0.85}
+                style={[
+                  styles.checkoutBtn,
+                  !isMinOrderMet && styles.checkoutBtnDisabled,
+                ]}
+                activeOpacity={isMinOrderMet ? 0.85 : 1}
                 onPress={handleCheckout}
+                disabled={!isMinOrderMet}
               >
-                <Text style={styles.checkoutBtnText}>{t(locale, 'placeOrder')}</Text>
+                <Text style={styles.checkoutBtnText}>
+                  {isMinOrderMet
+                    ? t(locale, 'placeOrder')
+                    : (locale === 'en'
+                      ? `Min. order ${MIN_ORDER_AMOUNT} ₴`
+                      : `Мін. замовлення ${MIN_ORDER_AMOUNT} ₴`)}
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {/* ════════════════════════════════════════════════════════
-             * EXPANDED ZONE — revealed when sheet is swiped up
-             * ════════════════════════════════════════════════════════ */}
+            {/* ── EXPANDED ZONE ── */}
             <View style={styles.expandedZone}>
               <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
               {/* Price breakdown */}
               <View style={styles.priceRow}>
                 <Text style={[styles.priceLabel, { color: 'gray' }]}>{t(locale, 'goods')}</Text>
-                <Text style={[styles.priceValue, { color: theme.text }]}>
-                  {subtotal.toFixed(0)} ₴
-                </Text>
+                {/* Feature 3: strike-through when promo applied */}
+                {discountAmount > 0 ? (
+                  <View style={styles.priceValueGroup}>
+                    <Text style={styles.priceStrike}>{subtotal.toFixed(0)} ₴</Text>
+                    <Text style={[styles.priceValue, { color: theme.text }]}>
+                      {(subtotal - discountAmount).toFixed(0)} ₴
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={[styles.priceValue, { color: theme.text }]}>
+                    {subtotal.toFixed(0)} ₴
+                  </Text>
+                )}
               </View>
 
               {deliveryType === 'delivery' && (
                 <View style={styles.priceRow}>
-                  <Text style={[styles.priceLabel, { color: 'gray' }]}>{t(locale, 'deliveryFee')}</Text>
+                  <Text style={[styles.priceLabel, { color: 'gray' }]}>
+                    {t(locale, 'deliveryFee')}
+                  </Text>
                   <Text style={[styles.priceValue, { color: theme.text }]}>
-                    {deliveryFee === 0 ? (locale === 'en' ? 'Free' : 'Безкоштовно') : `${deliveryFee.toFixed(0)} ₴`}
+                    {deliveryFee === 0
+                      ? locale === 'en' ? 'Free' : 'Безкоштовно'
+                      : `${deliveryFee.toFixed(0)} ₴`}
                   </Text>
                 </View>
               )}
 
               {appliedPromo && discountAmount > 0 && (
                 <View style={styles.priceRow}>
-                  <Text style={[styles.priceLabel, { color: '#e334e3' }]}>
+                  <Text style={[styles.priceLabel, { color: NEON }]}>
                     {t(locale, 'discount')} ({appliedPromo.code})
                   </Text>
-                  <Text style={[styles.priceValue, { color: '#e334e3' }]}>
+                  <Text style={[styles.priceValue, { color: NEON }]}>
                     −{discountAmount.toFixed(0)} ₴
                   </Text>
                 </View>
@@ -505,7 +580,7 @@ export default function CartScreen() {
                 onPress={() => router.push('/promocodes')}
               >
                 <View style={styles.actionRowLeft}>
-                  <Ionicons name="ticket-outline" size={20} color="#e334e3" />
+                  <Ionicons name="ticket-outline" size={20} color={NEON} />
                   <Text style={[styles.actionRowText, { color: theme.text }]}>
                     {appliedPromo ? appliedPromo.code : t(locale, 'promoCode')}
                   </Text>
@@ -589,7 +664,9 @@ export default function CartScreen() {
             style={[styles.shopBtn, { backgroundColor: theme.card }]}
             onPress={() => router.push('/(tabs)')}
           >
-            <Text style={[styles.shopBtnText, { color: theme.text }]}>{locale === 'en' ? 'To menu' : 'В меню'}</Text>
+            <Text style={[styles.shopBtnText, { color: theme.text }]}>
+              {locale === 'en' ? 'To menu' : 'В меню'}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -606,7 +683,6 @@ export default function CartScreen() {
           activeOpacity={1}
           onPress={() => setViewProduct(null)}
         >
-          {/* Inner TouchableOpacity prevents backdrop close on sheet tap */}
           <TouchableOpacity
             activeOpacity={1}
             style={[styles.productSheet, { backgroundColor: theme.card }]}
@@ -627,8 +703,6 @@ export default function CartScreen() {
                   <Text style={[styles.productSheetDesc, { color: theme.textSecondary ?? 'gray' }]}>
                     {viewProduct.description || 'Опис відсутній.'}
                   </Text>
-
-                  {/* If already in cart → close; else add */}
                   {cartItems.find((i) => resolveId(i) === resolveId(viewProduct)) ? (
                     <TouchableOpacity
                       style={styles.productSheetBtn}
@@ -654,13 +728,13 @@ export default function CartScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Address picker bottom sheet */}
+      {/* Address picker */}
       <AddressBottomSheet
         visible={addressSheetOpen}
         onClose={() => setAddressSheetOpen(false)}
       />
 
-      {/* Fake Apple Pay Module */}
+      {/* Apple Pay modal */}
       <FakeApplePayModal
         visible={payModalVisible}
         amount={totalAmount.toFixed(0)}
@@ -670,37 +744,79 @@ export default function CartScreen() {
     </SafeAreaView>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Styles
+// ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 6 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 6,
+  },
   headerTitle: { fontSize: 28, fontWeight: 'bold' },
   clearBtn: { color: '#ff3b30', fontWeight: '600', fontSize: 15 },
   headerPad: { paddingHorizontal: 20, paddingBottom: 10 },
+
   toggle: { flexDirection: 'row', borderRadius: 12, padding: 4, height: 44 },
   toggleBtn: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
-  toggleBtnActive: { backgroundColor: 'white', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+  toggleBtnActive: {
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
   toggleText: { fontWeight: '600', color: 'gray' },
   toggleTextActive: { color: 'black' },
-  itemCard: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, padding: 12, borderRadius: 20, marginHorizontal: 16 },
-  itemLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+
+  itemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 20,
+    marginHorizontal: 16,
+  },
+  itemLeft: { flex: 1, flexDirection: 'row', alignItems: 'flex-start' },
   itemImage: { width: 66, height: 66, borderRadius: 16, backgroundColor: '#eee' },
   itemInfo: { flex: 1, marginLeft: 12 },
   itemName: { fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  itemPrice: { color: '#e334e3', fontWeight: 'bold', marginTop: 4 },
+  itemPrice: { color: NEON, fontWeight: 'bold', marginTop: 4 },
+
   stepper: { flexDirection: 'row', alignItems: 'center' },
   stepperQty: { marginHorizontal: 10, fontSize: 18, fontWeight: 'bold' },
+
   recSection: { marginTop: 22, marginBottom: 20 },
   recTitle: { fontSize: 18, fontWeight: 'bold', marginLeft: 16, marginBottom: 12 },
-  recCard: { width: 138, marginRight: 14, borderRadius: 16, padding: 10, alignItems: 'center', elevation: 2 },
+  recCard: {
+    width: 138,
+    marginRight: 14,
+    borderRadius: 16,
+    padding: 10,
+    alignItems: 'center',
+    elevation: 2,
+  },
   recImage: { width: 100, height: 78, borderRadius: 12, marginBottom: 7, backgroundColor: '#eee' },
   recName: { fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 2 },
-  recPrice: { color: '#e334e3', fontWeight: 'bold', fontSize: 12, marginBottom: 4 },
+  recPrice: { color: NEON, fontWeight: 'bold', fontSize: 12, marginBottom: 4 },
   recAddBtn: {
-    position: 'absolute', bottom: 8, right: 8,
-    backgroundColor: '#e334e3',
-    borderRadius: 14, width: 28, height: 28,
-    justifyContent: 'center', alignItems: 'center',
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: NEON,
+    borderRadius: 14,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
   sheet: {
     position: 'absolute',
     bottom: 0,
@@ -709,7 +825,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
-    paddingTop: 0,
     elevation: 28,
     shadowOpacity: 0.18,
     shadowRadius: 14,
@@ -722,43 +837,110 @@ const styles = StyleSheet.create({
     marginHorizontal: -20,
     paddingHorizontal: 20,
   },
-  dragPill: {
-    width: 44, height: 5,
-    backgroundColor: '#C6C6CC',
-    borderRadius: 3,
-  },
+  dragPill: { width: 44, height: 5, backgroundColor: '#C6C6CC', borderRadius: 3 },
+
   collapsedZone: { paddingBottom: 18 },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
   totalLabel: { fontSize: 17, fontWeight: '700' },
+  totalPriceGroup: { alignItems: 'flex-end' },
+  totalStrike: {
+    fontSize: 13,
+    color: 'gray',
+    textDecorationLine: 'line-through',
+    marginBottom: 2,
+  },
   totalValue: { fontSize: 26, fontWeight: 'bold' },
-  checkoutBtn: { backgroundColor: '#e334e3', borderRadius: 18, padding: 16, alignItems: 'center' },
+
+  checkoutBtn: {
+    backgroundColor: NEON,
+    borderRadius: 18,
+    padding: 16,
+    alignItems: 'center',
+  },
+  checkoutBtnDisabled: {
+    backgroundColor: '#8a3f8a',
+    opacity: 0.6,
+  },
   checkoutBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+
   expandedZone: { flex: 1 },
   divider: { height: 1, marginBottom: 14, opacity: 0.35 },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 9 },
+
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 9,
+  },
   priceLabel: { fontSize: 15 },
+  priceValueGroup: { alignItems: 'flex-end' },
+  priceStrike: {
+    fontSize: 12,
+    color: 'gray',
+    textDecorationLine: 'line-through',
+    marginBottom: 1,
+  },
   priceValue: { fontSize: 15, fontWeight: '600' },
 
-  actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 13, borderRadius: 14, marginBottom: 9 },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 13,
+    borderRadius: 14,
+    marginBottom: 9,
+  },
   actionRowLeft: { flexDirection: 'row', alignItems: 'center' },
   actionRowText: { fontSize: 14, fontWeight: '600', marginLeft: 10 },
-  changeText: { color: '#e334e3', fontSize: 13, fontWeight: '600' },
-  addNoteText: { color: '#e334e3', fontWeight: 'bold', paddingVertical: 6 },
+  changeText: { color: NEON, fontSize: 13, fontWeight: '600' },
+
+  addNoteText: { color: NEON, fontWeight: 'bold', paddingVertical: 6 },
   noteBox: { borderRadius: 14, padding: 12 },
   noteInput: { fontSize: 14, maxHeight: 70, lineHeight: 20 },
+
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: -50 },
   emptyText: { fontSize: 18, marginTop: 16, marginBottom: 20 },
   shopBtn: { paddingHorizontal: 28, paddingVertical: 13, borderRadius: 14 },
   shopBtnText: { fontWeight: 'bold', fontSize: 16 },
+
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
-  productSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 40, width: '100%', maxHeight: '82%' },
-  productSheetPill: { width: 44, height: 5, backgroundColor: '#ccc', borderRadius: 3, alignSelf: 'center', marginTop: 12, marginBottom: 6 },
+  productSheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingBottom: 40,
+    width: '100%',
+    maxHeight: '82%',
+  },
+  productSheetPill: {
+    width: 44,
+    height: 5,
+    backgroundColor: '#ccc',
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 6,
+  },
   productSheetImage: { width: '100%', height: 230, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   productSheetBody: { padding: 20 },
-  productSheetTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
+  productSheetTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
   productSheetTitle: { fontSize: 22, fontWeight: 'bold', flex: 1, marginRight: 10 },
-  productSheetPrice: { fontSize: 22, fontWeight: 'bold', color: '#e334e3' },
+  productSheetPrice: { fontSize: 22, fontWeight: 'bold', color: NEON },
   productSheetDesc: { fontSize: 15, marginTop: 8, marginBottom: 24, lineHeight: 23 },
-  productSheetBtn: { backgroundColor: '#e334e3', padding: 16, borderRadius: 18, alignItems: 'center' },
+  productSheetBtn: {
+    backgroundColor: NEON,
+    padding: 16,
+    borderRadius: 18,
+    alignItems: 'center',
+  },
   productSheetBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
 });

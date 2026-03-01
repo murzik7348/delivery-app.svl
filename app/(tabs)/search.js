@@ -13,41 +13,29 @@ import {
   useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../../constants/Colors';
-import { products, stores } from '../../data/mockData';
+import { selectAllProducts, selectAllStores } from '../../store/catalogSlice';
 import { addToCart } from '../../store/cartSlice';
 import ProductSheet from '../../components/ProductSheet';
+import useCatalogFilter from '../../hooks/useCatalogFilter';
 
 export default function SearchScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-  const [query, setQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const inputRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const q = query.trim().toLowerCase();
+  // Use the global catalog filter instead of local memos
+  const { searchQuery, setSearchQuery, finalProducts, searchFilteredStores, hasActiveFilters } = useCatalogFilter();
 
-  const matchedProducts = useMemo(() => {
-    if (q.length < 1) return [];
-    return products.filter(p => p.name.toLowerCase().includes(q));
-  }, [q]);
-
-  const matchedStores = useMemo(() => {
-    if (q.length < 1) return [];
-    return stores.filter(s =>
-      s.name.toLowerCase().includes(q) ||
-      (s.tags || []).some(t => t.toLowerCase().includes(q))
-    );
-  }, [q]);
-
-  const hasResults = matchedProducts.length > 0 || matchedStores.length > 0;
+  const hasResults = finalProducts.length > 0 || searchFilteredStores.length > 0;
 
   const handleChange = useCallback((text) => {
-    setQuery(text);
+    setSearchQuery(text);
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 180,
@@ -140,13 +128,13 @@ export default function SearchScreen() {
   );
 
   const sections = [];
-  if (matchedStores.length > 0) {
-    sections.push({ type: 'header', id: 'h1', label: `Заклади (${matchedStores.length})` });
-    matchedStores.forEach(s => sections.push({ type: 'store', id: `s${s.store_id}`, item: s }));
+  if (searchFilteredStores.length > 0) {
+    sections.push({ type: 'header', id: 'h1', label: `Заклади (${searchFilteredStores.length})` });
+    searchFilteredStores.forEach(s => sections.push({ type: 'store', id: `s${s.store_id}`, item: s }));
   }
-  if (matchedProducts.length > 0) {
-    sections.push({ type: 'header', id: 'h2', label: `Страви та товари (${matchedProducts.length})` });
-    matchedProducts.forEach(p => sections.push({ type: 'product', id: `p${p.product_id}`, item: p }));
+  if (finalProducts.length > 0) {
+    sections.push({ type: 'header', id: 'h2', label: `Страви та товари (${finalProducts.length})` });
+    finalProducts.forEach(p => sections.push({ type: 'product', id: `p${p.product_id}`, item: p }));
   }
 
   return (
@@ -160,19 +148,19 @@ export default function SearchScreen() {
           placeholder="Піца, суші, бургер..."
           placeholderTextColor="gray"
           autoFocus
-          value={query}
+          value={searchQuery}
           onChangeText={handleChange}
           returnKeyType="search"
           clearButtonMode="never"
         />
-        {query.length > 0 && (
-          <TouchableOpacity onPress={clearQuery} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="close-circle" size={18} color="gray" />
           </TouchableOpacity>
         )}
       </View>
 
-      {q.length === 0 ? (
+      {searchQuery.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>🔍</Text>
           <Text style={[styles.emptyTitle, { color: theme.text }]}>Що шукаємо?</Text>
