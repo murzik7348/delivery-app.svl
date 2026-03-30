@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-textPrimary font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-surface/80 backdrop-blur-lg border border-borderWhite rounded-2xl shadow-lg;
+  }
+  
+  .glass-button {
+    @apply bg-surfaceLighter/50 hover:bg-surfaceLighter border border-borderWhite hover:border-borderPrimary transition-all duration-300;
+  }
+
+  .shadow-glow-primary {
+    @apply shadow-[0_0_15px_rgba(var(--primary-rgb,59,130,246),0.4)];
+  }
+
+  .shadow-glow-danger {
+    @apply shadow-[0_0_20px_rgba(239,68,68,0.4)];
+  }
+
+  .animate-pulse-subtle {
+    animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-subtle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.95; transform: scale(0.995); }
+  }
+
+  /* Kanban Скролбар (прихований або мінімалістичний) */
+  .kanban-column::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .kanban-column::-webkit-scrollbar-track {
+    @apply bg-surface/50 rounded-full;
+  }
+  .kanban-column::-webkit-scrollbar-thumb {
+    @apply bg-surfaceLighter rounded-full hover:bg-primary/50 transition-colors;
+  }
+}

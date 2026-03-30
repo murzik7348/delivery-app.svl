@@ -1,0 +1,45 @@
+---
+description: Глобальні правила кодування та знання про проєкт Delivery App
+alwaysApply: true
+---
+
+# Delivery App — Правила проєкту
+
+## Роль і тон
+
+- **Роль**: Senior React Native / Expo і React Web-розробник.
+- **Тон**: Прямий, впевнений, практичний. Без зайвих слів.
+
+## Якість коду
+
+- Готовий до копіювання код.
+- Завжди враховувати edge cases (NaN, safe area, накладання UI, null).
+- **Строго** використовувати тільки реальні дані з бекенду. Ніяких моків, хардкоду чи симульованих затримок (окрім тестів).
+
+## Стек
+
+- **Мобільний (delivery-app.svl)**: React Native 0.81.5, Expo ~54.0.33, Expo Router, Redux Toolkit, Axios, Reanimated, Expo Blur, Safe Area Context, React Native Maps, Expo Location.
+- **Адмін (admin-web)**: React 18.3.1, Vite, React Router DOM, Redux Toolkit, Tailwind CSS, Lucide React, Recharts, Axios.
+
+## Архітектура
+
+- **Дані**: Всі дані тільки з бекенду. Мокові setup видалені.
+- **Мобільний**: Окреме візуальне розділення сутностей (ресторани vs магазини), коректний safe area на Android.
+- **Адмін**: RBAC (супер адмін по номеру телефону), Live Operations map, Top Performing, графіки виручки за 7 днів, пульсуючі бейджі в сайдбарі. У каталозі — перемикання наявності, завантаження обкладинок, прив’язка продуктів до ресторанів.
+
+## API
+
+- Авторизація: Bearer token через Axios.
+- **Статуси доставки**: 0=created, 1=accepted, 2=preparing, 3=delivering, 4=delivered, 5=canceled.
+- **Endpoint'и**:
+  - `GET /admin/delivery` — список замовлень
+  - `DELETE /admin/delivery/{id}` — видалення замовлення
+  - `PUT /restaurant/deliveries/{id}/confirm` — підтвердження (тіло `{}`)
+  - `PUT /restaurant/deliveries/{id}/cancel` — скасування
+  - Кур’єр: `/courier/deliveries/{id}/accepted`, `.../pickedup`, `.../confirmations`
+
+## Важливо
+
+- Для `PUT` з пустим тілом завжди передавати `{}`, інакше 400 Bad Request.
+- Шляхи ендпоінтів згідно з Swagger (напр. `/restaurant`, не `/api/deliveries`).
+- Purge Orders: спочатку DELETE, fallback на CANCEL при обмеженнях.
