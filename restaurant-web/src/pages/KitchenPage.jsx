@@ -37,6 +37,8 @@ export default function KitchenPage() {
     }
   }, [dispatch]);
 
+  // Status 1 = Accepted/Confirmed. 
+  // Paid orders (Status 2) now go to Dashboard first to be accepted by manager, then they appear here as Status 1.
   const acceptedOrders = orders.filter(o => getStatusNum(o) === 1);
   const preparingOrders = orders.filter(o => getStatusNum(o) === 3);
   const readyOrdersCount = orders.filter(o => getStatusNum(o) === 4).length;

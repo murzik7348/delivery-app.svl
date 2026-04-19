@@ -142,6 +142,22 @@ const ordersSlice = createSlice({
           let s = item.statusDelivery?.toLowerCase() || '';
           if (s === 'restaurant_confirmed') item.statusDelivery = 'accepted';
           if (s === 'cancelled') item.statusDelivery = 'canceled';
+          if (s === 'picked_up' || s === 'pickedup') {
+            item.deliveryStatus = 5;
+            item.statusDelivery = 'delivering';
+          }
+          
+          // Improved: Handle automated Paid status from payment provider
+          // Admin API uses 'statusPayment', while User/Restaurant API uses 'paymentStatus'
+          const paymentStatus = item.statusPayment || item.paymentStatus;
+          const isActuallyPaid = paymentStatus === 'success';
+          const isEffectivelyCreated = !item.deliveryStatus || Number(item.deliveryStatus) === 0 || s === 'created';
+          
+          if (isActuallyPaid && isEffectivelyCreated) {
+            item.deliveryStatus = 2; // Paid ID
+            item.statusDelivery = 'paid';
+          }
+
           const id = item.deliveryId || item.id;
           const overr = state.localOverrides[id];
           if (overr) {

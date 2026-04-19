@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getOrders, changeOrderStatus, setLocalStatusOverride, purgeOrders } from '../store/slices/ordersSlice';
 import { getUsers } from '../store/slices/usersSlice';
+import { getProducts } from '../store/slices/catalogSlice';
 import { Clock, MapPin, User, ChevronRight, Phone, CheckCircle2, X, Bell } from 'lucide-react';
 import socketService from '../api/socket';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
@@ -39,7 +40,12 @@ const getField = (obj, fields) => {
   return null;
 };
 
-function OrderModal({ order, users, onClose }) {
+const parseIngs = (desc = '') => {
+  const match = desc.match(/\[INGS:(.*?)\]/);
+  return match ? match[1].split(',').filter(Boolean) : [];
+};
+
+function OrderModal({ order, users, catalogProducts, onClose }) {
   if (!order) return null;
 
   // Helper to enrich order with user data
@@ -122,18 +128,43 @@ function OrderModal({ order, users, onClose }) {
           </div>
 
           {/* Right Col: Order Items */}
-          <div className="bg-surfaceLighter p-4 rounded-xl border border-borderWhite flex flex-col">
+          <div className="bg-surfaceLighter p-4 rounded-xl border border-borderWhite flex flex-col max-h-[400px]">
             <h4 className="text-sm font-semibold text-textSecondary uppercase tracking-wider mb-3">Order Items</h4>
             <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
-              {order.items?.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center pb-3 border-b border-borderWhite last:border-0 last:pb-0">
-                  <div className="flex items-center">
-                    <span className="bg-surface px-2 py-0.5 rounded text-primary text-xs font-bold mr-3">{item.quantity || item.qty || item.count || 1}x</span>
-                    <span className="text-white text-sm">{item.productName || item.name || item.product?.name || `Product #${item.productId || item.id}`}</span>
+              {order.items?.map((item, idx) => {
+                const product = catalogProducts?.find(p => p.id === item.productId || p.name === item.productName);
+                const modifications = item.description?.includes('[INGS:') ? parseIngs(item.description) : [];
+                
+                return (
+                  <div key={idx} className="pb-3 border-b border-borderWhite last:border-0 last:pb-0">
+                    <div className="flex justify-between items-center mb-1">
+                      <div className="flex items-center">
+                        <span className="bg-surface px-2 py-0.5 rounded text-primary text-xs font-bold mr-3">{item.quantity || item.qty || item.count || 1}x</span>
+                        <span className="text-white text-sm font-medium">{item.productName || item.name || item.product?.name || `Product #${item.productId || item.id}`}</span>
+                      </div>
+                      <span className="text-white font-medium text-sm">{(item.price || item.product?.price || 0) * (item.quantity || item.qty || item.count || 1)} ₴</span>
+                    </div>
+                    {/* Ingredients display */}
+                    {modifications.length > 0 && (
+                      <div className="flex flex-wrap gap-1 ml-9">
+                        {modifications.map((ing, i) => {
+                          const isExcluded = ing.startsWith('-');
+                          const name = isExcluded ? ing.substring(1) : ing;
+                          return (
+                            <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded-md border ${
+                              isExcluded 
+                                ? 'bg-danger/10 border-danger/30 text-danger/70 line-through' 
+                                : 'bg-primary/10 border-primary/30 text-primary'
+                            }`}>
+                              {name}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                  <span className="text-white font-medium text-sm">{(item.price || item.product?.price || 0) * (item.quantity || item.qty || item.count || 1)} ₴</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="flex justify-between items-center bg-surface p-4 rounded-lg border border-borderWhite">
@@ -151,6 +182,7 @@ export default function OrdersPage() {
   const dispatch = useDispatch();
   const { items: orders, isLoading } = useSelector(state => state.orders);
   const { items: users } = useSelector(state => state.users);
+  const { products: catalogProducts } = useSelector(state => state.catalog);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   // Helper to enrich order with user data
@@ -178,6 +210,7 @@ export default function OrdersPage() {
     // Initial fetch
     dispatch(getOrders(null));
     dispatch(getUsers({ page: 1, pageSize: 200 }));
+    dispatch(getProducts({ page: 1, pageSize: 200 }));
 
     // Real-time polling (replacing WebSockets since backend doesn't support them)
     const interval = setInterval(() => {
@@ -189,10 +222,6 @@ export default function OrdersPage() {
 
     /*
     socketService.on('new_delivery', (data) => {
-      console.log('🔔 New delivery received via socket:', data);
-      dispatch(getOrders(null));
-      playNotificationSound();
-      
       if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('New Order!', {
           body: `Order #${data.id?.substring(0, 8)} received`,
@@ -274,17 +303,48 @@ export default function OrdersPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-4 kanban-column pr-1">
-                {visibleOrders.filter(o =>
-                  (o.statusDelivery?.toLowerCase() === column.key.toLowerCase()) ||
-                  Number(o.deliveryStatus || o.status) === Number(column.id)
-                ).map((order) => {
+                {visibleOrders.filter(o => {
+                  const sMap = {
+                    created: 0, paid: 2, accepted: 1, preparing: 3, 
+                    ready_for_pickup: 4, delivering: 5, delivered: 6, canceled: 7,
+                    restaurant_confirmed: 1, cancelled: 7
+                  };
+                  let sNum = Number(o.deliveryStatus || o.status);
+                  if (isNaN(sNum) || (o.deliveryStatus == null && o.status == null) || (typeof o.status === 'string' && isNaN(Number(o.status)))) {
+                    const sStr = String(o.statusDelivery || o.status || '').toLowerCase();
+                    sNum = sMap[sStr] ?? -1;
+                  }
+                  
+                  const pStatus = String(o.paymentStatus || o.statusPayment || '').toLowerCase();
+                  const isPaid = pStatus === 'success';
+                  
+                  // If order is paid but status is still 'created' (0), show in 'paid' column
+                  const effectiveStatus = (isPaid && (sNum === 0 || sNum === -1)) ? 2 : sNum;
+                  
+                  return (o.statusDelivery?.toLowerCase() === column.key.toLowerCase()) ||
+                         Number(effectiveStatus) === Number(column.id);
+                }).map((order) => {
+                  const sMap = {
+                    created: 0, paid: 2, accepted: 1, preparing: 3, 
+                    ready_for_pickup: 4, delivering: 5, delivered: 6, canceled: 7,
+                    restaurant_confirmed: 1, cancelled: 7
+                  };
+                  let sNum = Number(order.deliveryStatus || order.status);
+                  if (isNaN(sNum) || (order.deliveryStatus == null && order.status == null) || (typeof order.status === 'string' && isNaN(Number(order.status)))) {
+                    const sStr = String(order.statusDelivery || order.status || '').toLowerCase();
+                    sNum = sMap[sStr] ?? -1;
+                  }
+                  
+                  const pStatus = String(order.paymentStatus || order.statusPayment || '').toLowerCase();
+                  const effectiveStatus = (pStatus === 'success' && (sNum === 0 || sNum === -1)) ? 2 : sNum;
+
                   const currentIdx = STATUSES.findIndex(s =>
                     s.key.toLowerCase() === order.statusDelivery?.toLowerCase() ||
-                    Number(s.id) === Number(order.deliveryStatus || order.status)
+                    Number(s.id) === Number(effectiveStatus)
                   );
                   return (
                     <div
-                      key={order.deliveryId || order.id || idx}
+                      key={order.deliveryId || order.id}
                       onClick={() => setSelectedOrder(order)}
                       className="glass-panel p-4 cursor-pointer hover:border-borderPrimary hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden"
                     >
@@ -325,7 +385,14 @@ export default function OrdersPage() {
                           </span>
                         </p>
                         <p className="text-textSecondary text-[10px] italic border-t border-borderWhite/50 pt-2 mt-1">
-                          {order.items?.map(i => `${i.quantity || i.qty || 1}x ${i.productName || i.name}`).join(', ')}
+                          {order.items?.map(i => {
+                            const mods = i.description?.includes('[INGS:') ? parseIngs(i.description) : [];
+                            let text = `${i.quantity || i.qty || 1}x ${i.productName || i.name}`;
+                            if (mods.length > 0) {
+                              text += ` (${mods.map(m => m.startsWith('-') ? `без ${m.substring(1)}` : m).join(', ')})`;
+                            }
+                            return text;
+                          }).join(', ')}
                         </p>
                       </div>
 
@@ -403,6 +470,7 @@ export default function OrdersPage() {
       <OrderModal
         order={selectedOrder}
         users={users}
+        catalogProducts={catalogProducts}
         onClose={() => setSelectedOrder(null)}
       />
 

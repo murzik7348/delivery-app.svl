@@ -18,7 +18,7 @@ export const confirmDelivery = (id, data = {}) => {
 };
 
 export const startPreparing = (id) =>
-  client.put(`/restaurant/deliveries/${id}/prepare`);
+  client.put(`/restaurant/deliveries/${id}/cooking`, {});
 
 export const markReady = (id) =>
   client.put(`/restaurant/deliveries/${id}/ready`);

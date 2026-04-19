@@ -29,42 +29,65 @@ const STATUS_MAP = {
   preparing: 3,
   ready_for_pickup: 4,
   delivering: 5,
+  picked_up: 5,
+  pickedup: 5,
   delivered: 6,
   canceled: 7,
   restaurant_confirmed: 1,
   cancelled: 7,
 };
 
+const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
 export const fetchOrders = createAsyncThunk(
   'restaurantOrders/fetchOrders',
-  async (_, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
     try {
-      // Fetch all relevant statuses: 0-6 (Canceled/7 might not be allowed for restaurant fetch)
-      const statuses = [0, 1, 2, 3, 4, 5, 6]; 
-      const [ordersRes, productsRes] = await Promise.all([
-        Promise.all(statuses.map(s => fetchRestaurantDeliveries({ page: 1, pageSize: 50, status: s }))),
-        // We also need the products to know the ingredients
-        fetchProducts({ page: 1, pageSize: 200 }) 
-      ]);
-
+      // 1. Fetch active statuses SEQUENTIALLY
+      // This is crucial for Refresh Token stability. If the first request triggers a refresh,
+      // subsequent requests will use the NEW token immediately instead of all hitting 401 at once.
+      const activeStatuses = [0, 1, 2, 3, 4, 5]; 
+      const allItems = [];
       const seenIds = new Set();
-      ordersRes.forEach(res => {
-        const items = Array.isArray(res) ? res : (res?.items || res?.data || []);
-        items.forEach(item => {
-          const id = item.deliveryId || item.id;
-          if (id && !seenIds.has(id)) { 
-            allItems.push(item); 
-            seenIds.add(id); 
-          }
-        });
-      });
       
-      const products = productsRes.items || productsRes.data || (Array.isArray(productsRes) ? productsRes : []);
+      for (const s of activeStatuses) {
+        try {
+          const res = await fetchRestaurantDeliveries({ page: 1, pageSize: 50, status: s });
+          const items = Array.isArray(res) ? res : (res?.items || res?.data || []);
+          items.forEach(item => {
+            const id = item.deliveryId || item.id;
+            if (id && !seenIds.has(id)) {
+              allItems.push(item);
+              seenIds.add(id);
+            }
+          });
+        } catch (e) {
+          console.warn(`⚠️ [OrdersSlice] Status ${s} fetch failed:`, e.message);
+          // If we hit a 401 that couldn't be refreshed, we might want to stop the loop
+          if (e.status === 401) break;
+        }
+      }
+
+      // 2. Conditional product fetching (only if not loaded)
+      let products = [];
+      const state = getState();
+      const existingCatalog = state.restaurantOrders?.catalog || [];
       
-      console.log('📦 [OrdersSlice] Fetched total orders:', allItems.length, 'Products:', products.length);
+      if (existingCatalog.length === 0) {
+        try {
+          const productsRes = await fetchProducts({ page: 1, pageSize: 200 });
+          products = productsRes.items || productsRes.data || (Array.isArray(productsRes) ? productsRes : []);
+        } catch (e) {
+          console.warn('⚠️ [OrdersSlice] Products fetch failed:', e.message);
+        }
+      } else {
+        products = existingCatalog;
+      }
+      
+      console.log('📦 [OrdersSlice] Sequential fetch complete:', allItems.length, 'orders');
       return [allItems, products];
     } catch (err) { 
-      console.error('❌ [OrdersSlice] Fetch failed:', err);
+      console.error('❌ [OrdersSlice] Global fetch failed:', err);
       return rejectWithValue(err.message || 'Failed to fetch orders'); 
     }
   }
@@ -79,10 +102,10 @@ export const acceptOrder = createAsyncThunk(
       // Small delay to let backend database sync before fetching
       setTimeout(() => dispatch(fetchOrders()), 800);
       return { orderId };
-    } catch (err) { 
+    } catch (err) {
       dispatch(showToast({ message: err?.message || 'Помилка при прийнятті замовлення', type: 'error' }));
-      dispatch(fetchOrders()); 
-      return rejectWithValue(err?.message); 
+      dispatch(fetchOrders());
+      return rejectWithValue(err?.message);
     }
   }
 );
@@ -115,7 +138,7 @@ export const startPreparingOrder = createAsyncThunk(
 
       // Додаємо реальний виклик бекенду
       await startPreparing(orderId);
-      
+
       dispatch(showToast({ message: '👨‍🍳 Починаємо готувати!', type: 'success' }));
       dispatch(fetchOrders()); // Одразу оновлюємо дані з сервера
       return { orderId };
@@ -155,50 +178,72 @@ export const markOrderReady = createAsyncThunk(
 );
 
 const normalizeItems = (raw) => {
-  // Standardize status field and naming
   return (raw || []).map(item => {
-    const mapped = { ...item };
+    if (!item) return null;
     
-    // 1. Try to get status from numeric fields
+    // 1. Determine ID
+    const id = item.deliveryId || item.id;
+    
+    // 2. Determine Numeric Status
     let sNum = -1;
     if (item.deliveryStatus != null) sNum = Number(item.deliveryStatus);
     else if (item.status != null && !isNaN(Number(item.status))) sNum = Number(item.status);
     
-    // 2. If numeric fields missing, try string mapping
-    if (sNum === -1 && item.statusDelivery) {
-      const s = String(item.statusDelivery).toLowerCase();
-      sNum = STATUS_MAP[s] ?? -1;
+    // 2.1 Fallback to string mapping if number is missing
+    if (sNum === -1) {
+      const sMap = {
+        created: 0, paid: 2, accepted: 1, preparing: 3, 
+        ready_for_pickup: 4, delivering: 5, delivered: 6, canceled: 7,
+        restaurant_confirmed: 1, cancelled: 7
+      };
+      const sStr = String(item.statusDelivery || item.status || '').toLowerCase();
+      sNum = sMap[sStr] ?? -1;
     }
+
+    // 3. Check for Payed status (online payment sync)
+    const pStatus = String(item.paymentStatus || item.statusPayment || '').toLowerCase().trim();
+    const isPaidOnline = pStatus === 'success' || pStatus === 'subscribed';
     
-    // 3. Last resort: default to 0 (but only if we really have no clue)
+    // If paid online but still in 'created' status, upgrade to Paid (2) for the Dashboard
+    // IMPORTANT: If it's already 'accepted' (1) or higher, we keep that status so it shows on Kitchen/Delivery
+    if (isPaidOnline && (sNum === 0 || sNum === -1)) {
+      sNum = 2;
+    }
+
     if (sNum === -1) sNum = 0;
 
-    mapped.deliveryStatus = sNum;
-    
-    // Sync statusDelivery string (explicitly handle legacy names)
+    // 4. Standardize Status String
     let sStr = (item.statusDelivery || '').toLowerCase();
-    if (sStr === 'restaurant_confirmed' || sStr === 'accepted') {
-      mapped.deliveryStatus = 1;
-      mapped.statusDelivery = 'accepted';
+    if (sNum === 2) {
+      sStr = 'paid';
+    } else if (sStr === 'restaurant_confirmed' || sStr === 'accepted' || sNum === 1) {
+      sStr = 'accepted';
     } else if (sStr === 'cancelled') {
-      mapped.deliveryStatus = 7;
-      mapped.statusDelivery = 'canceled';
+      sStr = 'canceled';
     } else {
-      mapped.statusDelivery = DELIVERY_STATUS[mapped.deliveryStatus] || sStr;
+      sStr = DELIVERY_STATUS[sNum] || sStr || 'created';
     }
 
-    return mapped;
-  });
+    // 5. Return complete cleaned object
+    return {
+      ...item,
+      id,
+      deliveryId: id,
+      deliveryStatus: sNum,
+      statusDelivery: sStr
+    };
+  }).filter(Boolean); // Remote any nulls just in case
 };
+
 
 const restaurantOrdersSlice = createSlice({
   name: 'restaurantOrders',
-  initialState: { 
-    items: [], 
+  initialState: {
+    items: [],
     catalog: [], // Full list of restaurant products with ingredients
-    isLoading: false, 
+    isLoading: false,
     error: null,
-    notifications: [] 
+    notifications: []
   },
   reducers: {
     clearNotifications: (state) => {
@@ -214,7 +259,7 @@ const restaurantOrdersSlice = createSlice({
       .addCase(fetchOrders.pending, (state) => { state.isLoading = true; })
       .addCase(fetchOrders.fulfilled, (state, action) => {
         state.isLoading = false;
-        
+
         // Handle dual payload: [orders, products]
         const [rawOrders, products] = action.payload;
         const newItems = normalizeItems(rawOrders);
@@ -263,4 +308,5 @@ const restaurantOrdersSlice = createSlice({
   },
 });
 
+export const { clearNotifications, markNotificationRead } = restaurantOrdersSlice.actions;
 export default restaurantOrdersSlice.reducer;

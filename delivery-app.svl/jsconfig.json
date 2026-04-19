@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "app",
+    "components",
+    "constants",
+    "assets",
+    "hooks",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}

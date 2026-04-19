@@ -37,15 +37,7 @@ client.interceptors.request.use(
             config.headers['Authorization'] = `Bearer ${token}`;
         }
         
-        logService.addLog({
-            type: 'request',
-            method: config.method?.toUpperCase(),
-            url: config.url,
-            data: config.data,
-            params: config.params
-        });
         console.log(`=====================================================\n`);
-        
         return config;
     },
     (error) => Promise.reject(error)
@@ -71,12 +63,6 @@ client.interceptors.response.use(
         console.log(`URL: ${response.config?.url}`);
         console.log(`HTTP Status: ${response.status}`);
         console.log(`Data:`, response.data);
-        logService.addLog({
-            type: 'response',
-            status: response.status,
-            url: response.config?.url,
-            data: response.data
-        });
         console.log(`==========================================================\n`);
         return response.data;
     },

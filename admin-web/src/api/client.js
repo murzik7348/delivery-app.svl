@@ -35,13 +35,11 @@ client.interceptors.request.use(
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
-        
         console.log(`\n============== 🚀 ADMIN API REQUEST 🚀 ==============`);
         console.log(`URL: ${config.baseURL || ''}${config.url}`);
         console.log(`Method: ${config.method?.toUpperCase()}`);
         console.log(`Auth Header: ${config.headers['Authorization'] ? config.headers['Authorization'].substring(0, 15) + '...' : 'NONE'}`);
         console.log(`=====================================================\n`);
-        
         return config;
     },
     (error) => Promise.reject(error)

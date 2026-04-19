@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, ChefHat, Timer, User, Phone, MapPin, X, Minus, Plus as PlusIcon } from 'lucide-react';
+import { CheckCircle2, XCircle, ChefHat, Timer, Clock, User, Phone, MapPin, X, Minus, Plus as PlusIcon } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { useState, useEffect } from 'react';
@@ -198,8 +198,8 @@ export function LiveTimer({ createdAt }) {
 
 export function OrderCard({ order, onAccept, onReject, onStartCooking, onMarkReady }) {
   const statusNum = getStatusNum(order);
-  const isUnpaid = statusNum === 0; 
-  const isPaid = statusNum === 2;
+  const isUnpaid = statusNum === 0 && order.paymentStatus !== 'success'; 
+  const isPaid = statusNum === 2 || order.paymentStatus === 'success';
   const isAccepted = statusNum === 1; // Restaurant Confirmed
   const isPreparing = statusNum === 3;
   const isReady = statusNum === 4;
@@ -305,13 +305,13 @@ export function OrderCard({ order, onAccept, onReject, onStartCooking, onMarkRea
       <div className="flex justify-between items-center">
         <span className="font-bold text-white text-base">{order.totalPrice || 0} ₴</span>
         <div className="flex gap-2">
-          {(isPaid || isUnpaid) && (
+          {(isPaid || isUnpaid) && onAccept && onReject && (
             <>
               <button onClick={() => onReject(order)} className="px-3 py-2 rounded-lg bg-danger/10 text-danger border border-danger/20 hover:bg-danger hover:text-white transition-all text-xs font-bold">ВІДМОВА</button>
               <button onClick={() => onAccept(order)} className="px-3 py-2 rounded-lg bg-success text-white hover:bg-success/90 transition-all text-xs font-bold">ПРИЙНЯТИ</button>
             </>
           )}
-          {isAccepted && (
+          {(isAccepted || isPaid) && onStartCooking && (
             <button onClick={() => onStartCooking(order)} className="px-6 py-2.5 rounded-xl bg-secondary text-white shadow-glow-secondary hover:bg-secondary/90 transition-all text-sm font-black flex items-center gap-2">
               <ChefHat className="w-4 h-4" /> ПОЧАТИ ГОТУВАННЯ
             </button>

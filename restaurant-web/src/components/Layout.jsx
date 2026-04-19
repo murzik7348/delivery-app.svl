@@ -67,7 +67,7 @@ export default function Layout() {
     dispatch(fetchOrders());
     const id = setInterval(() => {
       dispatch(fetchOrders());
-    }, 15000);
+    }, 30000);
     return () => clearInterval(id);
   }, [dispatch]);
 
