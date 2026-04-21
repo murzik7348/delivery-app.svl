@@ -219,8 +219,9 @@ export default function RestaurantDashboard() {
           </div>
         )}
       </div>
+    </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Нових до прийняття" value={newOrders.length} icon={Package} color="primary" />
         <StatCard title="Зараз на кухні" value={inWorkCount} icon={ChefHat} color="secondary" />
         <StatCard title="Прийнято сьогодні" value={todayAccepted} icon={TrendingUp} color="success" />
@@ -271,6 +272,7 @@ export default function RestaurantDashboard() {
           onConfirm={handleConfirmReject} 
           onClose={() => setRejectModal(null)} 
         />
+      )}
       {/* {profileModalOpen && (
         <ProfileModal 
           isOpen={profileModalOpen} 
