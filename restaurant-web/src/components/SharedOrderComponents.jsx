@@ -215,7 +215,8 @@ export function OrderCard({ order, onAccept, onReject, onStartCooking, onMarkRea
   const _customerPhone = order.customer?.phoneNumber || order.customer?.phone || order.phoneNumber || '';
   const address = typeof order.address === 'string' ? order.address : order.address?.street ? `${order.address.street} ${order.address.houseNumber || ''}`.trim() : 'Адреса';
 
-  const parseIngs = (desc = '') => {
+  const parseIngs = (rawDesc = '') => {
+    const desc = rawDesc || '';
     const match = desc.match(/\[INGS:(.*?)\]/);
     return match ? match[1].split(',').filter(Boolean) : [];
   };

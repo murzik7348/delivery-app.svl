@@ -14,11 +14,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import Colors from '../../constants/Colors';
-import { selectAllProducts, selectAllStores } from '../../store/catalogSlice';
-import { addToCart } from '../../store/cartSlice';
-import ProductSheet from '../../components/ProductSheet';
-import useCatalogFilter from '../../hooks/useCatalogFilter';
+import Colors from '../constants/Colors';
+import { selectAllProducts, selectAllStores } from '../store/catalogSlice';
+import { addToCart } from '../store/cartSlice';
+import ProductSheet from '../components/ProductSheet';
+import useCatalogFilter from '../hooks/useCatalogFilter';
 
 export default function SearchScreen() {
   const router = useRouter();

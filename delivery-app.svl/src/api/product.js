@@ -2,10 +2,16 @@ import client from './client';
 
 /**
  * Create a new product (admin / restaurant).
- * @param {Object} data - ProductCreateRequest
- *   { name: string, description: string, price: number, weightGrams: number, categoryId: number, restaurantId: number }
+ * @param {Object|FormData} data - ProductCreateRequest or FormData
  */
-export const createProduct = (data) => client.post('/product', data);
+export const createProduct = (data) => {
+    const isFormData = data instanceof FormData;
+    return client.post('/product', data, {
+        headers: {
+            'Content-Type': isFormData ? 'multipart/form-data' : 'application/json',
+        },
+    });
+};
 
 /**
  * Get paginated list of products with optional filters.
@@ -40,3 +46,19 @@ export const updateProduct = (productId, data) =>
  */
 export const deleteProduct = (productId) =>
     client.delete(`/product/${productId}`);
+
+/**
+ * Update product image separately.
+ * @param {FormData} formData - Multipart with ProductId and Image
+ */
+export const uploadProductImage = (formData) =>
+    client.put('/product/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+
+/**
+ * Delete product image.
+ * @param {number} productId
+ */
+export const deleteProductImage = (productId) =>
+    client.delete(`/product/${productId}/image`);

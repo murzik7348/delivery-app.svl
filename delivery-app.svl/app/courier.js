@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import Colors from '../../constants/Colors';
-import CourierOrdersPanel from '../../components/CourierOrdersPanel';
+import Colors from '../constants/Colors';
+import CourierOrdersPanel from '../components/CourierOrdersPanel';
 
 export default function CourierDeliveryScreen() {
     const router = useRouter();

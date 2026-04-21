@@ -1,4 +1,5 @@
 import { getProducts, getCategories, getRestaurants } from '../src/api';
+import { resolveImageUrl } from '../src/api/client';
 
 /**
  * CatalogService — fetches real product/category data from the backend API.
@@ -24,15 +25,39 @@ class CatalogService {
                 product_id: p.id,
                 store_id: p.restaurantId,
                 category_id: p.categoryId, // Backend uses categoryId
-                image: p.imageUrl || "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=500" // Fallback image
+                image: resolveImageUrl(p.urlBase || p.imageUrl) || "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=500" // Fallback image
             }));
 
             // Map categories to ensure category_id is set
-            const apiCategoryList = (Array.isArray(apiCategories) ? apiCategories : []).map(c => ({
-                ...c,
-                category_id: c.categoryId || c.id,
-                image: c.imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200" // Fallback image for categories
-            }));
+            const STICKER_MAP = {
+                'піца': '🍕',
+                'піцца': '🍕',
+                'суші': '🍣',
+                'роли': '🍣',
+                'бургери': '🍔',
+                'бургер': '🍔',
+                'напої': '🥤',
+                'десерти': '🍰',
+                'салати': '🥗',
+                'м\'ясо': '🥩',
+                'стейки': '🥩',
+                'паста': '🍝',
+                'сніданки': '🍳',
+                'снеки': '🍿',
+                'соуси': '🍯'
+            };
+
+            const apiCategoryList = (Array.isArray(apiCategories) ? apiCategories : []).map(c => {
+                const nameLower = (c.name || '').toLowerCase();
+                const sticker = STICKER_MAP[nameLower] || '🍽️';
+                
+                return {
+                    ...c,
+                    category_id: c.categoryId || c.id,
+                    sticker: sticker,
+                    image: resolveImageUrl(c.imageUrl) || null // Use null if no image, UI will handle sticker
+                };
+            });
 
             const apiRestaurantList = Array.isArray(apiRestaurants) ? apiRestaurants : [];
 
@@ -54,7 +79,7 @@ class CatalogService {
                 return {
                     store_id: id,
                     name: name,
-                    image: r.imageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800", // Fallback image wrapper
+                    image: resolveImageUrl(r.imageUrl) || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800", // Fallback image wrapper
                     rating: r.rating || 4.5,
                     delivery_time: "20-40 хв",
                     tags: tags,

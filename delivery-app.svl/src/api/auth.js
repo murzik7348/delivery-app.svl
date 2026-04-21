@@ -94,4 +94,13 @@ export const updatePushToken = async (token) => {
         throw err;
     }
 };
-
+/**
+ * Upload profile photo (avatar).
+ * @param {FormData} formData - Multipart form data containing 'Photo'
+ */
+export const uploadAvatar = (formData) =>
+    client.post('/auth/photo', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });

@@ -679,7 +679,7 @@ export default function CartScreen() {
           <Text style={[styles.emptyText, { color: theme.text }]}>{t(locale, 'emptyCart')}</Text>
           <TouchableOpacity
             style={[styles.shopBtn, { backgroundColor: theme.card }]}
-            onPress={() => router.push('/(tabs)')}
+            onPress={() => router.push('/home')}
           >
             <Text style={[styles.shopBtnText, { color: theme.text }]}>
               {locale === 'en' ? 'To menu' : 'В меню'}

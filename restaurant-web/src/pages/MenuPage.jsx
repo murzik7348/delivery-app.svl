@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Search, Plus, X, Loader2, Save, UtensilsCrossed, Info } from 'lucide-react';
-import { fetchProducts, updateProduct, getRestaurantInfo } from '../api/restaurant';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Plus, X, Loader2, Save, UtensilsCrossed, Info, Camera, Trash2 } from 'lucide-react';
+import { fetchProducts, updateProduct, getRestaurantInfo, uploadProductImage, deleteProductImage } from '../api/restaurant';
+import { resolveImageUrl } from '../api/client';
 
 export default function MenuPage() {
   const [products, setProducts] = useState([]);
@@ -10,6 +11,8 @@ export default function MenuPage() {
   const [ingredients, setIngredients] = useState([]);
   const [newIngredient, setNewIngredient] = useState('');
   const [saveLoading, setSaveLoading] = useState(false);
+  const [imageUploadLoading, setImageUploadLoading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     getRestaurantInfo().then(res => {
@@ -30,7 +33,8 @@ export default function MenuPage() {
     }
   };
 
-  const parseIngredients = (description = '') => {
+  const parseIngredients = (desc = '') => {
+    const description = desc || '';
     const match = description.match(/\[INGS:(.*?)\]/);
     if (match && match[1]) {
       return match[1].split(',').filter(i => i.trim());
@@ -38,7 +42,8 @@ export default function MenuPage() {
     return [];
   };
 
-  const getCleanDescription = (description = '') => {
+  const getCleanDescription = (desc = '') => {
+    const description = desc || '';
     return description.replace(/\[INGS:.*?\]/, '').trim();
   };
 
@@ -56,6 +61,99 @@ export default function MenuPage() {
 
   const handleRemoveIngredient = (ing) => {
     setIngredients(ingredients.filter(i => i !== ing));
+  };
+
+  const compressImage = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }, 'image/jpeg', 0.7); // 70% quality
+        };
+      };
+    });
+  };
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !editingItem) return;
+
+    if (!editingItem.id) {
+      alert('Помилка: ID продукту не знайдено');
+      return;
+    }
+
+    setImageUploadLoading(true);
+    try {
+      console.log('🖼️ Original file size:', (file.size / 1024).toFixed(2), 'KB');
+      const compressedFile = await compressImage(file);
+      console.log('📉 Compressed file size:', (compressedFile.size / 1024).toFixed(2), 'KB');
+      
+      await uploadProductImage(editingItem.id, compressedFile);
+      // Refresh products to show new image
+      getRestaurantInfo().then(res => {
+        const id = res.id || res.data?.id;
+        loadProducts(id);
+      });
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      const serverError = err.response?.data?.errors;
+      const errorMsg = serverError ? Object.values(serverError).flat().join(', ') : 'Не вдалося завантажити зображення';
+      alert(`Помилка завантаження: ${errorMsg}`);
+    } finally {
+      setImageUploadLoading(false);
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (!editingItem) return;
+    if (!window.confirm('Видалити зображення страви?')) return;
+
+    setImageUploadLoading(true);
+    try {
+      await deleteProductImage(editingItem.id);
+      getRestaurantInfo().then(res => {
+        const id = res.id || res.data?.id;
+        loadProducts(id);
+      });
+    } catch (err) {
+      console.error('Image deletion failed:', err);
+      alert('Не вдалося видалити зображення');
+    } finally {
+      setImageUploadLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -116,8 +214,8 @@ export default function MenuPage() {
             return (
               <div key={product.id} className="glass-panel p-5 group hover:border-borderPrimary transition-all duration-300 flex flex-col h-full bg-surface/40 hover:bg-surface/60">
                 <div className="relative h-40 mb-4 rounded-xl overflow-hidden border border-borderWhite shadow-inner">
-                  {product.imageUrl ? (
-                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  {product.urlBase || product.imageUrl ? (
+                    <img src={resolveImageUrl(product.urlBase || product.imageUrl)} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                   ) : (
                     <div className="w-full h-full bg-surfaceLighter flex items-center justify-center">
                       <UtensilsCrossed className="w-10 h-10 text-textSecondary opacity-20" />
@@ -161,34 +259,78 @@ export default function MenuPage() {
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-primary animate-pulse" />
               
               <div className="flex justify-between items-start mb-8">
-                 <div>
-                   <h3 className="text-2xl font-black text-white uppercase tracking-tight">Склад страви</h3>
-                   <p className="text-textSecondary text-sm font-medium mt-1">{editingItem.name}</p>
+                 <div className="flex items-center gap-4">
+                    <div className="relative group">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden border border-borderWhite shadow-lg">
+                        {editingItem.urlBase || editingItem.imageUrl ? (
+                           <img src={resolveImageUrl(editingItem.urlBase || editingItem.imageUrl)} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                           <div className="w-full h-full bg-surfaceLighter flex items-center justify-center">
+                              <UtensilsCrossed className="w-6 h-6 text-textSecondary opacity-40" />
+                           </div>
+                        )}
+                        {imageUploadLoading && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <Loader2 className="w-5 h-5 text-white animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="absolute -bottom-2 -right-2 flex gap-1">
+                        <button 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="p-1.5 bg-primary text-white rounded-lg shadow-lg hover:scale-110 transition-transform"
+                          title="Змінити фото"
+                        >
+                          <Camera className="w-3 h-3" />
+                        </button>
+                        {(editingItem.urlBase || editingItem.imageUrl) && (
+                          <button 
+                            onClick={handleDeleteImage}
+                            className="p-1.5 bg-danger text-white rounded-lg shadow-lg hover:scale-110 transition-transform"
+                            title="Видалити фото"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-white uppercase tracking-tight">Склад страви</h3>
+                      <p className="text-textSecondary text-sm font-medium mt-1">{editingItem.name}</p>
+                    </div>
                  </div>
                  <button onClick={() => setEditingItem(null)} className="p-2 rounded-full hover:bg-surfaceLighter transition-all">
                     <X className="w-6 h-6 text-textSecondary" />
                  </button>
               </div>
 
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageChange} 
+                className="hidden" 
+                accept="image/*"
+              />
+
               <div className="space-y-6">
                  <div>
-                   <label className="block text-xs font-black text-textSecondary uppercase tracking-widest mb-4">Доступні компоненти</label>
-                   <div className="flex flex-wrap gap-2 min-h-[100px] p-6 bg-surface/50 rounded-2xl border border-dashed border-borderWhite">
-                      {ingredients.map((ing, idx) => (
-                        <div key={idx} className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold shadow-glow-primary animate-in zoom-in duration-200">
-                           {ing}
-                           <button onClick={() => handleRemoveIngredient(ing)} className="hover:text-danger hover:scale-125 transition-all outline-none">
-                              <X className="w-4 h-4" />
-                           </button>
-                        </div>
-                      ))}
-                      {ingredients.length === 0 && (
-                        <div className="flex flex-col items-center justify-center w-full text-center opacity-40">
-                          <Info className="w-6 h-6 mb-2" />
-                          <p className="text-[10px] font-bold uppercase tracking-widest">Додайте компоненти нижче</p>
-                        </div>
-                      )}
-                   </div>
+                    <label className="block text-xs font-black text-textSecondary uppercase tracking-widest mb-4">Доступні компоненти</label>
+                    <div className="flex flex-wrap gap-2 min-h-[100px] p-6 bg-surface/50 rounded-2xl border border-dashed border-borderWhite">
+                       {ingredients.map((ing, idx) => (
+                         <div key={idx} className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold shadow-glow-primary animate-in zoom-in duration-200">
+                            {ing}
+                            <button onClick={() => handleRemoveIngredient(ing)} className="hover:text-danger hover:scale-125 transition-all outline-none">
+                               <X className="w-4 h-4" />
+                            </button>
+                         </div>
+                       ))}
+                       {ingredients.length === 0 && (
+                         <div className="flex flex-col items-center justify-center w-full text-center opacity-40">
+                           <Info className="w-6 h-6 mb-2" />
+                           <p className="text-[10px] font-bold uppercase tracking-widest">Додайте компоненти нижче</p>
+                         </div>
+                       )}
+                    </div>
                  </div>
 
                  <div className="flex gap-2">
@@ -218,7 +360,7 @@ export default function MenuPage() {
                     </button>
                     <button 
                       onClick={handleSave}
-                      disabled={saveLoading}
+                      disabled={saveLoading || imageUploadLoading}
                       className="flex-[2] py-4 bg-primary text-white rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-glow-primary hover:bg-primaryHover disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
                     >
                       {saveLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-5 h-5" /> Зберегти склад</>}

@@ -24,7 +24,7 @@ export const getRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY);
 
 const client = axios.create({
     baseURL: BASE_URL,
-    timeout: 15000,
+    timeout: 60000,
     headers: { 'Content-Type': 'application/json' },
 });
 
@@ -124,6 +124,15 @@ client.interceptors.response.use(
             console.log(`URL: ${error.config?.url}`);
             console.log(`Status: ${error.response.status}`);
             console.log(`Data:`, error.response.data);
+
+            // Log specific validation errors if present
+            if (error.response.data?.errors) {
+                console.group('%c[ADMIN VALIDATION ERRORS]', 'color: #fca5a5; font-weight: bold;');
+                Object.entries(error.response.data.errors).forEach(([field, messages]) => {
+                    console.log(`%c${field}:`, 'font-weight: bold;', messages);
+                });
+                console.groupEnd();
+            }
 
             const errorMsg = error.response.data?.message || '';
             const isClaimMissing = errorMsg.includes('UserId claim missing');

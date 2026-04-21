@@ -11,6 +11,7 @@ export {
     getMe,
     logout,
     updatePushToken,
+    uploadAvatar,
 } from './auth';
 
 // ── Address ──────────────────────────────────────────────────────────────────
@@ -30,6 +31,8 @@ export {
     getProducts,
     updateProduct,
     deleteProduct,
+    uploadProductImage,
+    deleteProductImage,
 } from './product';
 
 // ── Delivery ─────────────────────────────────────────────────────────────────

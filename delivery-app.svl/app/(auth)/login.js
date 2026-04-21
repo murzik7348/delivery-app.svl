@@ -58,7 +58,7 @@ export default function LoginScreen() {
       const user = me ?? {};
       dispatch(loginUser(user));
       dispatch(fetchAddresses());
-      router.replace('/(tabs)');
+      router.replace('/home');
     } catch (err) {
       Alert.alert('Помилка входу', err.message || 'Щось пішло не так. Спробуйте ще раз.');
     } finally {

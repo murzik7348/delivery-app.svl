@@ -167,7 +167,7 @@ export default function RegisterScreen() {
 
       dispatch(loginUser(finalUser));
       Alert.alert('Вітаємо! 🎉', 'Реєстрацію успішно завершено!', [
-        { text: 'Почати', onPress: () => router.replace('/(tabs)') },
+        { text: 'Почати', onPress: () => router.replace('/home') },
       ]);
     } catch (err) {
       Alert.alert('Помилка реєстрації', err.message || 'Щось пішло не так.');

@@ -3,8 +3,8 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Colors from '../../constants/Colors';
-import useCatalogFilter from '../../hooks/useCatalogFilter';
+import Colors from '../constants/Colors';
+import useCatalogFilter from '../hooks/useCatalogFilter';
 
 export default function CatalogScreen() {
   const router = useRouter();
@@ -43,7 +43,7 @@ export default function CatalogScreen() {
           {/* Натискання перекидає на search.js */}
           <TouchableOpacity
             style={[styles.searchBar, { backgroundColor: theme.input }]}
-            onPress={() => router.push('/(tabs)/search')}
+            onPress={() => router.push('/search')}
             activeOpacity={0.8}
           >
             <Ionicons name="search" size={20} color="gray" style={{ marginRight: 8 }} />

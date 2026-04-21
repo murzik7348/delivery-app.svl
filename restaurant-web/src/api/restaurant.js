@@ -1,4 +1,4 @@
-import client from './client';
+import client, { DIRECT_API_URL } from './client';
 
 export const fetchRestaurantDeliveries = (params = { page: 1, pageSize: 50, status: null }) => {
   const query = { page: params.page, pageSize: params.pageSize };
@@ -38,8 +38,34 @@ export const updateRestaurantStatus = (isOpen) =>
   client.put('/restaurant', { isOpen });
 
 // Product / Menu Management
-export const fetchProducts = (params = { page: 1, pageSize: 50, restaurantId: null }) => 
+export const fetchProducts = (params = {}) => 
   client.get('/product', { params });
 
 export const updateProduct = (id, data) => 
   client.put(`/product/${id}`, data);
+
+export const uploadProductImage = (productId, imageFile) => {
+  console.log('📤 [uploadProductImage] Attempting V7 (Proxy + Explicit Headers):', { productId, fileName: imageFile?.name });
+  const formData = new FormData();
+  formData.append('ProductId', productId);
+  formData.append('Image', imageFile);
+  
+  return client.put('/product/image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
+export const uploadRestaurantImage = (imageFile) => {
+    const formData = new FormData();
+    formData.append('Image', imageFile);
+    return client.put('/restaurant/image', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+};
+
+export const deleteProductImage = (productId) => 
+  client.delete(`/product/${productId}/image`);

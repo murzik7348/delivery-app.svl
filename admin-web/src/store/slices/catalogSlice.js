@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { fetchProducts, fetchCategories, fetchRestaurants, createProduct, updateProduct, deleteProduct, uploadProductImage } from '../../api/catalog';
+import { fetchProducts, fetchCategories, fetchRestaurants, createProduct, updateProduct, deleteProduct, uploadProductImage, updateCategory, uploadCategoryImage, uploadRestaurantImage } from '../../api/catalog';
 
 export const getProducts = createAsyncThunk(
   'catalog/getProducts',
@@ -42,14 +42,21 @@ export const addProduct = createAsyncThunk(
     'catalog/addProduct',
     async ({ productData, imageFile }, { rejectWithValue }) => {
         try {
-            const response = await createProduct(productData);
-            const productId = response.id || response.data?.id;
+            // Creation POST /product MUST be multipart/form-data and MUST include the image
+            // We use PascalCase for fields because backend multipart parser is strict
+            const formData = new FormData();
+            formData.append('Name', productData.name);
+            formData.append('Price', productData.price);
+            formData.append('WeightGrams', productData.weightGrams);
+            formData.append('CategoryId', productData.categoryId);
+            formData.append('Description', productData.description || '');
+            formData.append('RestaurantId', productData.restaurantId);
             
-            // Upload image if provided and successfully created
-            if (productId && imageFile) {
-                await uploadProductImage(productId, imageFile);
+            if (imageFile) {
+                formData.append('Image', imageFile);
             }
             
+            const response = await createProduct(formData);
             return response;
         } catch (err) {
             return rejectWithValue(err.message || 'Failed to add product');
@@ -70,6 +77,33 @@ export const editProduct = createAsyncThunk(
             return response;
         } catch (err) {
             return rejectWithValue(err.message || 'Failed to edit product');
+        }
+    }
+);
+
+export const editCategory = createAsyncThunk(
+    'catalog/editCategory',
+    async ({ id, name, imageFile }, { rejectWithValue }) => {
+        try {
+            const response = await updateCategory(id, name);
+            if (imageFile) {
+                await uploadCategoryImage(id, imageFile);
+            }
+            return response;
+        } catch (err) {
+            return rejectWithValue(err.message || 'Failed to edit category');
+        }
+    }
+);
+
+export const updateRestaurantPhoto = createAsyncThunk(
+    'catalog/updateRestaurantPhoto',
+    async (imageFile, { rejectWithValue }) => {
+        try {
+            const response = await uploadRestaurantImage(imageFile);
+            return response;
+        } catch (err) {
+            return rejectWithValue(err.message || 'Failed to update restaurant photo');
         }
     }
 );
@@ -127,9 +161,19 @@ const catalogSlice = createSlice({
         state.error = action.payload;
       })
       
-      // Fetch Categories
       .addCase(getCategories.fulfilled, (state, action) => {
         state.categories = action.payload;
+      })
+      
+      // Edit Category
+      .addCase(editCategory.fulfilled, (state, action) => {
+        if(action.payload && (action.payload.id || action.payload.categoryId)) {
+            const id = action.payload.id || action.payload.categoryId;
+            const index = state.categories.findIndex(c => (c.id || c.categoryId) === id);
+            if(index !== -1) {
+                state.categories[index] = action.payload;
+            }
+        }
       })
 
       // Fetch Restaurants

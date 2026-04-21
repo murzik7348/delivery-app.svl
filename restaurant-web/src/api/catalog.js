@@ -21,8 +21,12 @@ export const fetchRestaurants = () =>
 
 export const uploadProductImage = (productId, imageFile) => {
     const formData = new FormData();
-    formData.append('image', imageFile);
-    return client.post(`/product/${productId}/image`, formData, {
+    formData.append('ProductId', productId);
+    formData.append('Image', imageFile);
+    return client.put('/product/image', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     });
 };
+
+export const deleteProductImage = (productId) => 
+    client.delete(`/product/${productId}/image`);

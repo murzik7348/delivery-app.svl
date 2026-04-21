@@ -21,11 +21,11 @@ export default function Index() {
           console.log("🔔 ХОЛОДНИЙ СТАРТ: Летимо на", url);
           router.replace(url);
         } else {
-          router.replace('/(tabs)');
+          router.replace('/home');
         }
       } catch (e) {
         console.error("Помилка старту:", e);
-        router.replace('/(tabs)');
+        router.replace('/home');
       } finally {
         setIsReady(true);
       }

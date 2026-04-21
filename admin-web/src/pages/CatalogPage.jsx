@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getProducts, getCategories, getRestaurants, addProduct, editProduct, removeProduct, toggleProductStatus } from '../store/slices/catalogSlice';
+import { getProducts, getCategories, getRestaurants, addProduct, editProduct, removeProduct, toggleProductStatus, editCategory } from '../store/slices/catalogSlice';
 import { Search, Plus, Edit2, Trash2, X, Loader2, Image as ImageIcon } from 'lucide-react';
 
 function ProductModal({ isOpen, onClose, product, categories, restaurants, onSubmit }) {
@@ -43,17 +43,64 @@ function ProductModal({ isOpen, onClose, product, categories, restaurants, onSub
     setImageFile(null);
   }, [product, categories, restaurants, isOpen]);
 
+  const compressImage = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }, 'image/jpeg', 0.7); // 70% quality
+        };
+      };
+    });
+  };
+
   if (!isOpen) return null;
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
       const file = e.target.files[0];
       if (file) {
-          setImageFile(file);
+          console.log('🖼️ [Admin] Original file size:', (file.size / 1024).toFixed(2), 'KB');
+          const compressed = await compressImage(file);
+          console.log('📉 [Admin] Compressed file size:', (compressed.size / 1024).toFixed(2), 'KB');
+          
+          setImageFile(compressed);
           const reader = new FileReader();
           reader.onloadend = () => {
               setImagePreview(reader.result);
           };
-          reader.readAsDataURL(file);
+          reader.readAsDataURL(compressed);
       }
   };
 
@@ -63,15 +110,21 @@ function ProductModal({ isOpen, onClose, product, categories, restaurants, onSub
       
       const payload = {
           ...formData,
-          price: Number(formData.price),
-          weightGrams: Number(formData.weightGrams),
-          categoryId: Number(formData.categoryId),
-          restaurantId: Number(formData.restaurantId)
+          price: Number(formData.price) || 0,
+          weightGrams: Number(formData.weightGrams) || 0,
+          categoryId: Number(formData.categoryId) || (categories[0]?.id || 1),
+          restaurantId: Number(formData.restaurantId) || (restaurants[0]?.id || 1)
       };
       
-      await onSubmit(payload, imageFile, product?.id);
-      setIsSubmitting(false);
-      onClose();
+      try {
+          await onSubmit(payload, imageFile, product?.id);
+          onClose();
+      } catch (err) {
+          console.error('Submit failed:', err);
+          alert(`Failed to save product: ${err.message || 'Unknown error'}`);
+      } finally {
+          setIsSubmitting(false);
+      }
   };
 
   return (
@@ -229,13 +282,129 @@ function ProductModal({ isOpen, onClose, product, categories, restaurants, onSub
   );
 }
 
+function CategoryModal({ isOpen, onClose, category, onSubmit }) {
+  const [name, setName] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (category) {
+      setName(category.name || '');
+      setImagePreview(category.imageUrl || '');
+    }
+    setImageFile(null);
+  }, [category, isOpen]);
+
+  const compressImage = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 400; // Categories/Stickers can be smaller
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            const compressedFile = new File([blob], file.name, { type: 'image/png' }); // Stickers often need transparency
+            resolve(compressedFile);
+          }, 'image/png');
+        };
+      };
+    });
+  };
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const compressed = await compressImage(file);
+      setImageFile(compressed);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result);
+      reader.readAsDataURL(compressed);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+      <div className="glass-panel max-w-md w-full p-6 border-borderPrimary shadow-glow-primary">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-white">Edit Category Sticker</h2>
+          <button onClick={onClose} className="p-2 text-textSecondary hover:text-white"><X /></button>
+        </div>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          setIsSubmitting(true);
+          try {
+            await onSubmit(category.id || category.categoryId, name, imageFile);
+            onClose();
+          } finally {
+            setIsSubmitting(false);
+          }
+        }} className="space-y-4">
+          <div className="flex flex-col items-center mb-4">
+            <div 
+              className="w-24 h-24 rounded-full bg-surfaceLighter border-2 border-dashed border-borderWhite flex items-center justify-center cursor-pointer overflow-hidden"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {imagePreview ? <img src={imagePreview} className="w-full h-full object-contain" /> : <ImageIcon />}
+            </div>
+            <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+            <p className="text-xs text-textSecondary mt-2">Upload Sticker (PNG with transparency recommended)</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-textSecondary mb-2">Category Name</label>
+            <input 
+              type="text" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-surface border border-borderWhite rounded-lg p-2 text-white"
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="w-full py-3 bg-primary text-white font-bold rounded-xl transition-all shadow-glow-primary"
+          >
+            {isSubmitting ? <Loader2 className="animate-spin mx-auto" /> : 'Save Changes'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function CatalogPage() {
   const dispatch = useDispatch();
   const { products: items, categories, restaurants, isLoading } = useSelector(state => state.catalog);
   
   const [search, setSearch] = useState('');
   const [isModalOpen, setModalOpen] = useState(false);
+  const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [activeTab, setActiveTab] = useState('items'); // 'items' or 'categories'
   const [selectedFolderId, setSelectedFolderId] = useState('ALL');
 
   useEffect(() => {
@@ -246,7 +415,7 @@ export default function CatalogPage() {
 
   const filteredItems = Array.isArray(items) ? items.filter(u => {
     const matchesSearch = u.name?.toLowerCase().includes(search.toLowerCase()) || 
-                          categories.find(c => c.id === u.categoryId)?.name?.toLowerCase().includes(search.toLowerCase());
+                          categories.find(c => (c.id || c.categoryId) === u.categoryId)?.name?.toLowerCase().includes(search.toLowerCase());
     const matchesFolder = selectedFolderId === 'ALL' || u.restaurantId.toString() === selectedFolderId.toString();
     return matchesSearch && matchesFolder;
   }) : [];
@@ -265,6 +434,10 @@ export default function CatalogPage() {
       dispatch(getProducts({ page: 1, pageSize: 100 })); // Refresh
   };
 
+  const handleSaveCategory = async (id, name, imageFile) => {
+    await dispatch(editCategory({ id, name, imageFile })).unwrap();
+  };
+
   const handleDelete = async (id) => {
       if(window.confirm('Are you sure you want to delete this product?')) {
           await dispatch(removeProduct(id));
@@ -277,30 +450,48 @@ export default function CatalogPage() {
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white mb-1">Catalog Management</h2>
-          <p className="text-textSecondary text-sm">Manage food items, prices and availability.</p>
+          <div className="flex gap-4">
+            <button 
+              onClick={() => setActiveTab('items')}
+              className={`text-sm font-bold pb-1 transition-all ${activeTab === 'items' ? 'text-primary border-b-2 border-primary' : 'text-textSecondary hover:text-white'}`}
+            >
+              Products
+            </button>
+            <button 
+              onClick={() => setActiveTab('categories')}
+              className={`text-sm font-bold pb-1 transition-all ${activeTab === 'categories' ? 'text-primary border-b-2 border-primary' : 'text-textSecondary hover:text-white'}`}
+            >
+              Categories (Stickers)
+            </button>
+          </div>
         </div>
         
-        <div className="flex gap-4">
-          <div className="relative group w-full md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-textSecondary group-focus-within:text-primary transition-colors" />
-            <input 
-              type="text" 
-              placeholder="Search dishes..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-surface border border-borderWhite rounded-lg py-2.5 pl-10 pr-4 text-sm text-white placeholder-textSecondary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all shadow-sm"
-            />
+        {activeTab === 'items' && (
+          <div className="flex gap-4">
+            <div className="relative group w-full md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-textSecondary group-focus-within:text-primary transition-colors" />
+              <input 
+                type="text" 
+                placeholder="Search dishes..." 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-surface border border-borderWhite rounded-lg py-2.5 pl-10 pr-4 text-sm text-white placeholder-textSecondary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all shadow-sm"
+              />
+            </div>
+            
+            <button 
+              onClick={() => handleOpenModal()} 
+              className="bg-primary hover:bg-primaryHover text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center transition-all shadow-glow-primary"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Item
+            </button>
           </div>
-          
-          <button 
-            onClick={() => handleOpenModal()} 
-            className="bg-primary hover:bg-primaryHover text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center transition-all shadow-glow-primary"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Item
-          </button>
-        </div>
+        )}
       </div>
+
+      {activeTab === 'items' ? (
+        <>
 
       {/* Tabs / Folders for Restaurants and Shops */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -417,21 +608,41 @@ export default function CatalogPage() {
              </tbody>
            </table>
            
-           {filteredItems.length === 0 && !isLoading && (
-             <div className="p-8 text-center text-textSecondary">
-               No items found matching "{search}"
-             </div>
-           )}
-         </div>
-      </div>
+             )}
+           </div>
+        </div>
+        </>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {categories.map(cat => (
+            <div key={cat.id || cat.categoryId} className="glass-panel p-4 flex flex-col items-center group relative overflow-hidden text-center">
+               <div className="w-20 h-20 rounded-full bg-surfaceLighter p-2 mb-4 relative z-10 border-2 border-borderWhite group-hover:border-primary transition-all">
+                  {cat.imageUrl ? (
+                    <img src={cat.imageUrl} className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-textSecondary italic text-[10px]">No Sticker</div>
+                  )}
+               </div>
+               <h3 className="text-white font-bold text-lg mb-4">{cat.name}</h3>
+               <button 
+                onClick={() => {
+                  setEditingCategory(cat);
+                  setCategoryModalOpen(true);
+                }}
+                className="w-full py-2 bg-surface hover:bg-surfaceLighter border border-borderWhite rounded-xl text-sm font-bold text-textSecondary hover:text-white transition-all flex items-center justify-center gap-2"
+               >
+                 <Edit2 className="w-3.5 h-3.5" /> Edit Sticker
+               </button>
+            </div>
+          ))}
+        </div>
+      )}
 
-      <ProductModal 
-        isOpen={isModalOpen} 
-        onClose={() => setModalOpen(false)} 
-        product={editingProduct} 
-        categories={categories}
-        restaurants={restaurants}
-        onSubmit={handleSaveProduct}
+      <CategoryModal 
+        isOpen={isCategoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        category={editingCategory}
+        onSubmit={handleSaveCategory}
       />
     </div>
   );

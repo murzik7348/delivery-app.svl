@@ -5,14 +5,16 @@ import { Alert, ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleShee
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFocusEffect } from 'expo-router';
-import Colors from '../../constants/Colors';
-import { t } from '../../constants/translations';
-import { fetchMe, logoutUser, removeAddress } from '../../store/authSlice';
-import { clearOrders } from '../../store/ordersSlice';
-import { clearCourierState } from '../../store/courierSlice';
-import { deleteAddress as apiDeleteAddress, getAddresses } from '../../src/api';
-import { persistor } from '../../store/index';
+import Colors from '../constants/Colors';
+import { t } from '../constants/translations';
+import { fetchMe, logoutUser, removeAddress } from '../store/authSlice';
+import { clearOrders } from '../store/ordersSlice';
+import { clearCourierState } from '../store/courierSlice';
+import { deleteAddress as apiDeleteAddress, getAddresses } from '../src/api';
+import { persistor } from '../store/index';
 import * as Notifications from 'expo-notifications';
+
+import { resolveImageUrl } from '../src/api/client';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -142,7 +144,7 @@ export default function ProfileScreen() {
           <View style={styles.header}>
             <View style={styles.avatarContainer}>
               <Image
-                source={{ uri: user?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500' }}
+                source={{ uri: resolveImageUrl(user?.avatarUrl || user?.avatar) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500' }}
                 style={styles.avatar}
               />
               {/* 👇 ОСЬ ТУТ КНОПКА РЕДАГУВАННЯ (ОЛІВЕЦЬ) */}
@@ -160,7 +162,7 @@ export default function ProfileScreen() {
               <MenuItem
                 icon="bicycle-outline"
                 label={locale === 'en' ? 'Courier Delivery' : 'Доставка кур\'єром'}
-                onPress={() => router.push('/(tabs)/courier')}
+                onPress={() => router.push('/courier')}
               />
             )}
             <MenuItem icon="receipt-outline" label={t(locale, 'myOrders')} onPress={() => router.push('/orders')} />

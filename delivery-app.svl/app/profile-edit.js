@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   StyleSheet,
@@ -15,7 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
-import { updateUser } from '../store/authSlice';
+import { uploadAvatar } from '../src/api/auth';
+import { resolveImageUrl } from '../src/api/client';
+import { updateUser, fetchMe } from '../store/authSlice';
 import { safeBack } from '../utils/navigation';
 
 export default function ProfileEditScreen() {
@@ -25,31 +28,69 @@ export default function ProfileEditScreen() {
   const theme = Colors[colorScheme ?? 'light'];
   const locale = useSelector((state) => state.language?.locale ?? 'uk');
   const { user } = useSelector((state) => state.auth);
+  
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [avatar, setAvatar] = useState(user?.avatar || null);
+  // user.avatarUrl is the field from backend (MeResult)
+  const currentAvatar = resolveImageUrl(user?.avatarUrl || user?.avatar);
+  const [avatarUri, setAvatarUri] = useState(currentAvatar);
+  const [isUploading, setIsUploading] = useState(false);
+
   const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(t(locale, 'error'), 'Нам потрібен доступ до вашої фотогалереї.');
+      return;
+    }
+
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 1,
+      quality: 0.4,
     });
 
     if (!result.canceled) {
-      setAvatar(result.assets[0].uri);
+      setAvatarUri(result.assets[0].uri);
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (name.trim().length < 2) {
       Alert.alert(t(locale, 'error'), t(locale, 'errorNameShort'));
       return;
     }
-    dispatch(updateUser({ name, phone, avatar }));
-    Alert.alert(t(locale, 'profileUpdatedTitle'), t(locale, 'profileUpdated'), [
-      { text: t(locale, 'ok'), onPress: () => safeBack(router) }
-    ]);
+
+    setIsUploading(true);
+    try {
+      // If avatar was changed (it's a local URI now)
+      if (avatarUri && avatarUri !== currentAvatar) {
+        const formData = new FormData();
+        // ReactNative FormData file object
+        formData.append('Photo', {
+          uri: avatarUri,
+          name: 'avatar.jpg',
+          type: 'image/jpeg',
+        });
+        
+        await uploadAvatar(formData);
+      }
+
+      // Sync user data with local store (name/phone logic would go here if backend supported it)
+      dispatch(updateUser({ name, phone }));
+      
+      // Refresh full profile from backend to get the final avatarUrl
+      await dispatch(fetchMe());
+
+      Alert.alert(t(locale, 'profileUpdatedTitle'), t(locale, 'profileUpdated'), [
+        { text: t(locale, 'ok'), onPress: () => safeBack(router) }
+      ]);
+    } catch (err) {
+      console.error('[ProfileEdit] Save failed:', err);
+      Alert.alert(t(locale, 'error'), 'Не вдалося оновити профіль. Спробуйте пізніше.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -68,9 +109,9 @@ export default function ProfileEditScreen() {
 
         {/* Аватарка з кнопкою зміни */}
         <View style={styles.avatarContainer}>
-          <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper}>
-            {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatar} />
+          <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper} disabled={isUploading}>
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatar} />
             ) : (
               <View style={[styles.placeholderAvatar, { backgroundColor: theme.input }]}>
                 <Ionicons name="person" size={60} color="gray" />
@@ -92,6 +133,7 @@ export default function ProfileEditScreen() {
             value={name} onChangeText={setName}
             placeholder={t(locale, 'namePlaceholder')}
             placeholderTextColor="gray"
+            editable={!isUploading}
           />
           <Text style={[styles.label, { color: theme.textSecondary }]}>{t(locale, 'phone')}</Text>
           <TextInput
@@ -99,11 +141,20 @@ export default function ProfileEditScreen() {
             value={phone} onChangeText={setPhone}
             placeholder="+380..."
             placeholderTextColor="gray" keyboardType="phone-pad"
+            editable={!isUploading}
           />
         </View>
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>{t(locale, 'saveChanges')}</Text>
+        <TouchableOpacity 
+          style={[styles.saveBtn, isUploading && { opacity: 0.7 }]} 
+          onPress={handleSave}
+          disabled={isUploading}
+        >
+          {isUploading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.saveBtnText}>{t(locale, 'saveChanges')}</Text>
+          )}
         </TouchableOpacity>
 
       </View>

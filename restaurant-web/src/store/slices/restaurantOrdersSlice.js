@@ -6,8 +6,23 @@ import {
   startPreparing,
   markReady,
   fetchProducts,
+  uploadRestaurantImage,
 } from '../../api/restaurant';
 import { showToast } from './toastSlice';
+
+export const updateRestaurantPhoto = createAsyncThunk(
+  'restaurantOrders/updateRestaurantPhoto',
+  async (imageFile, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await uploadRestaurantImage(imageFile);
+      dispatch(showToast({ message: '✅ Фото оновлено!', type: 'success' }));
+      return response;
+    } catch (err) {
+      dispatch(showToast({ message: err?.message || 'Помилка оновлення фото', type: 'error' }));
+      return rejectWithValue(err?.message);
+    }
+  }
+);
 
 // Backend Status Mapping (aligned with GEMINI.md)
 // 0=created, 1=accepted, 2=preparing, 3=delivering, 4=delivered, 5=canceled

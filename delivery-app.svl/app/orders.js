@@ -8,11 +8,9 @@ import Colors from '../constants/Colors';
 import { formatUkraineDate } from '../constants/dateUtils';
 import { t } from '../constants/translations';
 import { clearOrders, fetchOrders } from '../store/ordersSlice';
-import CourierOrdersPanel from '../components/CourierOrdersPanel';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
-import { safeBack } from '../utils/navigation';
 
-export default function OrdersScreen() {
+export default function OrdersTabScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
@@ -89,9 +87,8 @@ export default function OrdersScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => safeBack(router)} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={28} color={theme.text} />
-        </TouchableOpacity>
+        {/* Spacer to balance the layout since there's no back button */}
+        <View style={{ width: 40 }} />
         <Text style={[styles.headerTitle, { color: theme.text }]}>{t(locale, 'ordersTitle')}</Text>
         <TouchableOpacity
           style={styles.clearBtn}
@@ -113,14 +110,13 @@ export default function OrdersScreen() {
       <FlatList
         data={orders}
         keyExtractor={(item, index) => String(item.deliveryId || item.id || index)}
-        ListHeaderComponent={null}
         renderItem={renderOrderItem}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="receipt-outline" size={80} color={theme.textSecondary} style={{ opacity: 0.5 }} />
             <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{t(locale, 'emptyHistory')}</Text>
-            <TouchableOpacity style={styles.shopBtn} onPress={() => router.push('/(tabs)')}>
+            <TouchableOpacity style={styles.shopBtn} onPress={() => router.push('/home')}>
               <Text style={styles.shopBtnText}>{t(locale, 'makeFirstOrder')}</Text>
             </TouchableOpacity>
           </View>
@@ -129,6 +125,7 @@ export default function OrdersScreen() {
     </SafeAreaView>
   );
 }
+
 function StatusBadge({ status, locale }) {
   let color = '#8e44ad';
   let text = locale === 'en' ? 'New' : 'Новий';
@@ -136,7 +133,6 @@ function StatusBadge({ status, locale }) {
 
   const statusNum = Number(status || 0);
 
-  // StatusBadge aligned with backend DeliveryStatus enum 0-6
   if (statusNum >= 6 || status === 'completed' || status === 'delivered') {
     color = '#2ecc71';
     text = locale === 'en' ? 'Delivered' : 'Доставлено';
@@ -171,14 +167,11 @@ function StatusBadge({ status, locale }) {
   );
 }
 
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   headerTitle: { fontSize: 20, fontWeight: 'bold' },
-  backBtn: { padding: 4 },
   clearBtn: { padding: 4 },
-
   card: { borderRadius: 20, marginBottom: 16, borderWidth: 1, padding: 18, elevation: 2, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   row: { flexDirection: 'row', alignItems: 'center' },
@@ -186,14 +179,11 @@ const styles = StyleSheet.create({
   orderTitle: { fontSize: 18, fontWeight: '900', fontFamily: 'Menlo' },
   date: { fontSize: 13, color: 'gray', marginTop: 4, fontWeight: '600' },
   price: { fontSize: 20, fontWeight: '900' },
-
   divider: { height: 1, backgroundColor: '#eee', marginVertical: 12 },
-
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
   detailsBtn: { flexDirection: 'row', alignItems: 'center' },
   detailsText: { color: '#e334e3', fontWeight: '600', marginRight: 4 },
-
   emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
   emptyText: { marginTop: 16, fontSize: 16, marginBottom: 24 },
   shopBtn: { backgroundColor: '#e334e3', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },

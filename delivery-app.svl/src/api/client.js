@@ -27,6 +27,18 @@ export const removeToken = async () => {
 export const getToken = () => AsyncStorage.getItem(TOKEN_KEY);
 export const getRefreshToken = () => AsyncStorage.getItem(REFRESH_TOKEN_KEY);
 
+/** Resolve a relative image path from the backend to a full URL */
+export const resolveImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    
+    // Ensure path doesn't start with double slashes if BASE_URL ends with one
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    const cleanBase = BASE_URL.endsWith('/') ? BASE_URL : `${BASE_URL}/`;
+    
+    return `${cleanBase}${cleanPath}`;
+};
+
 // ─── Axios instance ──────────────────────────────────────────────────────────
 const client = axios.create({
     baseURL: BASE_URL,

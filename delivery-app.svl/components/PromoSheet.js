@@ -50,7 +50,7 @@ export default function PromoSheet({ promo, onClose }) {
 
     const handleGoToStore = () => {
         onClose();
-        router.push(promo.storeId ? `/restaurant/${promo.storeId}` : '/(tabs)/search');
+        router.push(promo.storeId ? `/restaurant/${promo.storeId}` : '/search');
     };
 
     const handleAdd = () => {

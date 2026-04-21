@@ -13,6 +13,8 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
         secure: false,
+        timeout: 60000,
+        proxyTimeout: 60000,
         configure: (proxy) => {
           proxy.on('error', (err) => {
             console.error('Vite Proxy Error:', err.message);

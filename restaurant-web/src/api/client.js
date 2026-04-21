@@ -3,6 +3,8 @@ import { logService } from './logService';
 
 // Use Local proxy defined in vite.config.js to bypass CORS
 export const BASE_URL = '/api';
+export const IMAGE_BASE_URL = 'http://37.27.220.44';
+export const DIRECT_API_URL = 'http://37.27.220.44';
 
 export const TOKEN_KEY = '@admin_app_token';
 export const REFRESH_TOKEN_KEY = '@admin_app_refresh_token';
@@ -23,9 +25,20 @@ export const removeToken = () => {
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const getRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY);
 
+/** Resolve a relative image path from the backend to a full URL */
+export const resolveImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    const cleanBase = IMAGE_BASE_URL.endsWith('/') ? IMAGE_BASE_URL : `${IMAGE_BASE_URL}/`;
+    
+    return `${cleanBase}${cleanPath}`;
+};
+
 const client = axios.create({
     baseURL: BASE_URL,
-    timeout: 15000,
+    timeout: 60000,
     headers: { 'Content-Type': 'application/json' },
 });
 
@@ -123,6 +136,15 @@ client.interceptors.response.use(
             console.log(`Method: ${error.config?.method?.toUpperCase()}`);
             console.log(`Full Response Data:`, error.response.data);
             
+            // Log specific validation errors if present
+            if (error.response.data?.errors) {
+                console.group('%c[VALIDATION ERRORS]', 'color: #fca5a5; font-weight: bold;');
+                Object.entries(error.response.data.errors).forEach(([field, messages]) => {
+                    console.log(`%c${field}:`, 'font-weight: bold;', messages);
+                });
+                console.groupEnd();
+            }
+
             // Log specific error codes if present
             if (error.response.data?.code) {
                 console.log(`%c[ERROR CODE]: ${error.response.data.code}`, 'color: #fca5a5; font-weight: bold;');

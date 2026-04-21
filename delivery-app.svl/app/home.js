@@ -16,10 +16,11 @@ import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import Colors from '../../constants/Colors';
-import { t } from '../../constants/translations';
-import PromoSheet from '../../components/PromoSheet';
-import { fetchCatalog, selectAllCategories, selectAllStores, selectAllPromotions } from '../../store/catalogSlice';
+import Colors from '../constants/Colors';
+import { t } from '../constants/translations';
+import PromoSheet from '../components/PromoSheet';
+import { fetchCatalog, selectAllCategories, selectAllStores, selectAllPromotions } from '../store/catalogSlice';
+import { resolveImageUrl } from '../src/api/client';
 
 const StoreCardItem = ({ store, theme, router }) => {
   const [scaleAnim] = useState(new Animated.Value(1));
@@ -103,7 +104,7 @@ export default function HomeScreen() {
     Animated.sequence([
       Animated.timing(searchScale, { toValue: 0.97, duration: 80, useNativeDriver: true }),
       Animated.timing(searchScale, { toValue: 1, duration: 120, useNativeDriver: true }),
-    ]).start(() => router.push('/(tabs)/search'));
+    ]).start(() => router.push('/search'));
   };
 
   const filteredStores = stores.filter(store => {
@@ -142,12 +143,15 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => router.push('/(tabs)/profile')}
+          onPress={() => router.push('/profile')}
           style={styles.avatarWrapper}
           activeOpacity={0.85}
         >
-          {user?.avatar ? (
-            <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          {user?.avatarUrl || user?.avatar ? (
+            <Image 
+              source={{ uri: resolveImageUrl(user.avatarUrl || user.avatar) }} 
+              style={styles.avatar} 
+            />
           ) : (
             <View style={[styles.avatarFallback, { backgroundColor: theme.card }]}>
               <Ionicons name="person" size={20} color="#e334e3" />
@@ -234,7 +238,14 @@ export default function HomeScreen() {
                     borderColor: '#e334e3',
                   }
                 ]}>
-                  <Image source={{ uri: cat.image }} style={{ width: 35, height: 35, tintColor: isSelected ? 'white' : null }} />
+                  {cat.image ? (
+                    <Image 
+                      source={{ uri: cat.image }} 
+                      style={{ width: 35, height: 35, tintColor: isSelected ? 'white' : null }} 
+                    />
+                  ) : (
+                    <Text style={{ fontSize: 28 }}>{cat.sticker || '🍽️'}</Text>
+                  )}
                 </View>
                 <Text style={[
                   styles.catText,
