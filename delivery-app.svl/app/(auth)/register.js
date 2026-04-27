@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { safeBack } from '../../utils/navigation';
+import BackButton from '../../components/BackButton';
 import {
   ActivityIndicator,
   Alert,
@@ -386,9 +387,9 @@ export default function RegisterScreen() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24 }}>
-            <TouchableOpacity onPress={prevStep} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={28} color={theme.text} />
-            </TouchableOpacity>
+            <View style={styles.backButton}>
+              <BackButton color={theme.text} onPress={prevStep} />
+            </View>
 
             <View style={[styles.progressContainer, { backgroundColor: theme.border }]}>
               <View style={[styles.progressBar, { width: `${(step / totalSteps) * 100}%` }]} />

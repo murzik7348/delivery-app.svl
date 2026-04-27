@@ -1,17 +1,30 @@
 import { useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Helper to get Notifications only when safe
+const getNotifications = () => {
+  if (Platform.OS === 'android' && Constants.appOwnership === 'expo') return null;
+  try {
+    return require('expo-notifications');
+  } catch (e) {
+    return null;
+  }
+};
+
+const Notifications = getNotifications();
+
+if (Notifications) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export default function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState('');
@@ -21,6 +34,8 @@ export default function usePushNotifications() {
   const router = useRouter();
 
   useEffect(() => {
+    if (!Notifications) return;
+
     registerForPushNotificationsAsync().then(token => setExpoPushToken(token));
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
@@ -47,7 +62,15 @@ export default function usePushNotifications() {
 }
 
 async function registerForPushNotificationsAsync() {
+  if (!Notifications) return null;
   let token;
+
+  // SDK 53+ in Expo Go doesn't support remote notifications on Android
+  const isExpoGo = Constants.appOwnership === 'expo';
+  if (Platform.OS === 'android' && isExpoGo) {
+    console.log('⚠️ Push Notifications are not supported in Expo Go on Android (SDK 53+). Use a development build.');
+    return null;
+  }
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {

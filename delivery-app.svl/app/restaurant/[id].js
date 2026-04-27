@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View, RefreshControl } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,8 +9,10 @@ import Colors from '../../constants/Colors';
 import { t } from '../../constants/translations';
 import { addToCart, removeFromCart } from '../../store/cartSlice';
 import { toggleFavorite, toggleFavoriteProduct } from '../../store/favoritesSlice';
+import { fetchCatalog, fetchRestaurantProducts } from '../../store/catalogSlice';
 import ProductSheet from '../../components/ProductSheet';
 import { safeBack } from '../../utils/navigation';
+import BackButton from '../../components/BackButton';
 
 const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onAddToCart, onRemoveFromCart, onToggleFav }) => {
   const [scaleAnim] = useState(new Animated.Value(1));
@@ -124,12 +126,40 @@ export default function RestaurantScreen() {
   const favoriteProductIds = useSelector(state => state.favorites.productIds ?? []);
   const stores = useSelector(state => state.catalog.stores);
   const products = useSelector(state => state.catalog.products);
+  const isLoading = useSelector(state => state.catalog.isLoading);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Refresh both full catalog (for restaurant info) and specific products
+      await Promise.all([
+        dispatch(fetchCatalog()).unwrap(),
+        dispatch(fetchRestaurantProducts(Number(id))).unwrap()
+      ]);
+    } catch (error) {
+      console.error('Refresh restaurant failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const isFavorite = favoriteIds.includes(Number(id));
 
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchRestaurantProducts(Number(id)));
+    }
+  }, [id, dispatch]);
+
   const restaurant = stores.find(s => s.store_id == id);
-  const restaurantProducts = products.filter(p => (p.restaurantId == id || p.store_id == id));
+  const restaurantProducts = products.filter(p => {
+    // Robust numeric comparison to avoid ID mix-ups
+    const pStoreId = Number(p.restaurantId || p.store_id);
+    const targetId = Number(id);
+    return pStoreId === targetId;
+  });
 
   const getQty = (prodId) => {
     const item = cartItems.find(i => i.product_id === prodId);
@@ -142,13 +172,24 @@ export default function RestaurantScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="light-content" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#e334e3"
+            colors={["#e334e3"]}
+          />
+        }
+      >
         {/* Картинка */}
         <View>
           <Image source={{ uri: restaurant.image }} style={styles.image} />
-          <TouchableOpacity style={styles.backButton} onPress={() => safeBack(router)}>
-            <Ionicons name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
+          <View style={styles.backButton}>
+            <BackButton color="white" />
+          </View>
         </View>
 
         {/* Інформація про заклад */}
@@ -174,6 +215,20 @@ export default function RestaurantScreen() {
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'restaurantMenu')}</Text>
 
         {/* Список товарів */}
+        {isLoading && restaurantProducts.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <Loader2 />
+            <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'loading') || 'Завантаження...'}</Text>
+          </View>
+        ) : null}
+
+        {restaurantProducts.length === 0 && !isLoading ? (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <Ionicons name="fast-food-outline" size={48} color="gray" />
+            <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'noProducts') || 'Товарів не знайдено'}</Text>
+          </View>
+        ) : null}
+
         {restaurantProducts.map((product) => {
           const qty = getQty(product.product_id);
           const isFavProd = favoriteProductIds.includes(product.product_id);

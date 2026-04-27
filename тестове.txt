@@ -1,0 +1,12 @@
+<view>
+<text>
+<image>
+<TextInput>
+<TouchableOpacity>
+<pressable>
+ 
+
+
+ useState — це функція, яка дозволяє компоненту мати власну пам'ять
+
+ stylSheet

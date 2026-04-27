@@ -215,7 +215,7 @@ export default function OrdersPage() {
     // Real-time polling (replacing WebSockets since backend doesn't support them)
     const interval = setInterval(() => {
       dispatch(getOrders(null));
-    }, 30000); // Reduced to 30s to prevent Vite ENOENT errors
+    }, 60000); // Set to 60s to reduce server load
 
     // Listen for real-time events (preserved if backend later supports sockets)
     // socketService.connect(); // Disabled: backend tech mismatch

@@ -7,18 +7,48 @@ import {
   markReady,
   fetchProducts,
   uploadRestaurantImage,
+  getRestaurantInfo,
+  updateRestaurant,
 } from '../../api/restaurant';
+import { resolveImageUrl } from '../../api/client';
 import { showToast } from './toastSlice';
 
 export const updateRestaurantPhoto = createAsyncThunk(
   'restaurantOrders/updateRestaurantPhoto',
-  async (imageFile, { rejectWithValue, dispatch }) => {
+  async ({ restaurantId, imageFile }, { rejectWithValue, dispatch }) => {
     try {
-      const response = await uploadRestaurantImage(imageFile);
+      const response = await uploadRestaurantImage(restaurantId, imageFile);
       dispatch(showToast({ message: '✅ Фото оновлено!', type: 'success' }));
       return response;
     } catch (err) {
       dispatch(showToast({ message: err?.message || 'Помилка оновлення фото', type: 'error' }));
+      return rejectWithValue(err?.message);
+    }
+  }
+);
+
+export const fetchRestaurantInfo = createAsyncThunk(
+  'restaurantOrders/fetchRestaurantInfo',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await getRestaurantInfo();
+      return response;
+    } catch (err) {
+      return rejectWithValue(err?.message);
+    }
+  }
+);
+
+export const updateRestaurantInfo = createAsyncThunk(
+  'restaurantOrders/updateRestaurantInfo',
+  async (data, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await updateRestaurant(data);
+      dispatch(showToast({ message: '✅ Дані ресторану оновлено!', type: 'success' }));
+      dispatch(fetchRestaurantInfo());
+      return response;
+    } catch (err) {
+      dispatch(showToast({ message: err?.message || 'Помилка оновлення даних', type: 'error' }));
       return rejectWithValue(err?.message);
     }
   }
@@ -258,7 +288,8 @@ const restaurantOrdersSlice = createSlice({
     catalog: [], // Full list of restaurant products with ingredients
     isLoading: false,
     error: null,
-    notifications: []
+    notifications: [],
+    restaurantInfo: null
   },
   reducers: {
     clearNotifications: (state) => {
@@ -319,7 +350,16 @@ const restaurantOrdersSlice = createSlice({
 
         state.items = newItems;
       })
-      .addCase(fetchOrders.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; });
+      .addCase(fetchOrders.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
+      .addCase(fetchRestaurantInfo.fulfilled, (state, action) => {
+        const data = action.payload;
+        const info = Array.isArray(data) ? data[0] : data;
+        state.restaurantInfo = info ? {
+          ...info,
+          imageUrl: resolveImageUrl(info.urlBase || info.imageUrl) || '',
+          id: info.restaurantId || info.id
+        } : null;
+      });
   },
 });
 

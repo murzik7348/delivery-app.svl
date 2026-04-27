@@ -4,10 +4,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import Sidebar from './Sidebar';
 import Toast from './Toast';
 import { Bell, X } from 'lucide-react';
-import { getRestaurantInfo, updateRestaurantStatus } from '../api/restaurant';
+import { getRestaurantInfo, updateRestaurant } from '../api/restaurant';
 import { fetchOrders, clearNotifications } from '../store/slices/restaurantOrdersSlice';
 
-function HeaderStatusToggle() {
+export function HeaderStatusToggle() {
   const [isOpen, setIsOpen] = useState(null);
   const [updating, setUpdating] = useState(false);
 
@@ -26,7 +26,7 @@ function HeaderStatusToggle() {
     const next = !isOpen;
     setIsOpen(next);
     try {
-      await updateRestaurantStatus(next);
+      await updateRestaurant({ isOpen: next });
     } catch {
       setIsOpen(!next);
     } finally {
@@ -67,7 +67,7 @@ export default function Layout() {
     dispatch(fetchOrders());
     const id = setInterval(() => {
       dispatch(fetchOrders());
-    }, 30000);
+    }, 60000);
     return () => clearInterval(id);
   }, [dispatch]);
 

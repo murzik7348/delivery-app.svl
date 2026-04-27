@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, useColorScheme, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
@@ -9,6 +9,7 @@ import { formatUkraineDate } from '../constants/dateUtils';
 import { t } from '../constants/translations';
 import { clearOrders, fetchOrders } from '../store/ordersSlice';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
+import BackButton from '../components/BackButton';
 
 export default function OrdersTabScreen() {
   const router = useRouter();
@@ -19,6 +20,18 @@ export default function OrdersTabScreen() {
   const orders = useSelector((state) => state.orders.orders);
   const isLoading = useSelector((state) => state.orders.isLoading);
   const locale = useSelector((state) => state.language?.locale ?? 'uk');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await dispatch(fetchOrders()).unwrap();
+    } catch (error) {
+      console.error('Refresh orders failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Load orders from backend on screen mount and periodically
   useEffect(() => {
@@ -86,32 +99,40 @@ export default function OrdersTabScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        {/* Spacer to balance the layout since there's no back button */}
-        <View style={{ width: 40 }} />
-        <Text style={[styles.headerTitle, { color: theme.text }]}>{t(locale, 'ordersTitle')}</Text>
-        <TouchableOpacity
-          style={styles.clearBtn}
-          onPress={() =>
-            Alert.alert(
-              locale === 'en' ? 'Clear history' : 'Очистити історію',
-              locale === 'en' ? 'Are you sure you want to delete all orders?' : 'Ви впевнені, що хочете видалити всі замовлення?',
-              [
-                { text: locale === 'en' ? 'Cancel' : 'Скасувати', style: 'cancel' },
-                { text: locale === 'en' ? 'Clear' : 'Очистити', style: 'destructive', onPress: () => dispatch(clearOrders()) },
-              ]
-            )
-          }
-        >
-          <Ionicons name="trash-outline" size={24} color="#e334e3" />
-        </TouchableOpacity>
-      </View>
-
       <FlatList
         data={orders}
         keyExtractor={(item, index) => String(item.deliveryId || item.id || index)}
         renderItem={renderOrderItem}
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        ListHeaderComponent={
+          <View style={[styles.header, { paddingHorizontal: 0, paddingBottom: 16 }]}>
+            <BackButton />
+            <Text style={[styles.headerTitle, { color: theme.text, flex: 1, textAlign: 'center' }]}>{t(locale, 'ordersTitle')}</Text>
+            <TouchableOpacity
+              style={styles.clearBtn}
+              onPress={() =>
+                Alert.alert(
+                  locale === 'en' ? 'Clear history' : 'Очистити історію',
+                  locale === 'en' ? 'Are you sure you want to delete all orders?' : 'Ви впевнені, що хочете видалити всі замовлення?',
+                  [
+                    { text: locale === 'en' ? 'Cancel' : 'Скасувати', style: 'cancel' },
+                    { text: locale === 'en' ? 'Clear' : 'Очистити', style: 'destructive', onPress: () => dispatch(clearOrders()) },
+                  ]
+                )
+              }
+            >
+              <Ionicons name="trash-outline" size={24} color="#e334e3" />
+            </TouchableOpacity>
+          </View>
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#e334e3"
+            colors={["#e334e3"]}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="receipt-outline" size={80} color={theme.textSecondary} style={{ opacity: 0.5 }} />

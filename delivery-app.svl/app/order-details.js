@@ -116,6 +116,8 @@ const progressStyles = StyleSheet.create({
 // ──────────────────────────────────────────────────────────────
 // Premium Order Details Screen
 // ──────────────────────────────────────────────────────────────
+import BackButton from '../components/BackButton';
+
 export default function OrderDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -149,9 +151,7 @@ export default function OrderDetailsScreen() {
     return (
       <SafeAreaView edges={['top']} style={[styles.center, { backgroundColor: theme.background }]}>
         <Text style={{ color: theme.text }}>{t(locale, 'orderNotFound')}</Text>
-        <TouchableOpacity onPress={() => safeBack(router)} style={styles.backButton}>
-          <Text style={{ color: 'white' }}>{t(locale, 'back')}</Text>
-        </TouchableOpacity>
+        <BackButton color={theme.text} />
       </SafeAreaView>
     );
   }
@@ -194,13 +194,7 @@ export default function OrderDetailsScreen() {
         <SafeAreaView edges={['top']} style={{ flex: 1, justifyContent: 'space-between' }}>
 
           <View style={styles.headerTop}>
-            <TouchableOpacity
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              onPress={() => { Haptics.selectionAsync(); safeBack(router); }}
-              style={styles.headerBackBtn}
-            >
-              <Ionicons name="arrow-back" size={24} color={theme.text} />
-            </TouchableOpacity>
+            <BackButton color={theme.text} />
             <View style={styles.headerTitleWrap}>
               <Text style={[styles.hashTitle, { color: theme.text }]}>{formatOrderNumber(order.deliveryId || order.id)}</Text>
             </View>

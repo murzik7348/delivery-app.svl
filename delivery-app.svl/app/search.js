@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import {
   Animated,
   FlatList,
@@ -11,14 +11,20 @@ import {
   TouchableOpacity,
   View,
   useColorScheme,
+  RefreshControl,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
-import { selectAllProducts, selectAllStores } from '../store/catalogSlice';
+import { fetchCatalog, selectAllProducts, selectAllStores } from '../store/catalogSlice';
 import { addToCart } from '../store/cartSlice';
 import ProductSheet from '../components/ProductSheet';
 import useCatalogFilter from '../hooks/useCatalogFilter';
+import BackButton from '../components/BackButton';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -27,26 +33,44 @@ export default function SearchScreen() {
   const theme = Colors[colorScheme ?? 'light'];
   const [selectedProduct, setSelectedProduct] = useState(null);
   const inputRef = useRef(null);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Use the global catalog filter instead of local memos
-  const { searchQuery, setSearchQuery, finalProducts, searchFilteredStores, hasActiveFilters } = useCatalogFilter();
+  const allProducts = useSelector(selectAllProducts);
+  const allStores = useSelector(selectAllStores);
 
-  const hasResults = finalProducts.length > 0 || searchFilteredStores.length > 0;
+  const topProducts = useMemo(() => {
+    // Shuffle and pick 10 top products to show initially
+    const shuffled = [...allProducts].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 10);
+  }, [allProducts]);
+
+  const topStores = useMemo(() => {
+    return [...allStores].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 5);
+  }, [allStores]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await dispatch(fetchCatalog()).unwrap();
+    } catch (error) {
+      console.error('[Search] Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch]);
+
+  const { searchQuery, setSearchQuery, finalProducts, searchFilteredStores } = useCatalogFilter();
 
   const handleChange = useCallback((text) => {
     setSearchQuery(text);
+    fadeAnim.setValue(0);
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 180,
+      duration: 250,
       useNativeDriver: true,
     }).start();
-  }, [fadeAnim]);
-
-  const clearQuery = () => {
-    setQuery('');
-    inputRef.current?.focus();
-  };
+  }, [fadeAnim, setSearchQuery]);
 
   const ProductResultItem = ({ item }) => {
     const [added, setAdded] = useState(false);
@@ -64,7 +88,7 @@ export default function SearchScreen() {
 
     return (
       <TouchableOpacity
-        style={[styles.productRow, { backgroundColor: theme.card }]}
+        style={[styles.productRow, { backgroundColor: theme.card, shadowColor: theme.text }]}
         activeOpacity={0.8}
         onPress={() => setSelectedProduct(item)}
       >
@@ -100,7 +124,7 @@ export default function SearchScreen() {
 
   const renderStore = ({ item }) => (
     <TouchableOpacity
-      style={[styles.storeRow, { backgroundColor: theme.card }]}
+      style={[styles.storeRow, { backgroundColor: theme.card, shadowColor: theme.text }]}
       activeOpacity={0.8}
       onPress={() => router.push(`/restaurant/${item.store_id}`)}
     >
@@ -128,84 +152,123 @@ export default function SearchScreen() {
   );
 
   const sections = [];
-  if (searchFilteredStores.length > 0) {
-    sections.push({ type: 'header', id: 'h1', label: `Заклади (${searchFilteredStores.length})` });
-    searchFilteredStores.forEach(s => sections.push({ type: 'store', id: `s${s.store_id}`, item: s }));
+  
+  if (searchQuery.length === 0) {
+    if (topStores.length > 0) {
+      sections.push({ type: 'header', id: 'h1', label: 'Популярні заклади ⭐️' });
+      topStores.forEach(s => sections.push({ type: 'store', id: `s${s.store_id}`, item: s }));
+    }
+    if (topProducts.length > 0) {
+      sections.push({ type: 'header', id: 'h2', label: 'Рекомендуємо спробувати 🔥' });
+      topProducts.forEach(p => sections.push({ type: 'product', id: `p${p.product_id}`, item: p }));
+    }
+  } else {
+    if (searchFilteredStores.length > 0) {
+      sections.push({ type: 'header', id: 'h1', label: `Заклади (${searchFilteredStores.length})` });
+      searchFilteredStores.forEach(s => sections.push({ type: 'store', id: `s${s.store_id}`, item: s }));
+    }
+    if (finalProducts.length > 0) {
+      sections.push({ type: 'header', id: 'h2', label: `Страви та товари (${finalProducts.length})` });
+      finalProducts.forEach(p => sections.push({ type: 'product', id: `p${p.product_id}`, item: p }));
+    }
   }
-  if (finalProducts.length > 0) {
-    sections.push({ type: 'header', id: 'h2', label: `Страви та товари (${finalProducts.length})` });
-    finalProducts.forEach(p => sections.push({ type: 'product', id: `p${p.product_id}`, item: p }));
-  }
+
+  const hasResults = sections.length > 0;
+
+  const renderHeader = () => {
+    if (searchQuery.length > 0) return null;
+    const categories = ['Піца', 'Бургер', 'Суші', 'Кава', 'Десерти'];
+    const emojis = ['🍕', '🍔', '🍣', '☕️', '🍰'];
+
+    return (
+      <View style={styles.hintsContainer}>
+        <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 0 }]}>Популярні категорії</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hintsScroll}>
+          {categories.map((hint, idx) => (
+            <TouchableOpacity
+              key={hint}
+              style={[
+                styles.hintChip, 
+                { backgroundColor: theme.card, borderColor: colorScheme === 'dark' ? '#333' : '#eee', borderWidth: 1 }
+              ]}
+              onPress={() => handleChange(hint)}
+            >
+              <Text style={styles.hintEmoji}>{emojis[idx]}</Text>
+              <Text style={[styles.hintText, { color: theme.text }]}>{hint}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
-
-      <View style={[styles.searchBar, { backgroundColor: theme.input }]}>
-        <Ionicons name="search" size={20} color="gray" style={{ marginRight: 8 }} />
-        <TextInput
-          ref={inputRef}
-          style={[styles.input, { color: theme.text }]}
-          placeholder="Піца, суші, бургер..."
-          placeholderTextColor="gray"
-          autoFocus
-          value={searchQuery}
-          onChangeText={handleChange}
-          returnKeyType="search"
-          clearButtonMode="never"
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="close-circle" size={18} color="gray" />
-          </TouchableOpacity>
-        )}
+      
+      <View style={styles.headerWrapper}>
+        <BackButton color={theme.text} />
+        <View style={[styles.searchBar, { backgroundColor: theme.input }]}>
+          <Ionicons name="search" size={20} color="gray" style={{ marginRight: 8 }} />
+          <TextInput
+            ref={inputRef}
+            style={[styles.input, { color: theme.text }]}
+            placeholder="Піца, суші, бургер..."
+            placeholderTextColor="gray"
+            autoFocus
+            value={searchQuery}
+            onChangeText={handleChange}
+            returnKeyType="search"
+            clearButtonMode="never"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => handleChange('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close-circle" size={18} color="gray" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {searchQuery.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>🔍</Text>
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>Що шукаємо?</Text>
-          <Text style={[styles.emptySubtitle, { color: 'gray' }]}>
-            Введіть назву страви або ресторану
-          </Text>
-          <View style={styles.hintRow}>
-            {['Піца', 'Бургер', 'Суші', 'Кава'].map(hint => (
-              <TouchableOpacity
-                key={hint}
-                style={[styles.hintChip, { backgroundColor: theme.card }]}
-                onPress={() => handleChange(hint)}
-              >
-                <Text style={[styles.hintText, { color: theme.text }]}>{hint}</Text>
-              </TouchableOpacity>
-            ))}
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {!hasResults && searchQuery.length > 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>😔</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>Нічого не знайдено</Text>
+            <Text style={[styles.emptySubtitle, { color: 'gray' }]}>Спробуйте інший запит</Text>
           </View>
-        </View>
-      ) : !hasResults ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>😔</Text>
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>Нічого не знайдено</Text>
-          <Text style={[styles.emptySubtitle, { color: 'gray' }]}>Спробуйте інший запит</Text>
-        </View>
-      ) : (
-        <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-          <FlatList
-            data={sections}
-            keyExtractor={item => item.id}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => {
-              if (item.type === 'header') {
-                return (
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>{item.label}</Text>
-                );
+        ) : (
+          <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+            <FlatList
+              data={sections}
+              keyExtractor={(item, index) => item.id || index.toString()}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, paddingTop: 10 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              ListHeaderComponent={renderHeader}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="#e334e3"
+                  colors={["#e334e3"]}
+                />
               }
-              if (item.type === 'store') return renderStore({ item: item.item });
-              if (item.type === 'product') return renderProduct({ item: item.item });
-              return null;
-            }}
-          />
-        </Animated.View>
-      )}
+              renderItem={({ item }) => {
+                if (item.type === 'header') {
+                  return (
+                    <Text style={[styles.sectionTitle, { color: theme.text }]}>{item.label}</Text>
+                  );
+                }
+                if (item.type === 'store') return renderStore({ item: item.item });
+                if (item.type === 'product') return renderProduct({ item: item.item });
+                return null;
+              }}
+            />
+          </Animated.View>
+        )}
+      </KeyboardAvoidingView>
 
       {selectedProduct && (
         <ProductSheet
@@ -220,69 +283,119 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
+  headerWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    paddingHorizontal: 14,
-    height: 50,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 54,
+    borderRadius: 27,
+    flex: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  input: { flex: 1, fontSize: 16 },
+  input: { flex: 1, fontSize: 16, height: '100%' },
+
+  hintsContainer: {
+    marginBottom: 10,
+  },
+  hintsScroll: {
+    paddingVertical: 5,
+    gap: 12,
+  },
+  hintChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  hintEmoji: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  hintText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
 
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     marginTop: 18,
-    marginBottom: 10,
+    marginBottom: 12,
+    letterSpacing: 0.3,
   },
 
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    marginBottom: 10,
-    padding: 10,
+    borderRadius: 20,
+    marginBottom: 12,
+    padding: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  productImg: { width: 64, height: 64, borderRadius: 12, backgroundColor: '#eee' },
-  productInfo: { flex: 1, marginLeft: 12 },
-  productName: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
-  productPrice: { color: '#e334e3', fontWeight: 'bold', fontSize: 14 },
+  productImg: { width: 72, height: 72, borderRadius: 16, backgroundColor: '#eee' },
+  productInfo: { flex: 1, marginLeft: 14 },
+  productName: { fontSize: 16, fontWeight: '600', marginBottom: 6, lineHeight: 20 },
+  productPrice: { color: '#e334e3', fontWeight: 'bold', fontSize: 15 },
   addBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 14,
     backgroundColor: '#e334e3',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginLeft: 10,
+    shadowColor: '#e334e3',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
 
   storeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    marginBottom: 10,
-    padding: 10,
+    borderRadius: 20,
+    marginBottom: 12,
+    padding: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  storeImg: { width: 64, height: 64, borderRadius: 12, backgroundColor: '#eee' },
-  storeInfo: { flex: 1, marginLeft: 12 },
-  storeName: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  storeMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  storeRating: { fontSize: 12, color: '#f5c518', fontWeight: '600', marginLeft: 3 },
-  storeDot: { color: 'gray', marginHorizontal: 5, fontSize: 12 },
-  storeTime: { fontSize: 12, color: 'gray' },
+  storeImg: { width: 72, height: 72, borderRadius: 16, backgroundColor: '#eee' },
+  storeInfo: { flex: 1, marginLeft: 14 },
+  storeName: { fontSize: 17, fontWeight: '700', marginBottom: 6 },
+  storeMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  storeRating: { fontSize: 13, color: '#f5c518', fontWeight: '600', marginLeft: 4 },
+  storeDot: { color: 'gray', marginHorizontal: 6, fontSize: 12 },
+  storeTime: { fontSize: 13, color: 'gray', fontWeight: '500' },
   tagRow: { flexDirection: 'row', gap: 6 },
-  tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  tagText: { fontSize: 11, fontWeight: '500' },
+  tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  tagText: { fontSize: 11, fontWeight: '600' },
 
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 },
-  emptyEmoji: { fontSize: 56, marginBottom: 12 },
-  emptyTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 6 },
-  emptySubtitle: { fontSize: 14, textAlign: 'center', paddingHorizontal: 40 },
-  hintRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 24, justifyContent: 'center' },
-  hintChip: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20 },
-  hintText: { fontSize: 14, fontWeight: '600' },
+  emptyEmoji: { fontSize: 64, marginBottom: 16 },
+  emptyTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
+  emptySubtitle: { fontSize: 15, textAlign: 'center', paddingHorizontal: 40 },
 });

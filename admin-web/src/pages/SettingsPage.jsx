@@ -23,12 +23,12 @@ export default function SettingsPage() {
   if (currentUser && !currentUser.isSuperAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
-        <div className="w-20 h-20 bg-danger/10 rounded-full flex items-center justify-center mb-6">
-          <ShieldAlert className="w-10 h-10 text-danger" />
+        <div className="w-24 h-24 bg-danger/10 rounded-full flex items-center justify-center mb-8 border border-danger/20 shadow-glow-danger/20">
+          <ShieldAlert className="w-12 h-12 text-danger" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
-        <p className="text-textSecondary max-w-md">
-          Only Super Admins can modify global system settings and emergency rules.
+        <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter">Доступ Заборонено</h2>
+        <p className="text-textSecondary max-w-sm font-medium">
+          Тільки Головний Адміністратор має доступ до налаштувань глобальних параметрів системи.
         </p>
       </div>
     );
@@ -43,98 +43,102 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-4xl space-y-8 animate-fade-in relative">
+    <div className="max-w-4xl space-y-10 animate-in fade-in duration-700">
       
-      {isLoading && (
-        <div className="absolute top-0 right-0 p-2">
-            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+      <div className="flex justify-between items-center bg-surfaceLighter/30 p-8 rounded-[2rem] border border-borderWhite backdrop-blur-sm">
+        <div>
+          <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Налаштування Системи</h1>
+          <p className="text-textSecondary text-sm font-medium mt-1">
+            {error
+              ? 'API налаштувань не сконфігуровано. Значення нижче заблоковано.'
+              : 'Керуйте глобальними параметрами доставки та статусом сервісу.'}
+          </p>
         </div>
-      )}
-
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-1">System Settings</h2>
-        <p className="text-textSecondary text-sm">
-          {error
-            ? 'Backend settings API is not configured yet. Values below are disabled until backend is ready.'
-            : 'Configure global delivery rules and store status.'}
-        </p>
+        {isLoading && <Loader2 className="w-6 h-6 text-primary animate-spin" />}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* Delivery Settings */}
-                <div className="glass-panel p-6">
-          <div className="flex items-center mb-6">
-            <div className="p-3 bg-secondary/10 text-secondary border border-secondary/20 rounded-xl mr-4 shadow-[0_0_15px_rgba(255,184,0,0.2)]">
-               <Truck className="w-5 h-5" />
+        <div className="glass-panel p-8 group hover:border-primary/30 transition-all duration-500">
+          <div className="flex items-center mb-8">
+            <div className="p-4 bg-secondary/10 text-secondary border border-secondary/20 rounded-2xl mr-5 shadow-glow-secondary/20 group-hover:scale-110 transition-transform">
+               <Truck className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-white">Delivery Parameters</h3>
+            <div>
+              <h3 className="text-lg font-black text-white uppercase tracking-wider">Доставка</h3>
+              <p className="text-[10px] text-textSecondary uppercase tracking-widest font-black">Фінансові параметри</p>
+            </div>
           </div>
           
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-textSecondary mb-2">Base Delivery Fee (₴)</label>
+              <label className="block text-[10px] font-black text-textSecondary uppercase tracking-widest mb-2 ml-1">Базова вартість (₴)</label>
               <input 
                 type="number" 
                 value={fee}
                 onChange={(e) => setFee(e.target.value)}
-                className="w-full bg-surface border border-borderWhite rounded-lg py-2.5 px-4 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all font-medium"
+                className="w-full bg-surface border border-borderWhite rounded-2xl py-4 px-5 text-white focus:outline-none focus:border-primary transition-all font-bold text-lg"
                 disabled={!!error}
+                placeholder="0.00"
               />
             </div>
             
             <button 
                onClick={handleSaveFee}
                disabled={!!error || isLoading || fee === '' || Number(fee) === data.courierFee}
-               className="w-full bg-surfaceLighter disabled:opacity-50 hover:bg-primary/20 hover:text-primary hover:border-primary border border-borderWhite text-white py-2.5 rounded-lg flex items-center justify-center font-bold transition-all"
+               className="w-full bg-primary text-white py-4 rounded-2xl flex items-center justify-center font-black uppercase tracking-widest transition-all shadow-glow-primary hover:translate-y-[-2px] active:scale-95 disabled:opacity-50"
             >
-               <Save className="w-4 h-4 mr-2" /> Save Settings
+               <Save className="w-4 h-4 mr-2" /> Зберегти
             </button>
           </div>
         </div>
 
         {/* Emergency Rules */}
-        <div className="glass-panel p-6 border-danger/20">
-          <div className="flex items-center mb-6">
-            <div className="p-3 bg-danger/10 text-danger border border-danger/20 rounded-xl mr-4 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-               <Store className="w-5 h-5" />
+        <div className="glass-panel p-8 border-danger/20 group hover:border-danger/40 transition-all duration-500">
+          <div className="flex items-center mb-8">
+            <div className="p-4 bg-danger/10 text-danger border border-danger/20 rounded-2xl mr-5 shadow-glow-danger/20 group-hover:scale-110 transition-transform">
+               <Store className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-white">Emergency Controls</h3>
+            <div>
+              <h3 className="text-lg font-black text-white uppercase tracking-wider">Робота Сервісу</h3>
+              <p className="text-[10px] text-danger uppercase tracking-widest font-black">Екстрені заходи</p>
+            </div>
           </div>
           
-          <div className="bg-surface p-5 rounded-xl border border-borderWhite mb-6">
-            <div className="flex justify-between items-start">
+          <div className="bg-surface p-6 rounded-2xl border border-borderWhite mb-8">
+            <div className="flex justify-between items-center">
                <div>
-                 <h4 className="text-white font-bold flex items-center mb-1">
+                 <h4 className="text-white font-black uppercase tracking-tighter text-lg flex items-center mb-1">
                    {data.emergencyClose === null
-                     ? 'Store status unknown'
-                     : !data.emergencyClose ? 'Store is Open' : 'Store is Closed'}
+                     ? 'Статус невідомий'
+                     : !data.emergencyClose ? 'Сервіс ПРАЦЮЄ' : 'Сервіс ЗАКРИТО'}
                  </h4>
-                 <p className="text-textSecondary text-sm">
+                 <p className="text-textSecondary text-xs font-medium">
                    {data.emergencyClose === null
-                     ? 'Backend has not provided store status yet.'
+                     ? 'Бекенд не повернув статус закладу.'
                      : !data.emergencyClose
-                       ? 'Customers can place new orders via the app.'
-                       : 'New orders are completely disabled.'}
+                       ? 'Клієнти можуть створювати нові замовлення.'
+                       : 'Прийом нових замовлень повністю вимкнено.'}
                  </p>
                </div>
                <button 
                   onClick={toggleEmergencyClose}
                   disabled={!!error || isLoading}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none ${
-                    !data.emergencyClose ? 'bg-success' : 'bg-surfaceLighter border border-borderWhite'
+                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-all duration-500 focus:outline-none ${
+                    !data.emergencyClose ? 'bg-success shadow-glow-success/30' : 'bg-surfaceLighter border border-borderWhite'
                   } disabled:opacity-50`}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${!data.emergencyClose ? 'translate-x-6' : 'translate-x-1'}`} />
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-500 shadow-md ${!data.emergencyClose ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
             </div>
           </div>
           
-          <div className="bg-danger/5 border border-danger/20 rounded-xl p-4 flex items-start">
-            <AlertTriangle className="w-5 h-5 text-danger mr-3 shrink-0 mt-0.5" />
+          <div className="bg-danger/5 border border-danger/10 rounded-2xl p-5 flex items-start">
+            <AlertTriangle className="w-5 h-5 text-danger mr-4 shrink-0 mt-0.5" />
             <div>
-              <h5 className="text-danger font-bold text-sm mb-1">Caution</h5>
-              <p className="text-textSecondary text-xs leading-relaxed">Closing the store will immediately prevent any client from adding items to cart or checking out. Use only during extreme overload or technical issues.</p>
+              <h5 className="text-danger font-black text-[10px] uppercase tracking-widest mb-1.5">Увага!</h5>
+              <p className="text-textSecondary text-xs leading-relaxed font-medium">Закриття сервісу миттєво припинить можливість додавання товарів до кошика для всіх клієнтів. Використовуйте лише при екстремальних перевантаженнях.</p>
             </div>
           </div>
         </div>

@@ -22,6 +22,19 @@ export const removeToken = () => {
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const getRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY);
 
+export const IMAGE_BASE_URL = 'http://37.27.220.44';
+
+/** Resolve a relative image path from the backend to a full URL */
+export const resolveImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    const cleanBase = IMAGE_BASE_URL.endsWith('/') ? IMAGE_BASE_URL : `${IMAGE_BASE_URL}/`;
+    
+    return `${cleanBase}${cleanPath}`;
+};
+
 const client = axios.create({
     baseURL: BASE_URL,
     timeout: 60000,

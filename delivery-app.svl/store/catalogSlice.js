@@ -13,6 +13,17 @@ export const fetchCatalog = createAsyncThunk(
     }
 );
 
+export const fetchRestaurantProducts = createAsyncThunk(
+    'catalog/fetchRestaurantProducts',
+    async (restaurantId, { rejectWithValue }) => {
+        try {
+            return await CatalogService.fetchProductsByRestaurant(restaurantId);
+        } catch (err) {
+            return rejectWithValue(err.message);
+        }
+    }
+);
+
 // ── Slice ─────────────────────────────────────────────────────────────────────
 const initialState = {
     categories: [],
@@ -54,6 +65,17 @@ const catalogSlice = createSlice({
                 state.isLoading = false;
                 state.error = action.payload ?? 'Failed to load catalog';
                 // Keep existing mock data in state so the app stays usable
+            })
+            .addCase(fetchRestaurantProducts.fulfilled, (state, action) => {
+                const newProducts = action.payload || [];
+                if (newProducts.length === 0) return;
+
+                // Merge products: replace existing ones with same ID, add new ones
+                const productMap = new Map(state.products.map(p => [p.product_id, p]));
+                newProducts.forEach(p => {
+                    productMap.set(p.product_id, p);
+                });
+                state.products = Array.from(productMap.values());
             });
     },
 });

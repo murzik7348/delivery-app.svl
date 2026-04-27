@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Image,
   ScrollView,
@@ -9,13 +9,16 @@ import {
   TouchableOpacity,
   View,
   useColorScheme,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import { toggleFavorite, toggleFavoriteProduct } from '../store/favoritesSlice';
+import { fetchCatalog } from '../store/catalogSlice';
 import ProductSheet from '../components/ProductSheet';
+import BackButton from '../components/BackButton';
 
 export default function FavoritesScreen() {
   const router = useRouter();
@@ -23,6 +26,18 @@ export default function FavoritesScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const locale = useSelector(s => s.language?.locale ?? 'uk');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await dispatch(fetchCatalog()).unwrap();
+    } catch (error) {
+      console.error('[Favorites] Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch]);
 
   const favoriteIds = useSelector(state => state.favorites.ids);
   const favoriteProductIds = useSelector(state => state.favorites.productIds ?? []);
@@ -42,6 +57,7 @@ export default function FavoritesScreen() {
 
       {/* Заголовок */}
       <View style={styles.header}>
+        <BackButton color={theme.text} />
         <Text style={[styles.title, { color: theme.text }]}>{t(locale, 'favoritesTitle')} ❤️</Text>
       </View>
 
@@ -94,7 +110,18 @@ export default function FavoritesScreen() {
           </Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          contentContainerStyle={{ padding: 16, paddingBottom: 100 }} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#e334e3"
+              colors={["#e334e3"]}
+            />
+          }
+        >
           {activeTab === 'stores'
             ? favoriteStores.map(item => (
               <TouchableOpacity
@@ -160,9 +187,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
 
   header: {
-    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
     paddingTop: 10,
     paddingBottom: 6,
+    gap: 8,
   },
   title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.3 },
 

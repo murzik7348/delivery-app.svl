@@ -15,7 +15,7 @@ class CatalogService {
         try {
             const [apiCategories, apiProductsResponse, apiRestaurants] = await Promise.all([
                 getCategories(),
-                getProducts({ page: 1, pageSize: 100 }),
+                getProducts({ page: 1, pageSize: 300 }), // Increased limit for global catalog
                 getRestaurants(),
             ]);
 
@@ -55,7 +55,7 @@ class CatalogService {
                     ...c,
                     category_id: c.categoryId || c.id,
                     sticker: sticker,
-                    image: resolveImageUrl(c.imageUrl) || null // Use null if no image, UI will handle sticker
+                    image: resolveImageUrl(c.urlBase || c.imageUrl) || null // Use null if no image, UI will handle sticker
                 };
             });
 
@@ -64,7 +64,8 @@ class CatalogService {
             // Map backend restaurants to 'stores' structure expected by UI
             const stores = apiRestaurantList.map((r, index) => {
                 const isString = typeof r === 'string';
-                const id = isString ? (index + 1) : (r.id || r.restaurantId);
+                // Strictly use restaurantId from backend to avoid mix-ups with generic 'id' fields
+                const id = isString ? (index + 1) : (r.restaurantId || r.id);
                 const name = isString ? r : (r.name || 'Без назви');
                 
                 // Collect category names from products belonging to this restaurant
@@ -79,7 +80,7 @@ class CatalogService {
                 return {
                     store_id: id,
                     name: name,
-                    image: resolveImageUrl(r.imageUrl) || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800", // Fallback image wrapper
+                    image: resolveImageUrl(r.urlBase || r.imageUrl) || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800", // Fallback image wrapper
                     rating: r.rating || 4.5,
                     delivery_time: "20-40 хв",
                     tags: tags,
@@ -108,7 +109,33 @@ class CatalogService {
         try {
             const response = await getProducts({ categoryId, pageSize: 100 });
             const items = response?.items ?? response ?? [];
-            return items;
+            return items.map(p => ({
+                ...p,
+                product_id: p.id,
+                store_id: p.restaurantId,
+                category_id: p.categoryId,
+                image: resolveImageUrl(p.urlBase || p.imageUrl) || "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=500"
+            }));
+        } catch {
+            return [];
+        }
+    }
+
+    /**
+     * Fetch products filtered by restaurant.
+     * @param {number} restaurantId
+     */
+    static async fetchProductsByRestaurant(restaurantId) {
+        try {
+            const response = await getProducts({ restaurantId, pageSize: 200 });
+            const items = response?.items ?? response ?? [];
+            return items.map(p => ({
+                ...p,
+                product_id: p.id,
+                store_id: p.restaurantId,
+                category_id: p.categoryId,
+                image: resolveImageUrl(p.urlBase || p.imageUrl) || "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=500"
+            }));
         } catch {
             return [];
         }

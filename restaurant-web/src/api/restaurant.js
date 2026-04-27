@@ -34,8 +34,10 @@ export const cancelDelivery = (id, reason) =>
 export const getRestaurantInfo = () =>
   client.get('/restaurant');
 
-export const updateRestaurantStatus = (isOpen) =>
-  client.put('/restaurant', { isOpen });
+export const updateRestaurant = (data) =>
+  client.put('/restaurant', data);
+
+export const updateRestaurantStatus = updateRestaurant;
 
 // Product / Menu Management
 export const fetchProducts = (params = {}) => 
@@ -57,10 +59,13 @@ export const uploadProductImage = (productId, imageFile) => {
   });
 };
 
-export const uploadRestaurantImage = (imageFile) => {
+export const uploadRestaurantImage = (restaurantId, imageFile) => {
     const formData = new FormData();
+    formData.append('RestaurantId', restaurantId);
     formData.append('Image', imageFile);
-    return client.put('/restaurant/image', formData, {
+    
+    // Spec says POST /restaurant/image
+    return client.post('/restaurant/image', formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
         },

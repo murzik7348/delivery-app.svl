@@ -21,6 +21,7 @@ import {
   UIManager,
   View,
   useColorScheme,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -39,6 +40,9 @@ import {
   MIN_ORDER_AMOUNT,
 } from '../store/cartSlice';
 import AddressBottomSheet from '../components/AddressBottomSheet';
+import PromoSheet from '../components/PromoSheet';
+import BackButton from '../components/BackButton';
+import { fetchCatalog } from '../store/catalogSlice';
 import useCheckoutFlow from '../hooks/useCheckoutFlow';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -162,6 +166,18 @@ export default function CartScreen() {
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
   const [noteVisible, setNoteVisible] = useState(false);
   const [viewProduct, setViewProduct] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await dispatch(fetchCatalog()).unwrap();
+    } catch (error) {
+      console.error('[Cart] Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch]);
 
   // ── Redux state ────────────────────────────────────────────────────────────
   const cartItems = useSelector((s) => s.cart.items);
@@ -388,7 +404,10 @@ export default function CartScreen() {
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       {/* ── Header ── */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>{t(locale, 'cartTitle')}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <BackButton />
+          <Text style={[styles.headerTitle, { color: theme.text, marginLeft: 8 }]}>{t(locale, 'cartTitle')}</Text>
+        </View>
         {cartItems.length > 0 && (
           <TouchableOpacity onPress={() => dispatch(clearCart())}>
             <Text style={styles.clearBtn}>{t(locale, 'clearCart')}</Text>
@@ -428,6 +447,14 @@ export default function CartScreen() {
               paddingTop: 10,
               paddingBottom: COLLAPSED_HEIGHT + insets.bottom + 32,
             }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#e334e3"
+                colors={["#e334e3"]}
+              />
+            }
             ListFooterComponent={
               recommendations.length > 0 ? (
                 <View style={styles.recSection}>

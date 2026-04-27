@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { Alert, ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, useColorScheme, View, RefreshControl, Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFocusEffect } from 'expo-router';
@@ -12,9 +13,18 @@ import { clearOrders } from '../store/ordersSlice';
 import { clearCourierState } from '../store/courierSlice';
 import { deleteAddress as apiDeleteAddress, getAddresses } from '../src/api';
 import { persistor } from '../store/index';
-import * as Notifications from 'expo-notifications';
+const getNotifications = () => {
+  if (Platform.OS === 'android' && Constants.appOwnership === 'expo') return null;
+  try {
+    return require('expo-notifications');
+  } catch (e) {
+    return null;
+  }
+};
+const Notifications = getNotifications();
 
 import { resolveImageUrl } from '../src/api/client';
+import BackButton from '../components/BackButton';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -138,7 +148,20 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
+          <BackButton />
+        </View>
+        <ScrollView 
+          contentContainerStyle={{ paddingBottom: 40 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={addressesLoading}
+              onRefresh={refreshData}
+              tintColor="#e334e3"
+              colors={["#e334e3"]}
+            />
+          }
+        >
 
           {/* Шапка профілю */}
           <View style={styles.header}>
@@ -184,13 +207,17 @@ export default function ProfileScreen() {
               icon="paper-plane-outline" 
               label="Test Notification" 
               onPress={async () => {
-                await Notifications.scheduleNotificationAsync({
-                  content: {
-                    title: "🔔 Test Notification",
-                    body: "Система сповіщень працює!",
-                  },
-                  trigger: null,
-                });
+                if (Notifications && Notifications.scheduleNotificationAsync) {
+                  await Notifications.scheduleNotificationAsync({
+                    content: {
+                      title: "🔔 Test Notification",
+                      body: "Система сповіщень працює!",
+                    },
+                    trigger: null,
+                  });
+                } else {
+                  Alert.alert("Сповіщення", "Ця функція недоступна в Expo Go для Android у цьому SDK.");
+                }
               }} 
             />
             <MenuItem icon="language-outline" label={t(locale, 'language')} isLast onPress={() => router.push('/language')} />

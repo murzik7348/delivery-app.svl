@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   useColorScheme,
   View,
+  RefreshControl,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -19,6 +20,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import PromoSheet from '../components/PromoSheet';
+import BackButton from '../components/BackButton';
 import { fetchCatalog, selectAllCategories, selectAllStores, selectAllPromotions } from '../store/catalogSlice';
 import { resolveImageUrl } from '../src/api/client';
 
@@ -77,6 +79,7 @@ export default function HomeScreen() {
   const theme = Colors[colorScheme ?? 'light'];
   const { user } = useSelector((state) => state.auth);
   const locale = useSelector((s) => s.language?.locale ?? 'uk');
+  const { currentLocation } = useSelector((s) => s.location);
   // Use real categories from Redux (populated by fetchCatalog thunk)
   const categories = useSelector(selectAllCategories);
   const stores = useSelector(selectAllStores);
@@ -86,6 +89,18 @@ export default function HomeScreen() {
   const [selectedPromo, setSelectedPromo] = useState(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const searchScale = useRef(new Animated.Value(1)).current;
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await dispatch(fetchCatalog()).unwrap();
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     // Fetch real catalog data from API
@@ -123,64 +138,77 @@ export default function HomeScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
 
-      {/* ── Шапка ── */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.addressArea}
-          activeOpacity={0.75}
-          onPress={() => router.push('/location-picker')}
-        >
-          <Text style={[styles.deliveryLabel, { color: 'gray' }]}>{t(locale, 'deliveryTo')}</Text>
-          <View style={styles.addressRow}>
-            <Text style={[styles.addressText, { color: theme.text }]} numberOfLines={1}>
-              {t(locale, 'chooseAddress')}
-            </Text>
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <Ionicons name="location" size={16} color="#e334e3" />
-            </Animated.View>
-            <Ionicons name="chevron-down" size={14} color="gray" style={{ marginLeft: 2 }} />
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ paddingBottom: 140 }}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor="#e334e3" 
+            colors={["#e334e3"]}
+          />
+        }
+      >
+        {/* ── Шапка ── */}
+        <View style={styles.header}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <BackButton />
+            <TouchableOpacity
+              style={styles.addressArea}
+              activeOpacity={0.75}
+              onPress={() => router.push('/location-picker')}
+            >
+              <Text style={[styles.deliveryLabel, { color: 'gray' }]}>{t(locale, 'deliveryTo')}</Text>
+              <View style={styles.addressRow}>
+                <Text style={[styles.addressText, { color: theme.text }]} numberOfLines={1}>
+                  {currentLocation?.addressName || t(locale, 'chooseAddress')}
+                </Text>
+                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                  <Ionicons name="location" size={16} color="#e334e3" />
+                </Animated.View>
+                <Ionicons name="chevron-down" size={14} color="gray" style={{ marginLeft: 2 }} />
+              </View>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => router.push('/profile')}
-          style={styles.avatarWrapper}
-          activeOpacity={0.85}
-        >
-          {user?.avatarUrl || user?.avatar ? (
-            <Image 
-              source={{ uri: resolveImageUrl(user.avatarUrl || user.avatar) }} 
-              style={styles.avatar} 
-            />
-          ) : (
-            <View style={[styles.avatarFallback, { backgroundColor: theme.card }]}>
-              <Ionicons name="person" size={20} color="#e334e3" />
+          <TouchableOpacity
+            onPress={() => router.push('/profile')}
+            style={styles.avatarWrapper}
+            activeOpacity={0.85}
+          >
+            {user?.avatarUrl || user?.avatar ? (
+              <Image 
+                source={{ uri: resolveImageUrl(user.avatarUrl || user.avatar) }} 
+                style={styles.avatar} 
+              />
+            ) : (
+              <View style={[styles.avatarFallback, { backgroundColor: theme.card }]}>
+                <Ionicons name="person" size={20} color="#e334e3" />
+              </View>
+            )}
+            <View style={styles.avatarRing} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Пошуковий рядок ── */}
+        <Animated.View style={[styles.searchWrapper, { transform: [{ scale: searchScale }] }]}>
+          <TouchableOpacity
+            style={[styles.searchBar, { backgroundColor: theme.input, shadowColor: '#e334e3' }]}
+            activeOpacity={1}
+            onPress={handleSearchPress}
+          >
+            <View style={styles.searchIconWrap}>
+              <Ionicons name="search" size={18} color="#e334e3" />
             </View>
-          )}
-          <View style={styles.avatarRing} />
-        </TouchableOpacity>
-      </View>
-
-      {/* ── Пошуковий рядок ── */}
-      <Animated.View style={[styles.searchWrapper, { transform: [{ scale: searchScale }] }]}>
-        <TouchableOpacity
-          style={[styles.searchBar, { backgroundColor: theme.input, shadowColor: '#e334e3' }]}
-          activeOpacity={1}
-          onPress={handleSearchPress}
-        >
-          <View style={styles.searchIconWrap}>
-            <Ionicons name="search" size={18} color="#e334e3" />
-          </View>
-          <Text style={[styles.searchPlaceholder, { color: 'gray' }]}>
-            {t(locale, 'searchPlaceholder')}
-          </Text>
-          <View style={[styles.searchBadge, { backgroundColor: '#e334e322' }]}>
-            <Ionicons name="options-outline" size={16} color="#e334e3" />
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
+            <Text style={[styles.searchPlaceholder, { color: 'gray' }]}>
+              {t(locale, 'searchPlaceholder')}
+            </Text>
+            <View style={[styles.searchBadge, { backgroundColor: '#e334e322' }]}>
+              <Ionicons name="options-outline" size={16} color="#e334e3" />
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* Горячі пропозиції */}
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'hotDeals')}</Text>

@@ -5,6 +5,10 @@ import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, use
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from '../constants/Colors';
 import useCatalogFilter from '../hooks/useCatalogFilter';
+import { RefreshControl } from 'react-native';
+import { useDispatch } from 'react-redux';
+import { fetchCatalog } from '../store/catalogSlice';
+import BackButton from '../components/BackButton';
 
 export default function CatalogScreen() {
   const router = useRouter();
@@ -13,6 +17,19 @@ export default function CatalogScreen() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const { sortOrder, setSortOrder, finalProducts } = useCatalogFilter();
+  const dispatch = useDispatch();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await dispatch(fetchCatalog()).unwrap();
+    } catch (error) {
+      console.error('Refresh catalog failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const topProducts = finalProducts.slice(0, 5);
   const newProducts = finalProducts.slice(5, 10);
@@ -37,7 +54,10 @@ export default function CatalogScreen() {
 
       {/* ШАПКА + КНОПКА ПОШУКУ */}
       <View style={styles.headerContainer}>
-        <Text style={[styles.pageTitle, { color: theme.text }]}>Каталог</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+          <BackButton />
+          <Text style={[styles.pageTitle, { color: theme.text, marginBottom: 0, marginLeft: 0 }]}>Каталог</Text>
+        </View>
 
         <View style={styles.searchRow}>
           {/* Натискання перекидає на search.js */}
@@ -57,7 +77,17 @@ export default function CatalogScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: 140 }}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor="#e334e3" 
+            colors={["#e334e3"]}
+          />
+        }
+      >
 
         {/* Секція: Топ сезону */}
         <View style={styles.section}>

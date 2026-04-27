@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { fetchProducts, fetchCategories, fetchRestaurants, createProduct, updateProduct, deleteProduct, uploadProductImage, updateCategory, uploadCategoryImage, uploadRestaurantImage } from '../../api/catalog';
+import { fetchProducts, fetchCategories, fetchRestaurants, createProduct, updateProduct, deleteProduct, uploadProductImage, createCategory, updateCategory, uploadCategoryImage, uploadRestaurantImage, deleteCategory } from '../../api/catalog';
 
 export const getProducts = createAsyncThunk(
   'catalog/getProducts',
@@ -96,11 +96,28 @@ export const editCategory = createAsyncThunk(
     }
 );
 
+export const addCategory = createAsyncThunk(
+    'catalog/addCategory',
+    async ({ name, imageFile }, { rejectWithValue }) => {
+        try {
+            const formData = new FormData();
+            formData.append('Name', name);
+            if (imageFile) {
+                formData.append('Image', imageFile);
+            }
+            const response = await createCategory(formData);
+            return response;
+        } catch (err) {
+            return rejectWithValue(err.message || 'Failed to add category');
+        }
+    }
+);
+
 export const updateRestaurantPhoto = createAsyncThunk(
     'catalog/updateRestaurantPhoto',
-    async (imageFile, { rejectWithValue }) => {
+    async ({ restaurantId, imageFile }, { rejectWithValue }) => {
         try {
-            const response = await uploadRestaurantImage(imageFile);
+            const response = await uploadRestaurantImage(restaurantId, imageFile);
             return response;
         } catch (err) {
             return rejectWithValue(err.message || 'Failed to update restaurant photo');
@@ -115,6 +132,18 @@ export const removeProduct = createAsyncThunk(
             return id;
         } catch (err) {
             return rejectWithValue(err.message || 'Failed to delete product');
+        }
+    }
+);
+
+export const removeCategory = createAsyncThunk(
+    'catalog/removeCategory',
+    async (id, { rejectWithValue }) => {
+        try {
+            await deleteCategory(id);
+            return id;
+        } catch (err) {
+            return rejectWithValue(err.message || 'Failed to delete category');
         }
     }
 );
@@ -165,6 +194,13 @@ const catalogSlice = createSlice({
         state.categories = action.payload;
       })
       
+      // Add Category
+      .addCase(addCategory.fulfilled, (state, action) => {
+        if (action.payload && (action.payload.id || action.payload.categoryId)) {
+          state.categories.unshift(action.payload);
+        }
+      })
+      
       // Edit Category
       .addCase(editCategory.fulfilled, (state, action) => {
         if(action.payload && (action.payload.id || action.payload.categoryId)) {
@@ -181,11 +217,9 @@ const catalogSlice = createSlice({
         state.restaurants = action.payload || [];
       })
       
-      // Add Product
       .addCase(addProduct.fulfilled, (state, action) => {
-        if(action.payload && action.payload.id) {
-           state.products.unshift(action.payload);
-        }
+        // Since backend returns only ID (integer), we don't unshift here.
+        // The component handles refetching the full product list.
       })
       
       // Edit Product
@@ -201,6 +235,11 @@ const catalogSlice = createSlice({
       // Delete Product
       .addCase(removeProduct.fulfilled, (state, action) => {
         state.products = state.products.filter(p => p.id !== action.payload);
+      })
+      
+      // Delete Category
+      .addCase(removeCategory.fulfilled, (state, action) => {
+        state.categories = state.categories.filter(c => (c.id || c.categoryId) !== action.payload);
       })
       
       // Toggle Status

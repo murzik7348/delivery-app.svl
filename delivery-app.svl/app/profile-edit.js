@@ -19,7 +19,7 @@ import { t } from '../constants/translations';
 import { uploadAvatar } from '../src/api/auth';
 import { resolveImageUrl } from '../src/api/client';
 import { updateUser, fetchMe } from '../store/authSlice';
-import { safeBack } from '../utils/navigation';
+import BackButton from '../components/BackButton';
 
 export default function ProfileEditScreen() {
   const router = useRouter();
@@ -98,11 +98,9 @@ export default function ProfileEditScreen() {
 
       {/* Шапка */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => safeBack(router)} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={theme.text} />
-        </TouchableOpacity>
+        <BackButton color={theme.text} />
         <Text style={[styles.title, { color: theme.text }]}>{t(locale, 'editProfile')}</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <View style={styles.content}>

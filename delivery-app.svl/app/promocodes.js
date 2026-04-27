@@ -10,7 +10,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import { applyDiscount } from '../store/cartSlice';
-import { safeBack } from '../utils/navigation';
+import BackButton from '../components/BackButton';
 
 export default function PromocodesScreen() {
   const router = useRouter();
@@ -51,11 +51,9 @@ export default function PromocodesScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { backgroundColor: theme.card }]}>
-        <TouchableOpacity onPress={() => safeBack(router)} style={[styles.backBtn, { backgroundColor: theme.input }]}>
-          <Ionicons name="arrow-back" size={24} color={theme.text} />
-        </TouchableOpacity>
+        <BackButton color={theme.text} />
         <Text style={[styles.headerTitle, { color: theme.text }]}>{t(locale, 'promoCodesTitle')}</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <View style={styles.content}>

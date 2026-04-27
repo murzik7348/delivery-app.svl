@@ -3,6 +3,15 @@ import client from './client';
 export const fetchProducts = (params = { page: 1, pageSize: 20 }) => 
   client.get('/product', { params });
 
+export const createCategory = (data) => {
+  const isFormData = data instanceof FormData;
+  return client.post('/category', data, {
+    headers: {
+      'Content-Type': isFormData ? 'multipart/form-data' : 'application/json',
+    },
+  });
+};
+
 export const createProduct = (data) => {
   const isFormData = data instanceof FormData;
   return client.post('/product', data, {
@@ -42,12 +51,13 @@ export const uploadCategoryImage = (categoryId, imageFile) => {
     });
 };
 
-export const uploadRestaurantImage = (imageFile) => {
+export const uploadRestaurantImage = (restaurantId, imageFile) => {
     const formData = new FormData();
+    formData.append('RestaurantId', restaurantId);
     formData.append('Image', imageFile);
     
-    // Attempting PUT /restaurant/image (following product/category pattern)
-    return client.put('/restaurant/image', formData, {
+    // Spec says POST /restaurant/image
+    return client.post('/restaurant/image', formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
         },
@@ -65,3 +75,5 @@ export const uploadProductImage = (productId, imageFile) => {
         },
     });
 };
+export const deleteCategory = (id) => 
+  client.delete(`/category/${id}`);

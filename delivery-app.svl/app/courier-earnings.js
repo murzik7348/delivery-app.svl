@@ -8,6 +8,7 @@ import Colors from '../constants/Colors';
 import { formatUkraineDate } from '../constants/dateUtils';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { safeBack } from '../utils/navigation';
+import BackButton from '../components/BackButton';
 
 export default function CourierEarningsScreen() {
     const router = useRouter();
@@ -46,13 +47,11 @@ export default function CourierEarningsScreen() {
     return (
         <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => safeBack(router)} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={26} color={theme.text} />
-                </TouchableOpacity>
+                <BackButton color={theme.text} />
                 <Text style={[styles.headerTitle, { color: theme.text }]}>
                     {locale === 'en' ? 'Earnings & History' : 'Заробіток та Історія'}
                 </Text>
-                <View style={{ width: 34 }} />
+                <View style={{ width: 44 }} />
             </View>
 
             <View style={styles.statsContainer}>

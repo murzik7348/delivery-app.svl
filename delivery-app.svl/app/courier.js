@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Colors from '../constants/Colors';
 import CourierOrdersPanel from '../components/CourierOrdersPanel';
+import BackButton from '../components/BackButton';
 
 export default function CourierDeliveryScreen() {
     const router = useRouter();
@@ -36,11 +37,11 @@ export default function CourierDeliveryScreen() {
     return (
         <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.header}>
-                <View style={{ width: 28 }} />
+                <BackButton color={theme.text} />
                 <Text style={[styles.headerTitle, { color: theme.text }]}>
                     {locale === 'en' ? 'Courier Delivery' : 'Доставка кур\'єром'}
                 </Text>
-                <View style={{ width: 28 }} />
+                <View style={{ width: 44 }} />
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 16 }}>

@@ -11,18 +11,23 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Animated,
+  KeyboardAvoidingView,
+  PanResponder
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
-import { useDispatch } from 'react-redux';
+import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+import { useDispatch, useSelector } from 'react-redux';
 import { setCurrentLocation } from '../store/locationSlice';
 import { fetchAddresses } from '../store/authSlice';
 import { createAddress } from '../src/api';
-import { safeBack } from '../utils/navigation';
+import BackButton from '../components/BackButton';
 
 export default function LocationPickerScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const savedAddresses = useSelector((s) => s.auth?.addresses || []);
+  const currentLocation = useSelector((s) => s.location?.currentLocation);
   const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
 
@@ -40,6 +45,53 @@ export default function LocationPickerScreen() {
   const [apartmentNumber, setApartmentNumber] = useState('');
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const panY = useRef(new Animated.Value(0)).current;
+  const lastPanY = useRef(0);
+  const isDraggingMap = useRef(false);
+  const MAX_DOWN = 280; // Distance to slide down when moving map
+
+  useEffect(() => {
+    const listenerId = panY.addListener(({ value }) => {
+      lastPanY.current = value;
+    });
+    return () => panY.removeListener(listenerId);
+  }, []);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+         return Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        panY.setOffset(lastPanY.current);
+        panY.setValue(0);
+      },
+      onPanResponderMove: Animated.event(
+        [null, { dy: panY }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: (_, gestureState) => {
+        panY.flattenOffset();
+        if (gestureState.vy > 0.5 || gestureState.dy > 100) {
+          Animated.spring(panY, {
+            toValue: MAX_DOWN,
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true,
+          }).start();
+        } else {
+          Animated.spring(panY, {
+            toValue: 0,
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   useEffect(() => {
     (async () => {
@@ -74,8 +126,29 @@ export default function LocationPickerScreen() {
     })();
   }, []);
 
+  const onMapPanDrag = () => {
+    if (!isDraggingMap.current) {
+      isDraggingMap.current = true;
+      Animated.timing(panY, {
+        toValue: MAX_DOWN,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
   const onRegionChangeComplete = async (newRegion) => {
+    isDraggingMap.current = false;
     setRegion(newRegion);
+    
+    // Slide sheet back up
+    Animated.spring(panY, {
+      toValue: 0,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+
     try {
       const results = await Location.reverseGeocodeAsync({
         latitude: newRegion.latitude,
@@ -114,6 +187,29 @@ export default function LocationPickerScreen() {
 
   const handleSaveLocation = async () => {
     if (!validateInputs()) return;
+
+    if (savedAddresses.length >= 10) {
+      Alert.alert(
+        'Обмеження',
+        'Ви досягли максимальної кількості збережених адрес (10). Будь ласка, видаліть деякі адреси перед додаванням нових.'
+      );
+      return;
+    }
+
+    const isDuplicate = savedAddresses.some((addr) => {
+      const isSameHouse = addr.house === houseNumber.trim();
+      const isSameApt = (addr.apartment || '') === (addressType === 'apartment' ? apartmentNumber.trim() : '');
+      const isSameLocation =
+        Math.abs(addr.latitude - region.latitude) < 0.001 &&
+        Math.abs(addr.longitude - region.longitude) < 0.001;
+      return isSameHouse && isSameApt && isSameLocation;
+    });
+
+    if (isDuplicate) {
+      Alert.alert('Увага', 'Ця адреса вже збережена.');
+      return;
+    }
+
     setLoading(true);
     try {
       const nameLabel =
@@ -143,7 +239,7 @@ export default function LocationPickerScreen() {
       );
 
       Alert.alert('Успіх', 'Адресу збережено!', [
-        { text: 'OK', onPress: () => safeBack(router) },
+        { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (err) {
       console.error('[location-picker] createAddress error:', err);
@@ -169,14 +265,27 @@ export default function LocationPickerScreen() {
         addressName,
       })
     );
-    safeBack(router);
+    router.back();
+  };
+
+  const toggleSheet = () => {
+    const isClosed = lastPanY.current > MAX_DOWN / 2;
+    Animated.spring(panY, {
+      toValue: isClosed ? 0 : MAX_DOWN,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
   };
 
   // Padding for footer: safe area bottom + buttons gap
   const footerPaddingBottom = Math.max(insets.bottom, 16) + 8;
 
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView 
+      style={styles.root} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       {/* MAP LAYER */}
       <MapView
         ref={mapRef}
@@ -184,21 +293,53 @@ export default function LocationPickerScreen() {
         style={StyleSheet.absoluteFillObject}
         region={region}
         mapType={mapType}
+        onPanDrag={onMapPanDrag}
         onRegionChangeComplete={onRegionChangeComplete}
         showsUserLocation={hasLocationPermission}
         showsMyLocationButton={false}
-      />
+      >
+        {savedAddresses.map((addr, idx) => {
+          const isSelected = currentLocation && 
+            (Math.abs(addr.latitude - currentLocation.latitude) < 0.0001 && Math.abs(addr.longitude - currentLocation.longitude) < 0.0001);
+          return (
+            <Marker
+              key={addr.id || idx}
+              coordinate={{ latitude: addr.latitude, longitude: addr.longitude }}
+              title={addr.title}
+              description={addr.address}
+              onPress={() => {
+                dispatch(setCurrentLocation({
+                  latitude: addr.latitude,
+                  longitude: addr.longitude,
+                  addressName: addr.address,
+                }));
+              }}
+            >
+              <View style={[
+                styles.mapMarker,
+                isSelected && styles.mapMarkerSelected
+              ]}>
+                <Ionicons 
+                  name={addr.title?.includes('Квартира') ? 'business' : 'home'} 
+                  size={isSelected ? 24 : 16} 
+                  color={isSelected ? "white" : "#e334e3"} 
+                />
+              </View>
+            </Marker>
+          );
+        })}
+      </MapView>
 
-      {/* FIXED MARKER PIN */}
+      {/* FIXED MARKER PIN (always shows what you are pointing at) */}
       <View style={styles.markerFixed} pointerEvents="none">
         <Ionicons name="location" size={40} color="#e334e3" />
       </View>
 
       {/* TOP BUTTONS — positioned using insets.top so they won't rely on SafeAreaView */}
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.roundBtn} onPress={() => safeBack(router)}>
-          <Ionicons name="arrow-back" size={24} color="black" />
-        </TouchableOpacity>
+        <View style={styles.roundBtnWrapper}>
+          <BackButton color="black" />
+        </View>
 
         <TouchableOpacity style={styles.roundBtn} onPress={toggleMapType}>
           <Ionicons
@@ -209,26 +350,51 @@ export default function LocationPickerScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* BOTTOM SHEET */}
-      <View style={[styles.footer, { paddingBottom: footerPaddingBottom }]}>
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
+      {/* DRAGGABLE BOTTOM SHEET */}
+      <Animated.View 
+        style={[
+          styles.footer, 
+          { 
+            paddingBottom: footerPaddingBottom,
+            transform: [{
+              translateY: panY.interpolate({
+                inputRange: [0, MAX_DOWN],
+                outputRange: [0, MAX_DOWN],
+                extrapolate: 'clamp'
+              })
+            }] 
+          }
+        ]}
+      >
+        <View {...panResponder.panHandlers} style={styles.dragHeader}>
+          <TouchableOpacity 
+            style={styles.pillContainer} 
+            onPress={toggleSheet} 
+            activeOpacity={0.7}
+            hitSlop={{ top: 15, bottom: 15, left: 50, right: 50 }}
+          >
+            <View style={styles.pill} />
+          </TouchableOpacity>
+
           {/* STREET ROW */}
           <View style={styles.addressRow}>
             <Ionicons
               name="location"
               size={18}
-              color="#900"
+              color="#e334e3"
               style={{ marginRight: 8 }}
             />
             <Text style={styles.detectedText} numberOfLines={2}>
               {detectedStreet}
             </Text>
           </View>
+        </View>
 
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
           {/* TOGGLE */}
           <View style={styles.toggleContainer}>
             <TouchableOpacity
@@ -339,8 +505,8 @@ export default function LocationPickerScreen() {
             </Text>
           </TouchableOpacity>
         </ScrollView>
-      </View>
-    </View>
+      </Animated.View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -360,6 +526,24 @@ const styles = StyleSheet.create({
     marginTop: -40,
     zIndex: 10,
   },
+  mapMarker: {
+    backgroundColor: 'white',
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#e334e3',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  mapMarkerSelected: {
+    backgroundColor: '#e334e3',
+    borderColor: 'white',
+    padding: 8,
+    borderWidth: 3,
+  },
 
   topBar: {
     position: 'absolute',
@@ -369,6 +553,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     zIndex: 20,
+  },
+  roundBtnWrapper: {
+    backgroundColor: 'white',
+    borderRadius: 22,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
   },
   roundBtn: {
     backgroundColor: 'white',
@@ -390,16 +583,28 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 20,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 8,
     paddingHorizontal: 20,
     width: '100%',
     elevation: 10,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: -3 },
-    shadowRadius: 6,
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: -5 },
+    shadowRadius: 10,
+  },
+  pillContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  pill: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#E0E0E0',
   },
 
   addressRow: {
@@ -410,7 +615,7 @@ const styles = StyleSheet.create({
   },
   detectedText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     color: '#333',
     fontWeight: 'bold',
     textAlign: 'center',
@@ -485,4 +690,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnOnceText: { color: '#e334e3', fontWeight: 'bold', fontSize: 16 },
+  dragHeader: {
+    backgroundColor: 'transparent',
+  }
 });

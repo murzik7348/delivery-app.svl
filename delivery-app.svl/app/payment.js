@@ -8,7 +8,7 @@ import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import { addCard, removeCard, setPaymentMethod } from '../store/paymentSlice';
 import CardFormSheet from '../components/CardFormSheet';
-import { safeBack } from '../utils/navigation';
+import BackButton from '../components/BackButton';
 
 export default function PaymentScreen() {
   const router = useRouter();
@@ -30,11 +30,9 @@ export default function PaymentScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => safeBack(router)} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={theme.text} />
-        </TouchableOpacity>
+        <BackButton color={theme.text} />
         <Text style={[styles.title, { color: theme.text }]}>{t(locale, 'paymentTitle')}</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20 }}>

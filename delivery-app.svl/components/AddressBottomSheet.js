@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
 import Colors from '../constants/Colors';
 import { setDeliveryType } from '../store/cartSlice';
+import { setCurrentLocation } from '../store/locationSlice';
 
 export default function AddressBottomSheet({ visible, onClose }) {
     const colorScheme = useColorScheme();
@@ -45,8 +46,13 @@ export default function AddressBottomSheet({ visible, onClose }) {
                                 key={i}
                                 style={[styles.addressRow, { backgroundColor: theme.input }]}
                                 onPress={() => {
-                                    // When user picks an address, switch to delivery mode
+                                    // When user picks an address, switch to delivery mode and set location
                                     dispatch(setDeliveryType('delivery'));
+                                    dispatch(setCurrentLocation({
+                                        latitude: addr.latitude,
+                                        longitude: addr.longitude,
+                                        addressName: addr.address,
+                                    }));
                                     onClose();
                                 }}
                             >

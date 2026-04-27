@@ -9,7 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import { setLanguage } from '../store/languageSlice';
-import { safeBack } from '../utils/navigation';
+import BackButton from '../components/BackButton';
 
 const LANGUAGES = [
     { code: 'uk', label: 'Українська', flag: '🇺🇦', sub: 'Ukrainian' },
@@ -34,9 +34,7 @@ export default function LanguageScreen() {
         <SafeAreaView edges={['top']} style={[s.container, { backgroundColor: theme.background }]}>
             {/* Header */}
             <View style={s.header}>
-                <TouchableOpacity style={s.backBtn} onPress={() => safeBack(router)}>
-                    <Ionicons name="chevron-back" size={24} color={theme.text} />
-                </TouchableOpacity>
+                <BackButton color={theme.text} />
                 <Text style={[s.title, { color: theme.text }]}>{t(locale, 'languageTitle')}</Text>
                 <View style={{ width: 40 }} />
             </View>
