@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getOrders, changeOrderStatus, setLocalStatusOverride, purgeOrders } from '../store/slices/ordersSlice';
+import { getOrders, changeOrderStatus, setLocalStatusOverride, purgeOrders, updateOrder, clearAllOverrides } from '../store/slices/ordersSlice';
 import { getUsers } from '../store/slices/usersSlice';
 import { getProducts } from '../store/slices/catalogSlice';
-import { Clock, MapPin, User, ChevronRight, Phone, CheckCircle2, X, Bell } from 'lucide-react';
+import { Clock, MapPin, User, ChevronRight, Phone, CheckCircle2, X, Bell, RefreshCcw } from 'lucide-react';
 import socketService from '../api/socket';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 
 const STATUSES = [
   { id: 0, key: 'created', label: 'Нові', color: 'border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-400' },
-  { id: 2, key: 'paid', label: 'Оплачено 💰', color: 'border-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+  { id: 2, key: 'paid', label: 'Оплачено 💰', color: 'border-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-400', action: 'markPaid' },
   { id: 1, key: 'accepted', label: 'Прийнято', color: 'border-secondary', bg: 'bg-secondary/10', text: 'text-secondary', action: 'generalAccept' },
   { id: 3, key: 'preparing', label: 'Готується', color: 'border-purple-500', bg: 'bg-purple-500/10', text: 'text-purple-400', action: 'confirmRest' },
-  { id: 4, key: 'ready_for_pickup', label: 'Готово', color: 'border-amber-500', bg: 'bg-amber-500/10', text: 'text-amber-400' },
+  { id: 4, key: 'ready_for_pickup', label: 'Готово', color: 'border-amber-500', bg: 'bg-amber-500/10', text: 'text-amber-400', action: 'confirmRest' },
   { id: 5, key: 'delivering', label: 'Доставка', color: 'border-primary', bg: 'bg-primary/10', text: 'text-primary', action: 'pickupCour' },
   { id: 6, key: 'delivered', label: 'Доставлено', color: 'border-success', bg: 'bg-success/10', text: 'text-success', action: 'confirmCour' },
   { id: 7, key: 'canceled', label: 'Скасовано', color: 'border-danger', bg: 'bg-danger/10', text: 'text-danger', action: 'cancelRest' }
@@ -46,21 +46,25 @@ const parseIngs = (desc = '') => {
 };
 
 function OrderModal({ order, users, catalogProducts, onClose }) {
+  const dispatch = useDispatch();
+  const [description, setDescription] = useState(order?.description || '');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Update local state when order changes (e.g. opened new order)
+  useEffect(() => {
+    setDescription(order?.description || '');
+  }, [order?.id, order?.deliveryId, order?.description]);
+
   if (!order) return null;
 
   // Helper to enrich order with user data
-  const userData = users?.find(u => (u.id || u.userId || u._id) === order.userId) || {};
-
-  // Robust name lookup
   const userObj = users?.find(u => Number(u.userId || u.id) === Number(order.userId)) || {};
   const customerName = order.customer?.fullName || order.customer?.name || order.userName || userObj.name || userObj.fullName || 'Guest User';
 
-  // Robust phone lookup
   const customerPhone = getField(order.customer, ['phoneNumber', 'phone']) ||
     getField(order, ['phoneNumber', 'phone', 'userPhone']) ||
     getField(userObj, ['phoneNumber', 'phone', 'contact_phone']) || 'No phone';
 
-  // Robust address lookup & formatting
   let customerAddress = null;
   const addr = order.address || order.customerAddress || order.deliveryAddress ||
     order.addressText || userObj.address || userObj.deliveryAddress || userObj.addressText;
@@ -76,99 +80,124 @@ function OrderModal({ order, users, catalogProducts, onClose }) {
 
   const apartment = order.address?.apartment || order.apartment || (typeof addr === 'object' ? addr?.apartment : null);
 
+  const handleSaveDescription = async () => {
+    if (description !== order.description) {
+      setIsSaving(true);
+      try {
+        await dispatch(updateOrder({
+          orderId: order.deliveryId || order.id,
+          data: { description: description }
+        })).unwrap();
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="glass-panel max-w-2xl w-full p-8 shadow-2xl relative border-borderPrimary shadow-glow-primary">
+      <div className="glass-panel max-w-2xl w-full p-8 shadow-2xl relative border-borderPrimary shadow-glow-primary overflow-hidden">
+        {/* Decorative background for modal */}
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6">
+        <div className="flex justify-between items-start mb-6 relative">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h2 className="text-2xl font-bold text-white">Order {formatOrderNumber(order.deliveryId || order.id)}</h2>
+              <h2 className="text-2xl font-bold text-white">Замовлення {formatOrderNumber(order.deliveryId || order.id)}</h2>
               <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${STATUSES.find(s => s.key.toLowerCase() === order.statusDelivery?.toLowerCase() || Number(s.id) === Number(order.deliveryStatus || order.status))?.bg || 'bg-surface'} ${STATUSES.find(s => s.key.toLowerCase() === order.statusDelivery?.toLowerCase() || Number(s.id) === Number(order.deliveryStatus || order.status))?.color || 'border-borderWhite'} ${STATUSES.find(s => s.key.toLowerCase() === order.statusDelivery?.toLowerCase() || Number(s.id) === Number(order.deliveryStatus || order.status))?.text || 'text-white'}`}>
-                {STATUSES.find(s => s.key.toLowerCase() === order.statusDelivery?.toLowerCase() || Number(s.id) === Number(order.deliveryStatus || order.status))?.label || order.statusDelivery || 'Processing'}
+                {STATUSES.find(s => s.key.toLowerCase() === order.statusDelivery?.toLowerCase() || Number(s.id) === Number(order.deliveryStatus || order.status))?.label || order.statusDelivery || 'Обробка'}
               </span>
             </div>
             <p className="text-textSecondary text-sm flex items-center">
-              <Clock className="w-4 h-4 mr-1.5" /> Created at {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : 'Recently'}
+              <Clock className="w-4 h-4 mr-1.5" /> Створено {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'Нещодавно'}
             </p>
           </div>
           <button onClick={onClose} className="p-2 bg-surfaceLighter hover:bg-surface border border-borderWhite rounded-full transition-colors">
-            <span className="text-white text-xl leading-none">✕</span>
+            <X className="w-6 h-6 text-textSecondary" />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          {/* Left Col: Customer Info */}
-          <div className="space-y-4">
-            <div className="bg-surfaceLighter/50 p-4 rounded-xl border border-borderWhite">
-              <h4 className="text-sm font-semibold text-textSecondary uppercase tracking-wider mb-3">Customer details</h4>
-              <div className="space-y-3">
-                <div className="flex items-center text-white">
-                  <User className="w-5 h-5 mr-3 text-primary" />
-                  <span className="font-medium">{customerName}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-start gap-4 p-3 rounded-xl bg-surface/30 border border-borderWhite/50">
+                <div className="p-2 bg-primary/10 rounded-lg"><User className="w-5 h-5 text-primary" /></div>
+                <div>
+                  <p className="text-xs text-textSecondary uppercase font-bold tracking-wider">Клієнт</p>
+                  <p className="text-white font-medium">{customerName}</p>
+                  <p className="text-textSecondary text-sm">{customerPhone}</p>
                 </div>
-                <div className="flex items-center text-white">
-                  <Phone className="w-5 h-5 mr-3 text-primary" />
-                  <span className="font-medium">{customerPhone}</span>
+              </div>
+              <div className="flex items-start gap-4 p-3 rounded-xl bg-surface/30 border border-borderWhite/50">
+                <div className="p-2 bg-secondary/10 rounded-lg"><MapPin className="w-5 h-5 text-secondary" /></div>
+                <div>
+                  <p className="text-xs text-textSecondary uppercase font-bold tracking-wider">Адреса доставки</p>
+                  <p className="text-white font-medium leading-tight">{customerAddress}</p>
+                  {apartment && <p className="text-secondary text-sm">Кв/Офіс: {apartment}</p>}
                 </div>
-                <div className="flex items-start text-white">
-                  <MapPin className="w-5 h-5 mr-3 text-primary mt-0.5" />
-                  <div className="flex flex-col">
-                    <span className="font-medium">
-                      {customerAddress || 'No address provided'}
-                    </span>
-                    {apartment && (
-                      <span className="text-xs text-textSecondary">Apt: {apartment}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs text-textSecondary uppercase font-bold tracking-wider flex items-center gap-2">
+                Коментар / Заміни
+                {description !== order.description && <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />}
+              </h4>
+              <div className="relative group">
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Введіть заміни або коментар до замовлення..."
+                  className="w-full bg-surface border border-borderWhite rounded-xl p-4 text-white text-sm focus:outline-none focus:border-primary transition-all min-h-[120px] resize-none shadow-inner"
+                />
+                <div className="absolute bottom-3 right-3 flex items-center gap-3">
+                  <p className="text-[10px] text-textSecondary italic hidden sm:block">Зберігається вручну.</p>
+                  <button
+                    onClick={handleSaveDescription}
+                    disabled={description === order.description || isSaving}
+                    className="text-xs bg-primary hover:bg-primaryHover text-white px-4 py-2 rounded-lg font-bold transition-all disabled:opacity-0 shadow-glow-primary flex items-center gap-2"
+                  >
+                    {isSaving ? (
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                    ) : (
+                      <CheckCircle2 className="w-3 h-3" />
                     )}
-                  </div>
+                    Зберегти
+                  </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Col: Order Items */}
-          <div className="bg-surfaceLighter p-4 rounded-xl border border-borderWhite flex flex-col max-h-[400px]">
-            <h4 className="text-sm font-semibold text-textSecondary uppercase tracking-wider mb-3">Order Items</h4>
+          <div className="bg-surfaceLighter p-4 rounded-xl border border-borderWhite flex flex-col max-h-[450px]">
+            <h4 className="text-sm font-semibold text-textSecondary uppercase tracking-wider mb-3">Склад замовлення</h4>
             <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
               {order.items?.map((item, idx) => {
-                const product = catalogProducts?.find(p => p.id === item.productId || p.name === item.productName);
                 const modifications = item.description?.includes('[INGS:') ? parseIngs(item.description) : [];
-                
                 return (
                   <div key={idx} className="pb-3 border-b border-borderWhite last:border-0 last:pb-0">
                     <div className="flex justify-between items-center mb-1">
                       <div className="flex items-center">
-                        <span className="bg-surface px-2 py-0.5 rounded text-primary text-xs font-bold mr-3">{item.quantity || item.qty || item.count || 1}x</span>
-                        <span className="text-white text-sm font-medium">{item.productName || item.name || item.product?.name || `Product #${item.productId || item.id}`}</span>
+                        <span className="bg-surface px-2 py-0.5 rounded text-primary text-xs font-bold mr-3">{item.quantity || item.qty || 1}x</span>
+                        <span className="text-white text-sm font-medium">{item.productName || item.name || `Товар #${item.productId || item.id}`}</span>
                       </div>
-                      <span className="text-white font-medium text-sm">{(item.price || item.product?.price || 0) * (item.quantity || item.qty || item.count || 1)} ₴</span>
+                      <span className="text-white font-medium text-sm">{(item.price || 0) * (item.quantity || 1)} ₴</span>
                     </div>
-                    {/* Ingredients display */}
                     {modifications.length > 0 && (
                       <div className="flex flex-wrap gap-1 ml-9">
-                        {modifications.map((ing, i) => {
-                          const isExcluded = ing.startsWith('-');
-                          const name = isExcluded ? ing.substring(1) : ing;
-                          return (
-                            <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded-md border ${
-                              isExcluded 
-                                ? 'bg-danger/10 border-danger/30 text-danger/70 line-through' 
-                                : 'bg-primary/10 border-primary/30 text-primary'
-                            }`}>
-                              {name}
-                            </span>
-                          );
-                        })}
+                        {modifications.map((ing, i) => (
+                          <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded-md border ${ing.startsWith('-') ? 'bg-danger/10 border-danger/30 text-danger/70 line-through' : 'bg-primary/10 border-primary/30 text-primary'}`}>
+                            {ing.startsWith('-') ? ing.substring(1) : ing}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
                 );
               })}
             </div>
-
             <div className="flex justify-between items-center bg-surface p-4 rounded-lg border border-borderWhite">
-              <span className="text-textSecondary uppercase tracking-wider text-sm font-bold">Total</span>
+              <span className="text-textSecondary uppercase tracking-wider text-sm font-bold">Разом</span>
               <span className="text-2xl font-black bg-clip-text text-transparent bg-primary-gradient">{order.totalPrice || order.total || 0} ₴</span>
             </div>
           </div>
@@ -184,6 +213,14 @@ export default function OrdersPage() {
   const { items: users } = useSelector(state => state.users);
   const { products: catalogProducts } = useSelector(state => state.catalog);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleSync = async () => {
+    setIsRefreshing(true);
+    dispatch(clearAllOverrides());
+    await dispatch(getOrders(null));
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
 
   // Helper to enrich order with user data
   const getUserForOrder = (userId) => users.find(u => (u.id || u.userId || u._id) === userId);
@@ -197,59 +234,26 @@ export default function OrdersPage() {
   });
 
 
-  const playNotificationSound = () => {
-    try {
-      const audio = new Audio('/notification.mp3');
-      audio.play().catch(e => console.warn('Audio playback failed:', e));
-    } catch (e) {
-      console.error('Sound error:', e);
-    }
-  };
-
   useEffect(() => {
-    // Initial fetch
     dispatch(getOrders(null));
     dispatch(getUsers({ page: 1, pageSize: 200 }));
     dispatch(getProducts({ page: 1, pageSize: 200 }));
 
-    // Real-time polling (replacing WebSockets since backend doesn't support them)
     const interval = setInterval(() => {
       dispatch(getOrders(null));
-    }, 60000); // Set to 60s to reduce server load
+    }, 15000);
 
-    // Listen for real-time events (preserved if backend later supports sockets)
-    // socketService.connect(); // Disabled: backend tech mismatch
-
-    /*
-    socketService.on('new_delivery', (data) => {
-      if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('New Order!', {
-          body: `Order #${data.id?.substring(0, 8)} received`,
-          icon: '/vite.svg'
-        });
-      }
-    });
-
-    socketService.on('delivery_updated', (data) => {
-      console.log('🔄 Delivery updated via socket:', data);
-      dispatch(getOrders(null));
-    });
-    */
-
-    return () => {
-      clearInterval(interval);
-      /*
-      socketService.off('new_delivery');
-      socketService.off('delivery_updated');
-      socketService.off('delivery_deleted');
-      */
-    };
+    return () => clearInterval(interval);
   }, [dispatch]);
 
 
   const moveOrder = (orderId, newStatusId, oldStatusId, backendAction) => {
     dispatch(setLocalStatusOverride({ orderId, newStatusId }));
-    dispatch(changeOrderStatus({ orderId, newStatusId, oldStatusId, backendAction }));
+    if (backendAction === 'markPaid') {
+      dispatch(updateOrder({ orderId, data: { statusPayment: 'success' } }));
+    } else {
+      dispatch(changeOrderStatus({ orderId, newStatusId, oldStatusId, backendAction }));
+    }
   };
 
   return (
@@ -261,18 +265,22 @@ export default function OrdersPage() {
         </div>
         <div className="flex gap-3">
           <button
+            onClick={handleSync}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-surface border border-borderWhite hover:border-primary/50 text-white rounded-xl text-sm font-bold transition-all group"
+          >
+            <RefreshCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-primary' : 'group-hover:text-primary'}`} />
+            {isRefreshing ? 'Syncing...' : 'Sync with Server'}
+          </button>
+          <button
             onClick={() => {
               if (window.confirm('WARNING: This will HIDE all current orders from your view permanently to give you a fresh start. New orders will still appear. Proceed?')) {
-                // Set timestamp to NOW
                 const now = Date.now();
                 localStorage.setItem('last_orders_nuke_at', now.toString());
-
-                // Also try to hit the "purge" thunk for any potential backend cancellation
                 const allIds = visibleOrders.map(o => o.deliveryId || o.id);
                 if (allIds.length > 0) {
                   dispatch(purgeOrders(allIds));
                 }
-
                 window.location.reload();
               }
             }}
@@ -305,7 +313,7 @@ export default function OrdersPage() {
               <div className="flex-1 overflow-y-auto space-y-4 kanban-column pr-1">
                 {visibleOrders.filter(o => {
                   const sMap = {
-                    created: 0, paid: 2, accepted: 1, preparing: 3, 
+                    created: 0, paid: 2, accepted: 1, preparing: 3,
                     ready_for_pickup: 4, delivering: 5, delivered: 6, canceled: 7,
                     restaurant_confirmed: 1, cancelled: 7
                   };
@@ -314,18 +322,12 @@ export default function OrdersPage() {
                     const sStr = String(o.statusDelivery || o.status || '').toLowerCase();
                     sNum = sMap[sStr] ?? -1;
                   }
-                  
-                  const pStatus = String(o.paymentStatus || o.statusPayment || '').toLowerCase();
-                  const isPaid = pStatus === 'success';
-                  
-                  // If order is paid but status is still 'created' (0), show in 'paid' column
-                  const effectiveStatus = (isPaid && (sNum === 0 || sNum === -1)) ? 2 : sNum;
-                  
+
                   return (o.statusDelivery?.toLowerCase() === column.key.toLowerCase()) ||
-                         Number(effectiveStatus) === Number(column.id);
+                    Number(sNum) === Number(column.id);
                 }).map((order) => {
                   const sMap = {
-                    created: 0, paid: 2, accepted: 1, preparing: 3, 
+                    created: 0, paid: 2, accepted: 1, preparing: 3,
                     ready_for_pickup: 4, delivering: 5, delivered: 6, canceled: 7,
                     restaurant_confirmed: 1, cancelled: 7
                   };
@@ -334,13 +336,10 @@ export default function OrdersPage() {
                     const sStr = String(order.statusDelivery || order.status || '').toLowerCase();
                     sNum = sMap[sStr] ?? -1;
                   }
-                  
-                  const pStatus = String(order.paymentStatus || order.statusPayment || '').toLowerCase();
-                  const effectiveStatus = (pStatus === 'success' && (sNum === 0 || sNum === -1)) ? 2 : sNum;
 
                   const currentIdx = STATUSES.findIndex(s =>
                     s.key.toLowerCase() === order.statusDelivery?.toLowerCase() ||
-                    Number(s.id) === Number(effectiveStatus)
+                    Number(s.id) === Number(sNum)
                   );
                   return (
                     <div

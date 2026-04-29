@@ -42,7 +42,7 @@ async function login(phoneNumber, password) {
 
 async function runTests() {
     const credentials = {
-        app: { phone: '+380684047200', pass: 'string123' },
+        app: { phone: '+380991300002', pass: 'string123' },
         admin: { phone: '+380991300002', pass: 'string123' },
         restaurant: { phone: '+380991300003', pass: 'string123' }
     };

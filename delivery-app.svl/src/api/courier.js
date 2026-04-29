@@ -19,6 +19,21 @@ export const getCourierDeliveries = (params = {}) =>
     });
 
 /**
+ * Get paginated list of deliveries assigned to the current courier.
+ * @param {Object} params
+ */
+export const getCourierDeliveriesMy = (params = {}) =>
+    client.get('/courier/deliveries/my', {
+        params: {
+            page: params.page ?? 1,
+            pageSize: params.pageSize ?? 20,
+            ...(params.deliveryStatus !== undefined && {
+                deliveryStatus: params.deliveryStatus,
+            }),
+        },
+    });
+
+/**
  * Courier accepts a delivery (moves status to ACCEPTED).
  * @param {number} id - Delivery ID
  */
@@ -69,7 +84,7 @@ export const courierSetOnlineStatus = async (isOnline) => {
  */
 export const courierUpdateLocation = async (latitude, longitude) => {
     try {
-        return await client.put('/courier/location', { latitude, longitude });
+        return await client.put('/courier/location', { latitude, longitude }, { _silentErrors: [404] });
     } catch (err) {
         if (err.status === 404) {
             console.warn('⚠️ [CourierAPI] Endpoint /courier/location not found on backend. Skipping location update.');

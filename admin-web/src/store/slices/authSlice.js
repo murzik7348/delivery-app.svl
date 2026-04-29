@@ -8,7 +8,7 @@ export const loginAdmin = createAsyncThunk(
     try {
       // API Call: POST /auth/login
       const response = await authLogin(credentials);
-      
+
       // Token is already saved in src/api/auth.js
       const token = typeof response === 'string' ? response : response?.accessToken;
       if (token) {
@@ -26,14 +26,29 @@ export const checkAuthStatus = createAsyncThunk(
   'auth/checkAuthStatus',
   async (_, { rejectWithValue }) => {
     try {
-        const token = getToken();
-        if(!token) return rejectWithValue('No token');
-        
-        const user = await getMe();
-        return { token, user };
-    } catch (err) {
+      // Cleanup legacy keys that might cause collisions
+      const legacyKeys = ['@admin_app_token', '@admin_app_refresh_token', 'token', 'user'];
+      legacyKeys.forEach(k => localStorage.removeItem(k));
+
+      const token = getToken();
+      if (!token) return rejectWithValue('No token');
+
+      const user = await getMe();
+
+      // Block the problematic account that keeps appearing
+      const phone = (user.phone || user.phoneNumber || '').toString().trim();
+      const problematicPhones = ['+38064047200', '+380684047200', '38064047200', '064047200'];
+
+      if (problematicPhones.includes(phone)) {
+        console.warn('Blocked login from unauthorized/problematic account:', phone);
         removeToken();
-        return rejectWithValue(err.message || 'Session expired');
+        return rejectWithValue('Access denied for this account. Please use +380991300002');
+      }
+
+      return { token, user };
+    } catch (err) {
+      removeToken();
+      return rejectWithValue(err.message || 'Session expired');
     }
   }
 );
@@ -47,7 +62,6 @@ const initialState = {
 };
 
 const SUPER_ADMIN_PHONES = [
-  '+380684047200',
   '+380991300000',
   '+380991300001',
   '+380991300002',
@@ -57,15 +71,21 @@ const SUPER_ADMIN_PHONES = [
 export const processUserRole = (user) => {
   if (!user) return user;
   const phone = user.phone || user.phoneNumber;
+
+  // Extra safety: if this function is called with the bad account, we strip it
+  if (phone === '+38064047200' || phone === '+380684047200') {
+    return null;
+  }
+
   const isSuper = SUPER_ADMIN_PHONES.includes(phone) || Number(user.role) === 4;
-  
+
   return {
     ...user,
     isSuperAdmin: isSuper,
-    roleName: Number(user.role) === 4 ? 'superadmin' : 
-              Number(user.role) === 3 ? 'admin' :
-              Number(user.role) === 2 ? 'manager' :
-              Number(user.role) === 1 ? 'courier' : 'user'
+    roleName: Number(user.role) === 4 ? 'superadmin' :
+      Number(user.role) === 3 ? 'admin' :
+        Number(user.role) === 2 ? 'manager' :
+          Number(user.role) === 1 ? 'courier' : 'user'
   };
 };
 
@@ -90,10 +110,18 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(loginAdmin.fulfilled, (state, action) => {
+        const processedUser = processUserRole(action.payload.user);
+        if (!processedUser) {
+          state.isLoading = false;
+          state.isAuthenticated = false;
+          state.error = 'Цей акаунт заблоковано для адмін-панелі.';
+          removeToken();
+          return;
+        }
         state.isLoading = false;
         state.isAuthenticated = true;
         state.token = action.payload.token;
-        state.user = processUserRole(action.payload.user);
+        state.user = processedUser;
       })
       .addCase(loginAdmin.rejected, (state, action) => {
         state.isLoading = false;
@@ -104,10 +132,11 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.user = processUserRole(action.payload.user);
       })
-      .addCase(checkAuthStatus.rejected, (state) => {
+      .addCase(checkAuthStatus.rejected, (state, action) => {
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
+        state.error = action.payload;
       });
   },
 });

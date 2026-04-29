@@ -34,6 +34,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
     const insets = useSafeAreaInsets();
     const dispatch = useDispatch();
     const locale = useSelector((state) => state.language?.locale ?? 'uk');
+    const user = useSelector((state) => state.auth.user);
     
     // Photo state for delivery confirmation
     const [deliveryPhoto, setDeliveryPhoto] = useState(null);
@@ -119,17 +120,31 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
     const renderWorkflowButtons = () => {
         // Statuses from courierSlice: created, accepted, paid, preparing, ready_for_pickup, delivering, completed, canceled
         switch (order.status) {
+            case 'created':
+            case 'pending':
             case 'paid':
             case 'preparing':
             case 'accepted':
                 // Check if this courier is already assigned
-                if (!order.courierId || order.courierId === 0 || order.courierId === '0') {
+                if (!order.isBooked) {
                     return (
                         <TouchableOpacity style={styles.primaryBtn} onPress={handleAcceptOrder}>
                             <Text style={styles.btnText}>
                                 {locale === 'en' ? 'Accept Order' : 'Прийняти замовлення'}
                             </Text>
                         </TouchableOpacity>
+                    );
+                }
+                
+                const currentUserId = user?.userId || user?.id;
+                if (Number(order.courierId) !== Number(currentUserId)) {
+                    return (
+                        <View style={[styles.primaryBtn, { backgroundColor: '#e74c3c', opacity: 0.8, flexDirection: 'row' }]}>
+                            <Ionicons name="lock-closed" size={20} color="white" style={{ marginRight: 10 }} />
+                            <Text style={styles.btnText}>
+                                {locale === 'en' ? 'Booked' : 'Заброньовано'}
+                            </Text>
+                        </View>
                     );
                 }
                 
@@ -143,13 +158,25 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                     </View>
                 );
             case 'ready_for_pickup':
-                if (!order.courierId || order.courierId === 0 || order.courierId === '0') {
+                if (!order.isBooked) {
                    return (
                         <TouchableOpacity style={styles.primaryBtn} onPress={handleAcceptOrder}>
                             <Text style={styles.btnText}>
                                 {locale === 'en' ? 'Accept & Pick Up' : 'Прийняти та забрати'}
                             </Text>
                         </TouchableOpacity>
+                    );
+                }
+
+                const currentUserIdReady = user?.userId || user?.id;
+                if (Number(order.courierId) !== Number(currentUserIdReady)) {
+                    return (
+                        <View style={[styles.primaryBtn, { backgroundColor: '#e74c3c', opacity: 0.8, flexDirection: 'row' }]}>
+                            <Ionicons name="lock-closed" size={20} color="white" style={{ marginRight: 10 }} />
+                            <Text style={styles.btnText}>
+                                {locale === 'en' ? 'Booked' : 'Заброньовано'}
+                            </Text>
+                        </View>
                     );
                 }
                 return (
@@ -227,9 +254,49 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                     <View style={styles.pill} />
                     
                     <View style={styles.header}>
-                        <Text style={[styles.title, { color: theme.text }]}>
-                            {locale === 'en' ? 'Order' : 'Замовлення'} {formatOrderNumber(order.id)}
-                        </Text>
+                        <View>
+                            <Text style={[styles.title, { color: theme.text }]}>
+                                {locale === 'en' ? 'Order' : 'Замовлення'} {formatOrderNumber(order.id)}
+                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                                {(() => {
+                                    const currentUserId = user?.userId || user?.id;
+                                    const isMine = Number(order.courierId) === Number(currentUserId);
+                                    const isBookedByOther = order.isBooked && !isMine;
+                                    
+                                    if (isBookedByOther) {
+                                        return (
+                                            <View style={[styles.statusBadgeSmall, { backgroundColor: '#e74c3c20', borderColor: '#e74c3c', borderWidth: 1 }]}>
+                                                <Ionicons name="lock-closed" size={10} color="#e74c3c" />
+                                                <Text style={{ color: '#e74c3c', fontSize: 10, fontWeight: 'bold', marginLeft: 4, textTransform: 'uppercase' }}>
+                                                    {locale === 'en' ? 'Booked by other' : 'Заброньовано іншим'}
+                                                </Text>
+                                            </View>
+                                        );
+                                    }
+                                    
+                                    if (isMine) {
+                                        return (
+                                            <View style={[styles.statusBadgeSmall, { backgroundColor: '#2ecc7120', borderColor: '#2ecc71', borderWidth: 1 }]}>
+                                                <Ionicons name="person" size={10} color="#2ecc71" />
+                                                <Text style={{ color: '#2ecc71', fontSize: 10, fontWeight: 'bold', marginLeft: 4, textTransform: 'uppercase' }}>
+                                                    {locale === 'en' ? 'Your Order' : 'Ваше замовлення'}
+                                                </Text>
+                                            </View>
+                                        );
+                                    }
+
+                                    return (
+                                        <View style={[styles.statusBadgeSmall, { backgroundColor: '#3498db20', borderColor: '#3498db', borderWidth: 1 }]}>
+                                            <Ionicons name="lock-open-outline" size={10} color="#3498db" />
+                                            <Text style={{ color: '#3498db', fontSize: 10, fontWeight: 'bold', marginLeft: 4, textTransform: 'uppercase' }}>
+                                                {locale === 'en' ? 'Free' : 'Вільне'}
+                                            </Text>
+                                        </View>
+                                    );
+                                })()}
+                            </View>
+                        </View>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close-circle-outline" size={28} color={theme.textSecondary} />
                         </TouchableOpacity>
@@ -337,7 +404,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                                         </Text>
                                     </View>
                                     <Text style={[styles.navSecondaryText, { color: theme.textPrimary, fontWeight: 'bold' }]} numberOfLines={2}>
-                                        { (order.courierId && order.courierId !== 0 && order.courierId !== '0') ? order.address : (locale === 'en' ? 'Address hidden (Book first)' : 'Адреса прихована (Забронюйте)') }
+                                        { (Number(order.courierId) === Number(user?.userId || user?.id)) ? order.address : (locale === 'en' ? 'Address hidden (Book first)' : 'Адреса прихована (Забронюйте)') }
                                     </Text>
                                 </View>
                             </View>
@@ -570,5 +637,12 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 16,
         justifyContent: 'center',
+    },
+    statusBadgeSmall: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
     }
 });

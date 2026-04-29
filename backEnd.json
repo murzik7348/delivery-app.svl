@@ -876,6 +876,25 @@
         "tags": [
           "Auth"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthDeleteMeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthDeleteMeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthDeleteMeRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -2744,6 +2763,16 @@
         },
         "additionalProperties": false
       },
+      "AuthDeleteMeRequest": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "AuthLoginRequest": {
         "required": [
           "password",
@@ -2935,6 +2964,10 @@
             "type": "integer",
             "format": "int32"
           },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -2964,6 +2997,10 @@
             "type": "integer",
             "format": "int32"
           },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
           "products": {
             "type": "array",
             "items": {
@@ -2977,6 +3014,7 @@
       "DeliveryCreateRequest": {
         "required": [
           "addressId",
+          "description",
           "paymentMethodId",
           "products"
         ],
@@ -2989,6 +3027,11 @@
           "paymentMethodId": {
             "type": "integer",
             "format": "int32"
+          },
+          "description": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
           },
           "products": {
             "type": "array",
@@ -3036,6 +3079,10 @@
           "deliveryId": {
             "type": "integer",
             "format": "int32"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
           },
           "statusDelivery": {
             "type": "string",

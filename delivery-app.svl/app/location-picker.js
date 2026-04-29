@@ -46,10 +46,10 @@ export default function LocationPickerScreen() {
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const panY = useRef(new Animated.Value(0)).current;
-  const lastPanY = useRef(0);
+  const panY = useRef(new Animated.Value(320)).current; // Start collapsed
+  const lastPanY = useRef(320);
   const isDraggingMap = useRef(false);
-  const MAX_DOWN = 280; // Distance to slide down when moving map
+  const MAX_DOWN = 320; // Position for collapsed state
 
   useEffect(() => {
     const listenerId = panY.addListener(({ value }) => {
@@ -129,9 +129,10 @@ export default function LocationPickerScreen() {
   const onMapPanDrag = () => {
     if (!isDraggingMap.current) {
       isDraggingMap.current = true;
+      // Slightly more hidden when dragging
       Animated.timing(panY, {
-        toValue: MAX_DOWN,
-        duration: 200,
+        toValue: MAX_DOWN + 50,
+        duration: 150,
         useNativeDriver: true,
       }).start();
     }
@@ -141,13 +142,16 @@ export default function LocationPickerScreen() {
     isDraggingMap.current = false;
     setRegion(newRegion);
     
-    // Slide sheet back up
-    Animated.spring(panY, {
-      toValue: 0,
-      friction: 8,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
+    // Only snap back to COLLAPSED if we were "sinking" (dragging map) 
+    // or if it was partially moved. Don't jump if it's already open or collapsed.
+    if (lastPanY.current > MAX_DOWN || (lastPanY.current > 50 && lastPanY.current < MAX_DOWN)) {
+      Animated.spring(panY, {
+        toValue: MAX_DOWN,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    }
 
     try {
       const results = await Location.reverseGeocodeAsync({
@@ -166,6 +170,17 @@ export default function LocationPickerScreen() {
     } catch {
       setDetectedStreet('Не вдалося визначити адресу');
     }
+  };
+
+  const toggleSheet = () => {
+    // If it's mostly open, collapse it. Otherwise, open it.
+    const target = lastPanY.current < 100 ? MAX_DOWN : 0;
+    Animated.spring(panY, {
+      toValue: target,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
   };
 
   const toggleMapType = () =>
@@ -268,16 +283,6 @@ export default function LocationPickerScreen() {
     router.back();
   };
 
-  const toggleSheet = () => {
-    const isClosed = lastPanY.current > MAX_DOWN / 2;
-    Animated.spring(panY, {
-      toValue: isClosed ? 0 : MAX_DOWN,
-      friction: 8,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-  };
-
   // Padding for footer: safe area bottom + buttons gap
   const footerPaddingBottom = Math.max(insets.bottom, 16) + 8;
 
@@ -358,8 +363,8 @@ export default function LocationPickerScreen() {
             paddingBottom: footerPaddingBottom,
             transform: [{
               translateY: panY.interpolate({
-                inputRange: [0, MAX_DOWN],
-                outputRange: [0, MAX_DOWN],
+                inputRange: [0, MAX_DOWN, MAX_DOWN + 100],
+                outputRange: [0, MAX_DOWN, MAX_DOWN + 100],
                 extrapolate: 'clamp'
               })
             }] 
@@ -378,15 +383,27 @@ export default function LocationPickerScreen() {
 
           {/* STREET ROW */}
           <View style={styles.addressRow}>
-            <Ionicons
-              name="location"
-              size={18}
-              color="#e334e3"
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.detectedText} numberOfLines={2}>
-              {detectedStreet}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons
+                  name="location"
+                  size={18}
+                  color="#e334e3"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.detectedText} numberOfLines={1}>
+                  {detectedStreet}
+                </Text>
+              </View>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.headerConfirmBtn}
+              onPress={handleUseOnce}
+              disabled={loading}
+            >
+              <Text style={styles.headerConfirmBtnText}>Вибрати</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -394,6 +411,7 @@ export default function LocationPickerScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
         >
           {/* TOGGLE */}
           <View style={styles.toggleContainer}>
@@ -492,16 +510,6 @@ export default function LocationPickerScreen() {
           >
             <Text style={styles.btnText}>
               {loading ? 'Збереження...' : '💾 Зберегти адресу'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.btnOnce}
-            onPress={handleUseOnce}
-            disabled={loading}
-          >
-            <Text style={styles.btnOnceText}>
-              🚀 Використати цю вулицю (1 раз)
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -615,10 +623,21 @@ const styles = StyleSheet.create({
   },
   detectedText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: '#333',
+    fontWeight: '700',
+  },
+  headerConfirmBtn: {
+    backgroundColor: '#e334e3',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginLeft: 12,
+  },
+  headerConfirmBtnText: {
+    color: 'white',
     fontWeight: 'bold',
-    textAlign: 'center',
+    fontSize: 14,
   },
 
   toggleContainer: {

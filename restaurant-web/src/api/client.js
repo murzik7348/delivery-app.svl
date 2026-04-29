@@ -6,8 +6,8 @@ export const BASE_URL = '/api';
 export const IMAGE_BASE_URL = 'http://37.27.220.44';
 export const DIRECT_API_URL = 'http://37.27.220.44';
 
-export const TOKEN_KEY = '@admin_app_token';
-export const REFRESH_TOKEN_KEY = '@admin_app_refresh_token';
+export const TOKEN_KEY = '@restaurant_token';
+export const REFRESH_TOKEN_KEY = '@restaurant_refresh_token';
 
 // Use LocalStorage instead of AsyncStorage
 export const saveToken = (token, refreshToken) => {
@@ -173,9 +173,6 @@ client.interceptors.response.use(
             console.log(`URL: ${error.config?.url}`);
             console.groupEnd();
             
-            if (originalRequest.method === 'get') {
-                return Promise.resolve({ data: [] });
-            }
             return Promise.reject(new Error('Помилка підключення до сервера. Перевірте інтернет.'));
         }
         console.log(`Message: ${error.message}`);

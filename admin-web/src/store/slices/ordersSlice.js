@@ -7,7 +7,8 @@ import {
   pickupDeliveryCourier,
   confirmDeliveryCourier,
   deleteDelivery,
-  acceptDelivery
+  acceptDelivery,
+  updateDelivery
 } from '../../api/orders';
 import { showToast } from './toastSlice';
 
@@ -54,6 +55,35 @@ export const changeOrderStatus = createAsyncThunk(
       // Refetch to sync UI with backend reality
       dispatch(getOrders(null));
       return rejectWithValue({ message: err?.message, orderId, oldStatusId });
+    }
+  }
+);
+
+export const updateOrder = createAsyncThunk(
+  'orders/updateOrder',
+  async ({ orderId, data }, { rejectWithValue, dispatch }) => {
+    try {
+      // Prepare data with redundant keys for better backend compatibility (description vs Description vs comment)
+      const payload = { ...data };
+      if (payload.description) {
+        payload.Description = payload.description;
+        payload.comment = payload.description;
+        payload.Comment = payload.description;
+      }
+
+      const response = await updateDelivery(orderId, payload);
+      dispatch(showToast({ message: 'Замовлення оновлено', type: 'success' }));
+      
+      // If we are updating description, we don't necessarily need a full refetch
+      // but let's do it to be safe, unless it's just a text update
+      if (!data.description) {
+        dispatch(getOrders(null)); 
+      }
+      
+      return response;
+    } catch (err) {
+      dispatch(showToast({ message: err.message || 'Помилка оновлення', type: 'error' }));
+      return rejectWithValue(err.message);
     }
   }
 );
@@ -124,6 +154,9 @@ const ordersSlice = createSlice({
     clearLocalStatusOverride: (state, action) => {
       const orderId = action.payload;
       delete state.localOverrides[orderId];
+    },
+    clearAllOverrides: (state) => {
+      state.localOverrides = {};
     }
   },
   extraReducers: (builder) => {
@@ -139,6 +172,7 @@ const ordersSlice = createSlice({
           (action.payload?.items || action.payload?.data || action.payload?.deliveries || []);
         
         state.items = items.map(item => {
+          // Normalize status strings for consistency if needed (but don't override based on payment)
           let s = item.statusDelivery?.toLowerCase() || '';
           if (s === 'restaurant_confirmed') item.statusDelivery = 'accepted';
           if (s === 'cancelled') item.statusDelivery = 'canceled';
@@ -147,17 +181,6 @@ const ordersSlice = createSlice({
             item.statusDelivery = 'delivering';
           }
           
-          // Improved: Handle automated Paid status from payment provider
-          // Admin API uses 'statusPayment', while User/Restaurant API uses 'paymentStatus'
-          const paymentStatus = item.statusPayment || item.paymentStatus;
-          const isActuallyPaid = paymentStatus === 'success';
-          const isEffectivelyCreated = !item.deliveryStatus || Number(item.deliveryStatus) === 0 || s === 'created';
-          
-          if (isActuallyPaid && isEffectivelyCreated) {
-            item.deliveryStatus = 2; // Paid ID
-            item.statusDelivery = 'paid';
-          }
-
           const id = item.deliveryId || item.id;
           const overr = state.localOverrides[id];
           if (overr) {
@@ -203,9 +226,19 @@ const ordersSlice = createSlice({
       .addCase(purgeOrders.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
+      })
+      .addCase(updateOrder.fulfilled, (state, action) => {
+        const updatedOrder = action.payload;
+        if (!updatedOrder) return;
+        const id = updatedOrder.deliveryId || updatedOrder.id;
+        const index = state.items.findIndex(o => (o.deliveryId || o.id) === id);
+        if (index !== -1) {
+          // Merge changes
+          state.items[index] = { ...state.items[index], ...updatedOrder };
+        }
       });
   },
 });
 
-export const { setLocalStatusOverride, clearLocalStatusOverride } = ordersSlice.actions;
+export const { setLocalStatusOverride, clearLocalStatusOverride, clearAllOverrides } = ordersSlice.actions;
 export default ordersSlice.reducer;

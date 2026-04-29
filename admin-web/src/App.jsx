@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { checkAuthStatus } from './store/slices/authSlice';
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
 import OrdersPage from './pages/OrdersPage';
@@ -9,8 +11,16 @@ import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 
 function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, isLoading } = useSelector(state => state.auth);
   const location = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent animate-spin rounded-full"></div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
@@ -20,6 +30,12 @@ function ProtectedRoute({ children }) {
 }
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(checkAuthStatus());
+  }, [dispatch]);
+
   return (
     <BrowserRouter>
       <Routes>

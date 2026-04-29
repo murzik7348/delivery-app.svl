@@ -3,8 +3,8 @@ import axios from 'axios';
 // Use Local proxy defined in vite.config.js to bypass CORS
 export const BASE_URL = '/api';
 
-export const TOKEN_KEY = '@admin_app_token';
-export const REFRESH_TOKEN_KEY = '@admin_app_refresh_token';
+export const TOKEN_KEY = '@admin_token';
+export const REFRESH_TOKEN_KEY = '@admin_refresh_token';
 
 // Use LocalStorage instead of AsyncStorage
 export const saveToken = (token, refreshToken) => {
@@ -168,12 +168,8 @@ client.interceptors.response.use(
             console.log('No response received from server (Network or Proxy Error)');
             console.log(`====================================================\n`);
             
-            // If it's a background GET request (like polling), just return empty array
-            // instead of crashing or showing a huge error if it's intermittent
-            if (originalRequest.method === 'get') {
-                return Promise.resolve({ data: [] });
-            }
-            return Promise.reject(new Error('Помилка підключення до сервера. Перевірте інтернет.'));
+            // Let the caller handle the error
+            return Promise.reject(new Error('Помилка підключення до сервера. Перевірте інтернет або проксі.'));
         }
         console.log(`====================================================\n`);
         return Promise.reject(error);

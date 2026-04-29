@@ -41,6 +41,7 @@ export { createDelivery, getMyDeliveries, acceptDelivery } from './delivery';
 // ── Courier ──────────────────────────────────────────────────────────────────
 export {
     getCourierDeliveries,
+    getCourierDeliveriesMy,
     courierAcceptDelivery,
     courierBookDelivery,
     courierPickupDelivery,

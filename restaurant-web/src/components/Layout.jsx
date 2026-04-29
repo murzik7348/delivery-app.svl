@@ -3,9 +3,9 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import Sidebar from './Sidebar';
 import Toast from './Toast';
-import { Bell, X } from 'lucide-react';
+import { Bell, X, RefreshCcw } from 'lucide-react';
 import { getRestaurantInfo, updateRestaurant } from '../api/restaurant';
-import { fetchOrders, clearNotifications } from '../store/slices/restaurantOrdersSlice';
+import { fetchOrders, clearNotifications, fetchRestaurantInfo } from '../store/slices/restaurantOrdersSlice';
 
 export function HeaderStatusToggle() {
   const [isOpen, setIsOpen] = useState(null);
@@ -60,14 +60,26 @@ export default function Layout() {
   const location = useLocation();
   const { notifications } = useSelector(state => state.restaurantOrders);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const audioRef = useRef(null);
   const lastNotifCount = useRef(notifications.length);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    // Refresh core restaurant data
+    await Promise.all([
+      dispatch(fetchOrders()),
+      dispatch(fetchRestaurantInfo())
+    ]);
+    // Small delay for animation
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
 
   useEffect(() => {
     dispatch(fetchOrders());
     const id = setInterval(() => {
       dispatch(fetchOrders());
-    }, 60000);
+    }, 15000); // Poll every 15s for better real-time sync
     return () => clearInterval(id);
   }, [dispatch]);
 
@@ -103,6 +115,16 @@ export default function Layout() {
           <div className="flex items-center space-x-4">
             {/* Live Restaurant Status Toggle */}
             <HeaderStatusToggle />
+
+            {/* Refresh Button */}
+            <button 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              title="Оновити дані"
+              className={`p-2.5 rounded-full border border-borderWhite bg-surface/50 text-white transition-all hover:bg-surface hover:border-primary/50 group ${isRefreshing ? 'opacity-50' : ''}`}
+            >
+              <RefreshCcw className={`w-4 h-4 group-hover:text-primary transition-colors ${isRefreshing ? 'animate-spin text-primary' : ''}`} />
+            </button>
 
             {/* Notification Bell */}
             <div className="relative">

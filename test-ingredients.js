@@ -1,5 +1,5 @@
 const BASE_URL = 'http://37.27.220.44';
-const PHONE = '+380684047200';
+const PHONE = '+380991300002';
 const PASS = 'string123';
 
 async function testProductUpdate() {

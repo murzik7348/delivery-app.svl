@@ -48,7 +48,7 @@ function statusToStep(status) {
 
 const SUPPORT_CONFIG = {
   telegram: 'mur_zik8',
-  viber: '+380684047200'
+  viber: '+380991300002'
 };
 
 const safeNumber = (val, fallback = 0) => {

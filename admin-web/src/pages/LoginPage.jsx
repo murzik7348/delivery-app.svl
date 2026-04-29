@@ -13,7 +13,6 @@ export default function LoginPage() {
   const { isLoading, error } = useSelector((state) => state.auth);
 
   const ALLOWED_ADMIN_PHONES = [
-    '+380684047200',
     '+380991300002',
     '+380991300003',
     '+380991300584',

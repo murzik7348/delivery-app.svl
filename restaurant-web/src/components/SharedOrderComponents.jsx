@@ -198,8 +198,9 @@ export function LiveTimer({ createdAt }) {
 
 export function OrderCard({ order, onAccept, onReject, onStartCooking, onMarkReady }) {
   const statusNum = getStatusNum(order);
-  const isUnpaid = statusNum === 0 && order.paymentStatus !== 'success'; 
-  const isPaid = statusNum === 2 || order.paymentStatus === 'success';
+  const pStatus = String(order.paymentStatus || order.statusPayment || '').toLowerCase().trim();
+  const isUnpaid = statusNum === 0 && pStatus !== 'success'; 
+  const isPaid = statusNum === 2 || pStatus === 'success';
   const isAccepted = statusNum === 1; // Restaurant Confirmed
   const isPreparing = statusNum === 3;
   const isReady = statusNum === 4;

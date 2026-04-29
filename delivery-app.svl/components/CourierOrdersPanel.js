@@ -17,7 +17,13 @@ export default function CourierOrdersPanel() {
     const dispatch = useDispatch();
     const router = useRouter();
 
-    const { availableOrders, activeOrder, completedOrders, isLoading, isOnline } = useSelector((state) => state.courier);
+    const { 
+        availableOrders = [], 
+        activeOrders = [], 
+        completedOrders = [], 
+        isLoading = false, 
+        isOnline = false 
+    } = useSelector((state) => state.courier || {});
     const user = useSelector((state) => state.auth.user);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [sheetVisible, setSheetVisible] = useState(false);
@@ -122,6 +128,9 @@ export default function CourierOrdersPanel() {
     const renderOrderCard = (item, type = 'available') => {
         const isActive = type === 'active';
         const isHistory = type === 'history';
+        const currentUserId = user?.userId || user?.id;
+        const isMine = Number(item.courierId) === Number(currentUserId);
+        const isBookedByOther = !isActive && !isHistory && item.isBooked && !isMine;
 
         return (
             <TouchableOpacity
@@ -129,9 +138,13 @@ export default function CourierOrdersPanel() {
                 activeOpacity={0.8}
                 style={[
                     styles.card,
-                    { backgroundColor: theme.card, borderColor: isActive ? '#e334e3' : (isHistory ? '#eee' : theme.border) },
+                    { 
+                        backgroundColor: theme.card, 
+                        borderColor: isActive ? '#e334e3' : (isBookedByOther ? '#e74c3c' : (isHistory ? '#eee' : theme.border)),
+                        borderWidth: (isActive || isBookedByOther) ? 2 : 1.5,
+                        opacity: isBookedByOther ? 0.7 : 1
+                    },
                     isActive && styles.activeCard,
-                    isHistory && { opacity: 0.8 }
                 ]}
                 onPress={() => openOrderDetails(item)}
             >
@@ -146,7 +159,14 @@ export default function CourierOrdersPanel() {
                         </View>
                         <View style={{ marginLeft: 10, flex: 1 }}>
                             <View style={styles.rowBetween}>
-                                <Text style={[styles.orderIdLabel, { color: theme.textSecondary }]}>{formatOrderNumber(item.id)}</Text>
+                                <View style={styles.row}>
+                                    <Text style={[styles.orderIdLabel, { color: theme.textSecondary }]}>{formatOrderNumber(item.id)}</Text>
+                                    {isMine && !isHistory && !isActive && (
+                                        <View style={[styles.myLabel, { marginLeft: 8 }]}>
+                                            <Text style={styles.myLabelText}>{locale === 'en' ? 'MY' : 'МОЄ'}</Text>
+                                        </View>
+                                    )}
+                                </View>
                                 <Text style={[styles.earnings, { color: '#e334e3' }]}>{item.totalPrice} ₴</Text>
                             </View>
                             <Text style={[styles.orderTitle, { color: theme.text }]} numberOfLines={1}>
@@ -155,7 +175,7 @@ export default function CourierOrdersPanel() {
                             <View style={[styles.row, { marginTop: 4 }]}>
                                 <Ionicons name="location-outline" size={14} color={isActive ? '#e334e3' : theme.textSecondary} />
                                 <Text style={[styles.addressText, { color: theme.textSecondary, fontWeight: isActive ? '600' : '400' }]} numberOfLines={1}>
-                                    {(isActive || (item.courierId && item.courierId !== 0 && item.courierId !== '0')) ? item.address : (locale === 'en' ? 'Address hidden (Book first)' : 'Адреса прихована (Забронюйте)')}
+                                    {(isActive || isMine || isHistory) ? item.address : (locale === 'en' ? 'Address hidden (Book first)' : 'Адреса прихована (Забронюйте)')}
                                 </Text>
                             </View>
                         </View>
@@ -166,18 +186,36 @@ export default function CourierOrdersPanel() {
                     <>
                         <View style={styles.divider} />
                         <View style={styles.cardFooter}>
-                            <View style={[styles.statusBadge, { backgroundColor: isActive ? '#e334e320' : (item.status === 'ready_for_pickup' ? '#2ecc7120' : '#3498db20') }]}>
-                                <Text style={{ color: isActive ? '#e334e3' : (item.status === 'ready_for_pickup' ? '#2ecc71' : '#3498db'), fontWeight: 'bold', fontSize: 12 }}>
-                                    {isActive
-                                        ? (locale === 'en' ? 'In Delivery' : 'Доставляється')
-                                        : (item.status === 'ready_for_pickup'
-                                            ? (locale === 'en' ? 'Ready' : 'Готово')
-                                            : (item.status === 'preparing'
-                                                ? (locale === 'en' ? 'Preparing' : 'Готується')
-                                                : (item.status === 'accepted'
-                                                    ? (locale === 'en' ? 'Confirmed' : 'Підтверджено')
-                                                    : (locale === 'en' ? 'New' : 'Нове'))))}
-                                </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                <View style={[styles.statusBadge, { backgroundColor: isActive ? '#e334e320' : (item.status === 'ready_for_pickup' ? '#2ecc7120' : '#3498db20') }]}>
+                                    <Text style={{ color: isActive ? '#e334e3' : (item.status === 'ready_for_pickup' ? '#2ecc71' : '#3498db'), fontWeight: 'bold', fontSize: 12 }}>
+                                        {isActive
+                                            ? (locale === 'en' ? 'In Delivery' : 'Доставляється')
+                                            : (item.status === 'ready_for_pickup'
+                                                ? (locale === 'en' ? 'Ready' : 'Готово')
+                                                : (item.status === 'preparing'
+                                                    ? (locale === 'en' ? 'Preparing' : 'Готується')
+                                                    : (item.status === 'accepted'
+                                                        ? (locale === 'en' ? 'Confirmed' : 'Підтверджено')
+                                                        : (locale === 'en' ? 'New' : 'Нове'))))}
+                                    </Text>
+                                </View>
+                                
+                                {isBookedByOther ? (
+                                    <View style={[styles.statusBadge, { backgroundColor: '#e74c3c25', marginLeft: 8, borderWidth: 1, borderColor: '#e74c3c' }]}>
+                                        <Ionicons name="lock-closed" size={12} color="#e74c3c" style={{ marginRight: 4 }} />
+                                        <Text style={{ color: '#e74c3c', fontWeight: '900', fontSize: 11, textTransform: 'uppercase' }}>
+                                            {locale === 'en' ? 'Booked' : 'Заброньовано'}
+                                        </Text>
+                                    </View>
+                                ) : (!isActive && !isHistory) && (
+                                    <View style={[styles.statusBadge, { backgroundColor: '#2ecc7115', marginLeft: 8, borderWidth: 1, borderColor: '#2ecc7140' }]}>
+                                        <Ionicons name="lock-open-outline" size={10} color="#2ecc71" style={{ marginRight: 4 }} />
+                                        <Text style={{ color: '#2ecc71', fontWeight: 'bold', fontSize: 11, textTransform: 'uppercase' }}>
+                                            {locale === 'en' ? 'Free' : 'Вільне'}
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
                             <View style={styles.detailsBtn}>
                                 <Text style={styles.detailsText}>{locale === 'en' ? 'Details' : 'Деталі'}</Text>
@@ -295,17 +333,17 @@ export default function CourierOrdersPanel() {
                     </Text>
                 </View>
 
-                {isLoading && !refreshing && !activeOrder && availableOrders.length === 0 && (
+                {isLoading && !refreshing && activeOrders.length === 0 && availableOrders.length === 0 && (
                     <ActivityIndicator color="#e334e3" style={{ marginBottom: 20 }} />
                 )}
 
-                {/* ACTIVE ORDER */}
-                {activeOrder && (
+                {/* ACTIVE ORDERS */}
+                {activeOrders.length > 0 && (
                     <View style={styles.section}>
                         <Text style={[styles.subTitle, { color: theme.text }]}>
-                            {locale === 'en' ? 'Current Task' : 'Поточне завдання'}
+                            {locale === 'en' ? 'Current Tasks' : 'Поточні завдання'}
                         </Text>
-                        {renderOrderCard(activeOrder, 'active')}
+                        {activeOrders.map(order => renderOrderCard(order, 'active'))}
                     </View>
                 )}
 
@@ -321,7 +359,7 @@ export default function CourierOrdersPanel() {
                     {!isOnline ? offlineState : (
                         availableOrders.length > 0
                             ? availableOrders.map(order => renderOrderCard(order, 'available'))
-                            : !activeOrder && emptyState
+                            : activeOrders.length === 0 && emptyState
                     )}
                 </View>
 
@@ -505,6 +543,17 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         marginRight: 4,
         fontSize: 14
+    },
+    myLabel: {
+        backgroundColor: '#e334e3',
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        borderRadius: 4,
+    },
+    myLabelText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
     viewEarningsBtn: {
         backgroundColor: '#e334e3',

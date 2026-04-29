@@ -47,7 +47,6 @@ const initialState = {
 };
 
 const SUPER_ADMIN_PHONES = [
-  '+380684047200',
   '+380991300000',
   '+380991300001',
   '+380991300002',

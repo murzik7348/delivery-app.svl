@@ -1,16 +1,16 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import {
   getCourierDeliveries,
+  getCourierDeliveriesMy,
   courierAcceptDelivery,
   courierBookDelivery,
   courierPickupDelivery,
   courierConfirmDelivery,
-  getMyDeliveries,
 } from '../src/api';
 
 const initialState = {
   availableOrders: [],
-  activeOrder: null, // The order currently being delivered by the courier
+  activeOrders: [], // Orders currently being delivered by the courier
   completedOrders: [],
   isLoading: false,
   error: null,
@@ -18,53 +18,67 @@ const initialState = {
 };
 
 // Map backend delivery into UI model for the courier panel
-const mapDeliveryToCourierOrder = (d) => ({
-  id: d.deliveryId || d.id,
-  courierId: d.courierId || d.courier?.userId || d.courier?.id,
-  restaurantName: d.restaurantName || d.restaurant?.name || `Restaurant #${d.restaurantId ?? ''}`,
-  address: (() => {
-    const addr = d.address || d.customerAddress || d.deliveryAddress || d.addressText || d.customer?.address || d.customer?.deliveryAddress;
-    if (typeof addr === 'string') return addr;
-    if (typeof addr === 'object' && addr !== null) {
-      return `${addr.street || addr.address || addr.name || addr.title || ''} ${addr.houseNumber || addr.house || ''}`.trim() || 'Address N/A';
-    }
-    return 'Address N/A';
-  })(),
-  customerName: d.customer?.fullName || d.customer?.name || d.user?.name || d.userName || 'Guest',
-  customerPhone: d.customer?.phoneNumber || d.customer?.phone || d.user?.phoneNumber || d.user?.phone || d.userPhone || 'No phone',
-  totalDistance: d.totalDistanceText || d.totalDistance || '—',
-  totalPrice: d.totalPrice || d.total || 0,
-  earnings: d.courierReward || d.totalPrice ? Math.round(d.totalPrice * 0.1) : 0, // Fallback estimation if reward not provided
-  weight: d.total_weight_grams ? d.total_weight_grams / 1000 : null,
-  navigationStats: {
-    toShopTime: d.toShopTime || null,
-    toShopDistance: d.toShopDistance || d.navigationStats?.toShopDistance || null,
-    toClientTime: d.toClientTime || null,
-    toClientDistance: d.toClientDistance || d.navigationStats?.toClientDistance || null,
-  },
-  cookingTimeMinutes: d.cookingTimeMinutes || d.prepTime || null,
-  items: d.items?.map(i => ({
-    name: i.productName || i.name || `Product #${i.productId ?? ''}`,
-    quantity: i.quantity || i.qty || 1,
-  })) ?? [],
-  createdAt: d.createdAt || d.created_at || null,
-  status: (() => {
-    const s = d.statusDelivery ?? d.deliveryStatus ?? d.status;
-    const num = Number(s);
-    
-    // Exact mapping to backend DeliveryStatus enum:
-    // 0: created, 1: restaurant_confirmed, 2: preparing, 3: ready_for_pickup, 4: picked_up, 5: delivered, 6: cancelled
-    if (num === 0 || s === 'created') return 'created';
-    if (num === 1 || s === 'restaurant_confirmed' || s === 'accepted') return 'accepted';
-    if (num === 2 || s === 'preparing') return 'preparing';
-    if (num === 3 || s === 'ready_for_pickup' || s === 'ready') return 'ready_for_pickup';
-    if (num === 4 || s === 'picked_up' || s === 'delivering') return 'delivering';
-    if (num === 5 || s === 'delivered' || s === 'completed') return 'completed';
-    if (num === 6 || s === 'cancelled' || s === 'canceled') return 'canceled';
-    
-    return s || 'pending';
-  })(),
-});
+const mapDeliveryToCourierOrder = (d, currentUserId) => {
+  const courierId = d.courierId || d.courier_id || d.courier?.userId || d.courier?.id || d.courier?.user_id || 0;
+  const isBooked = !!(
+    d.isBooked || 
+    d.is_booked || 
+    courierId || 
+    (d.courier && Object.keys(d.courier).length > 0)
+  );
+  const isMine = Number(courierId) === Number(currentUserId) && currentUserId !== undefined;
+
+  return {
+    id: d.deliveryId || d.id,
+    courierId,
+    isBooked,
+    isMine,
+    isBookedByOther: isBooked && !isMine,
+    restaurantName: d.restaurantName || d.restaurant?.name || `Restaurant #${d.restaurantId ?? ''}`,
+    address: (() => {
+      const addr = d.address || d.customerAddress || d.deliveryAddress || d.addressText || d.customer?.address || d.customer?.deliveryAddress;
+      if (typeof addr === 'string') return addr;
+      if (typeof addr === 'object' && addr !== null) {
+        return `${addr.street || addr.address || addr.name || addr.title || ''} ${addr.houseNumber || addr.house || ''}`.trim() || 'Address N/A';
+      }
+      return 'Address N/A';
+    })(),
+    customerName: d.customer?.fullName || d.customer?.name || d.user?.name || d.userName || 'Guest',
+    customerPhone: d.customer?.phoneNumber || d.customer?.phone || d.user?.phoneNumber || d.user?.phone || d.userPhone || 'No phone',
+    totalDistance: d.totalDistanceText || d.totalDistance || '—',
+    totalPrice: d.totalPrice || d.total || 0,
+    earnings: d.courierReward || (d.totalPrice ? Math.round(d.totalPrice * 0.1) : 0),
+    weight: d.total_weight_grams ? d.total_weight_grams / 1000 : null,
+    navigationStats: {
+      toShopTime: d.toShopTime || null,
+      toShopDistance: d.toShopDistance || d.navigationStats?.toShopDistance || null,
+      toClientTime: d.toClientTime || null,
+      toClientDistance: d.toClientDistance || d.navigationStats?.toClientDistance || null,
+    },
+    cookingTimeMinutes: d.cookingTimeMinutes || d.prepTime || null,
+    items: d.items?.map(i => ({
+      name: i.productName || i.name || `Product #${i.productId ?? ''}`,
+      quantity: i.quantity || i.qty || 1,
+    })) ?? [],
+    createdAt: d.createdAt || d.created_at || null,
+    status: (() => {
+      const s = d.statusDelivery ?? d.deliveryStatus ?? d.status;
+      const num = Number(s);
+      
+      // Exact mapping to backend DeliveryStatus enum:
+      // 0: created, 1: restaurant_confirmed, 2: preparing, 3: ready_for_pickup, 4: picked_up, 5: delivered, 6: cancelled
+      if (num === 0 || s === 'created') return 'created';
+      if (num === 1 || s === 'restaurant_confirmed' || s === 'accepted') return 'accepted';
+      if (num === 2 || s === 'preparing') return 'preparing';
+      if (num === 3 || s === 'ready_for_pickup' || s === 'ready') return 'ready_for_pickup';
+      if (num === 4 || s === 'picked_up' || s === 'delivering') return 'delivering';
+      if (num === 5 || s === 'delivered' || s === 'completed') return 'completed';
+      if (num === 6 || s === 'cancelled' || s === 'canceled') return 'canceled';
+      
+      return s || 'pending';
+    })(),
+  };
+};
 
 export const fetchCourierOrders = createAsyncThunk(
   'courier/fetchCourierOrders',
@@ -77,44 +91,46 @@ export const fetchCourierOrders = createAsyncThunk(
       const statusPool = [0, 1, 2, 3, 4, 5, 6];
       console.log('🔄 [CourierSync] Starting parallel fetch for statuses:', statusPool);
 
-      const results = await Promise.all(
-        statusPool.map(async (s) => {
-          try {
-            const res = await getCourierDeliveries({ page: 1, pageSize: 50, deliveryStatus: s });
-            const items = Array.isArray(res) ? res : (res?.items || res?.data || res?.deliveries || []);
-            return items;
-          } catch (e) {
-            console.error(`❌ [CourierSync] Error fetching status ${s}:`, e.message);
-            return [];
-          }
+      const [poolResults, myResponse] = await Promise.all([
+        Promise.all(
+          statusPool.map(async (s) => {
+            try {
+              const res = await getCourierDeliveries({ page: 1, pageSize: 50, deliveryStatus: s });
+              return Array.isArray(res) ? res : (res?.items || res?.data || res?.deliveries || []);
+            } catch (e) {
+              console.error(`❌ [CourierSync] Error fetching status ${s}:`, e.message);
+              return [];
+            }
+          })
+        ),
+        getCourierDeliveriesMy().catch(e => {
+          console.error('❌ [CourierSync] Error fetching /courier/deliveries/my:', e.message);
+          return null;
         })
-      );
-      
-      let list = results.flat();
-      
-      // Also fetch "my" deliveries (assigned to me)
-      let myList = [];
-      try {
-        const myRes = await getMyDeliveries();
-        myList = Array.isArray(myRes) ? myRes : (myRes?.items || myRes?.data || myRes?.deliveries || []);
-        myList = myList.map(order => ({ ...order, courierId: currentUserId }));
-      } catch (e) {
-        console.error('❌ [CourierSync] Error fetching MY deliveries:', e.message);
-      }
-      
+      ]);
+
+      const myAssignedOrders = Array.isArray(myResponse) ? myResponse : (myResponse?.data?.items || myResponse?.data || myResponse?.deliveries || []);
+      console.log(`✅ [CourierSync] Fetched ${myAssignedOrders.length} personal deliveries`);
+
       const mergedMap = new Map();
-      list.forEach(item => {
+      
+      // Add general pool items
+      poolResults.flat().forEach(item => {
         const id = item.deliveryId || item.id;
         if (id) mergedMap.set(id, item);
       });
-      myList.forEach(item => {
+      
+      // Add specifically assigned items (they might be in the pool too, but we prioritize /my data)
+      myAssignedOrders.forEach(item => {
         const id = item.deliveryId || item.id;
         if (id) mergedMap.set(id, item);
       });
-      list = Array.from(mergedMap.values());
+
+      const list = Array.from(mergedMap.values());
+      console.log(`📊 [CourierSync] Total unique orders processed: ${list.length}`);
 
       return {
-        orders: list.map(mapDeliveryToCourierOrder),
+        orders: list.map(item => mapDeliveryToCourierOrder(item, currentUserId)),
         currentUserId
       };
     } catch (err) {
@@ -130,7 +146,13 @@ export const courierAcceptOrderThunk = createAsyncThunk(
       await courierAcceptDelivery(deliveryId);
       return { deliveryId };
     } catch (err) {
-      const msg = err.data?.code || err.data?.message || err.message || 'Failed to accept delivery';
+      // Improved error parsing for Axios responses
+      const errorData = err.response?.data || err.data;
+      const msg = typeof errorData === 'string' 
+        ? errorData 
+        : (errorData?.code || errorData?.message || errorData?.detail || err.message || 'Failed to accept delivery');
+      
+      console.warn('❌ [CourierAction] Accept failed:', msg);
       return rejectWithValue(msg);
     }
   }
@@ -171,24 +193,28 @@ const courierSlice = createSlice({
       const orderId = action.payload;
       const orderToAccept = state.availableOrders.find(o => o.id === orderId);
 
-      if (orderToAccept && !state.activeOrder) {
-        state.activeOrder = { ...orderToAccept, status: 'accepted' };
+      if (orderToAccept) {
+        state.activeOrders.push({ ...orderToAccept, status: 'accepted' });
         state.availableOrders = state.availableOrders.filter(o => o.id !== orderId);
       }
     },
     updateActiveOrderStatus: (state, action) => {
-      if (state.activeOrder) {
-        state.activeOrder.status = action.payload;
+      const { orderId, status } = action.payload;
+      const order = state.activeOrders.find(o => o.id === orderId);
+      if (order) {
+        order.status = status;
       }
     },
     completeActiveOrder: (state, action) => {
-      if (state.activeOrder) {
-        state.completedOrders.push({ ...state.activeOrder, status: 'completed' });
-        state.activeOrder = null;
+      const orderId = action.payload;
+      const order = state.activeOrders.find(o => o.id === orderId);
+      if (order) {
+        state.completedOrders.push({ ...order, status: 'completed' });
+        state.activeOrders = state.activeOrders.filter(o => o.id !== orderId);
       }
     },
     clearCourierState: (state) => {
-      state.activeOrder = null;
+      state.activeOrders = [];
       state.availableOrders = [];
       state.completedOrders = [];
       state.isOnline = false;
@@ -207,36 +233,34 @@ const courierSlice = createSlice({
         state.isLoading = false;
         const { orders, currentUserId } = action.payload;
 
-        // Available Pool: Show orders that are restaurant_confirmed (1), Preparing (2) or Ready (3)
-        // AND have no courier assigned yet
+        // Available Pool: Show orders that are restaurant_confirmed (1), Preparing (2) or Ready (3).
+        // Exclude orders assigned to THIS courier (they go to Active Task), but include others' booked orders so they see "Заброньовано".
         state.availableOrders = orders.filter(o =>
-          (!o.courierId || o.courierId === 0 || o.courierId === '0') &&
-          ['accepted', 'preparing', 'ready_for_pickup'].includes(o.status)
+          (Number(o.courierId) !== Number(currentUserId)) &&
+          ['created', 'accepted', 'preparing', 'ready_for_pickup'].includes(o.status)
         );
 
-        // Active Task: Assigned to THIS courier and matches active statuses
-        const active = orders.find(o =>
+        // Active Tasks: Assigned to THIS courier and matches active statuses
+        const fetchedActive = orders.filter(o =>
           (Number(o.courierId) === Number(currentUserId)) &&
           (o.status !== 'completed' && o.status !== 'canceled')
         );
+
+        // PROTECTION: Keep local active orders that are NOT in the fetched list yet 
+        // (e.g. optimistic updates or temporary backend inconsistency)
+        const fetchedIds = new Set(fetchedActive.map(o => o.id));
+        const localStillActive = (state.activeOrders || []).filter(local => 
+          !fetchedIds.has(local.id) && 
+          local.status !== 'completed' && 
+          local.status !== 'canceled'
+        );
+
+        state.activeOrders = [...fetchedActive, ...localStillActive];
 
         // Completed History: Assigned to THIS courier and matches completed
         state.completedOrders = orders.filter(o =>
           (Number(o.courierId) === Number(currentUserId)) && (o.status === 'completed')
         ).sort((a, b) => b.id - a.id);
-
-        if (active) {
-          state.activeOrder = active;
-        } else {
-          // PROTECTION: If we have an active order locally that is NOT completed/canceled, 
-          // do NOT wipe it just because a background fetch (which might be stale) didn't return it.
-          // This prevents the 'flicker' where an order disappears for 1 second after 'Accept'.
-          if (state.activeOrder && state.activeOrder.status !== 'completed' && state.activeOrder.status !== 'canceled') {
-            console.log('🛡️ [CourierSync] Preserving local active order during potentially stale background fetch');
-          } else {
-            state.activeOrder = null;
-          }
-        }
       })
       .addCase(fetchCourierOrders.rejected, (state, action) => {
         state.isLoading = false;
@@ -249,10 +273,13 @@ const courierSlice = createSlice({
       .addCase(courierAcceptOrderThunk.fulfilled, (state, action) => {
         state.isLoading = false;
         const id = action.payload?.deliveryId;
+        if (!Array.isArray(state.activeOrders)) state.activeOrders = [];
+        if (!Array.isArray(state.availableOrders)) state.availableOrders = [];
+        
         const idx = state.availableOrders.findIndex(o => o.id === id);
-        if (idx !== -1 && !state.activeOrder) {
+        if (idx !== -1) {
           const order = state.availableOrders[idx];
-          state.activeOrder = { ...order, status: 'accepted' };
+          state.activeOrders.push({ ...order, status: 'accepted' });
           state.availableOrders.splice(idx, 1);
         }
       })
@@ -260,15 +287,20 @@ const courierSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       })
-      .addCase(courierPickupOrderThunk.fulfilled, (state) => {
-        if (state.activeOrder) {
-          state.activeOrder.status = 'picked_up';
+      .addCase(courierPickupOrderThunk.fulfilled, (state, action) => {
+        const id = action.payload?.deliveryId;
+        const order = state.activeOrders.find(o => o.id === id);
+        if (order) {
+          order.status = 'picked_up';
         }
       })
-      .addCase(courierConfirmOrderThunk.fulfilled, (state) => {
-        if (state.activeOrder) {
-          state.completedOrders.push({ ...state.activeOrder, status: 'completed' });
-          state.activeOrder = null;
+      .addCase(courierConfirmOrderThunk.fulfilled, (state, action) => {
+        const id = action.payload?.deliveryId;
+        const orderIdx = state.activeOrders.findIndex(o => o.id === id);
+        if (orderIdx !== -1) {
+          const order = state.activeOrders[orderIdx];
+          state.completedOrders.push({ ...order, status: 'completed' });
+          state.activeOrders.splice(orderIdx, 1);
         }
       })
       // Clear Entire state on logout

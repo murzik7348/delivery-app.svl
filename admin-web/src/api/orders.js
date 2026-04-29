@@ -18,4 +18,5 @@ export const acceptDeliveryCourier = (id) => client.put(`/courier/deliveries/${i
 export const pickupDeliveryCourier = (id) => client.put(`/courier/deliveries/${id}/pickedup`);
 export const confirmDeliveryCourier = (id) => client.put(`/courier/deliveries/${id}/confirmations`);
 // Admin Actions
+export const updateDelivery = (id, data) => client.put(`/admin/delivery/${id}`, data);
 export const deleteDelivery = (id) => client.delete(`/admin/delivery/${id}`);

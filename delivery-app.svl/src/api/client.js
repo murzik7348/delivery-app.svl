@@ -177,14 +177,18 @@ client.interceptors.response.use(
             }
         }
 
-        console.log(`\n============== ❌ API ERROR RESPONSE ❌ ==============`);
-        if (error.response) {
-            console.log(`URL: ${error.config?.url}`);
-            console.log(`Status: ${error.response.status}`);
-            console.log(`Response Data:`, JSON.stringify(error.response.data || {}, null, 2));
-            console.log(`======================================================\n`);
+        const isSilent = error.config?._silentErrors?.includes(error.response?.status);
 
-            // Auto-logout as last resort if no refresh possible
+        if (!isSilent) {
+            console.log(`\n============== ❌ API ERROR RESPONSE ❌ ==============`);
+            if (error.response) {
+                console.log(`URL: ${error.config?.url}`);
+                console.log(`Status: ${error.response.status}`);
+                console.log(`Response Data:`, JSON.stringify(error.response.data || {}, null, 2));
+            }
+            console.log(`======================================================\n`);
+        }
+        if (error.response) {            // Auto-logout as last resort if no refresh possible
             if (
                 error.response.status === 401 &&
                 error.config?.headers?.Authorization &&
@@ -197,9 +201,11 @@ client.interceptors.response.use(
                     store.dispatch(logoutUser());
                 }
             }
-            const apiError = new Error(
-                error.response.data?.message || 'Server error. Please try again.',
-            );
+            const apiMessage = typeof error.response.data === 'string' 
+                ? error.response.data 
+                : error.response.data?.message || 'Server error. Please try again.';
+                
+            const apiError = new Error(apiMessage);
             apiError.status = error.response.status;
             apiError.data = error.response.data;
             return Promise.reject(apiError);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchOrders, acceptOrder, rejectOrder, updateRestaurantPhoto, fetchRestaurantInfo, updateRestaurantInfo } from '../store/slices/restaurantOrdersSlice';
+import { fetchOrders, acceptOrder, rejectOrder, startPreparingOrder, markOrderReady, updateRestaurantPhoto, fetchRestaurantInfo, updateRestaurantInfo } from '../store/slices/restaurantOrdersSlice';
 import { ChefHat, TrendingUp, Calendar, Package, Settings, Camera, X, Loader2, Image as ImageIcon, MapPin, User, LogOut } from 'lucide-react';
 import { 
   getStatusNum, 
@@ -219,6 +219,24 @@ export default function RestaurantDashboard() {
     return false;
   }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
+  const handleAccept = (orderId, prepTime) => {
+    dispatch(acceptOrder({ orderId, prepTime }));
+    setAcceptModal(null);
+  };
+
+  const handleReject = (orderId, reason) => {
+    dispatch(rejectOrder({ orderId, reason }));
+    setRejectModal(null);
+  };
+
+  const handleStartCooking = (order) => {
+    dispatch(startPreparingOrder({ orderId: order.id || order.deliveryId }));
+  };
+
+  const handleMarkReady = (order) => {
+    dispatch(markOrderReady({ orderId: order.id || order.deliveryId }));
+  };
+
   return (
     <div className="flex-1 space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-surfaceLighter/30 p-8 rounded-[2rem] border border-borderWhite backdrop-blur-sm relative overflow-hidden">
@@ -318,6 +336,8 @@ export default function RestaurantDashboard() {
               order={order} 
               onAccept={() => setAcceptModal(order)}
               onReject={() => setRejectModal(order)}
+              onStartCooking={handleStartCooking}
+              onMarkReady={handleMarkReady}
             />
           ))
         ) : (
@@ -334,6 +354,7 @@ export default function RestaurantDashboard() {
           order={acceptModal} 
           isOpen={!!acceptModal} 
           onClose={() => setAcceptModal(null)} 
+          onConfirm={() => handleAccept(acceptModal.id || acceptModal.deliveryId)}
         />
       )}
       
@@ -342,6 +363,7 @@ export default function RestaurantDashboard() {
           order={rejectModal} 
           isOpen={!!rejectModal} 
           onClose={() => setRejectModal(null)} 
+          onConfirm={(reason) => handleReject(rejectModal.id || rejectModal.deliveryId, reason)}
         />
       )}
 
