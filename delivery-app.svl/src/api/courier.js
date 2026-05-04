@@ -7,31 +7,37 @@ import client from './client';
  * @param {number} [params.pageSize=20]
  * @param {string} [params.deliveryStatus]  - DeliveryStatus enum value
  */
-export const getCourierDeliveries = (params = {}) =>
-    client.get('/courier/deliveries', {
+export const getCourierDeliveries = (params = {}) => {
+    const { _quiet, ...rest } = params;
+    return client.get('/courier/deliveries', {
         params: {
-            page: params.page ?? 1,
-            pageSize: params.pageSize ?? 20,
-            ...(params.deliveryStatus !== undefined && {
-                deliveryStatus: params.deliveryStatus,
+            page: rest.page ?? 1,
+            pageSize: rest.pageSize ?? 20,
+            ...(rest.deliveryStatus !== undefined && {
+                deliveryStatus: rest.deliveryStatus,
             }),
         },
+        _quiet
     });
+};
 
 /**
  * Get paginated list of deliveries assigned to the current courier.
  * @param {Object} params
  */
-export const getCourierDeliveriesMy = (params = {}) =>
-    client.get('/courier/deliveries/my', {
+export const getCourierDeliveriesMy = (params = {}) => {
+    const { _quiet, ...rest } = params;
+    return client.get('/courier/deliveries/my', {
         params: {
-            page: params.page ?? 1,
-            pageSize: params.pageSize ?? 20,
-            ...(params.deliveryStatus !== undefined && {
-                deliveryStatus: params.deliveryStatus,
+            page: rest.page ?? 1,
+            pageSize: rest.pageSize ?? 20,
+            ...(rest.deliveryStatus !== undefined && {
+                deliveryStatus: rest.deliveryStatus,
             }),
         },
+        _quiet
     });
+};
 
 /**
  * Courier accepts a delivery (moves status to ACCEPTED).
@@ -84,7 +90,7 @@ export const courierSetOnlineStatus = async (isOnline) => {
  */
 export const courierUpdateLocation = async (latitude, longitude) => {
     try {
-        return await client.put('/courier/location', { latitude, longitude }, { _silentErrors: [404] });
+        return await client.put('/courier/location', { latitude, longitude }, { _silentErrors: [404], _quiet: true });
     } catch (err) {
         if (err.status === 404) {
             console.warn('⚠️ [CourierAPI] Endpoint /courier/location not found on backend. Skipping location update.');

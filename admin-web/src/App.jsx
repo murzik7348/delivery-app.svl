@@ -8,6 +8,7 @@ import OrdersPage from './pages/OrdersPage';
 import UsersPage from './pages/UsersPage';
 import CatalogPage from './pages/CatalogPage';
 import SettingsPage from './pages/SettingsPage';
+import CouriersPage from './pages/CouriersPage';
 import LoginPage from './pages/LoginPage';
 
 function ProtectedRoute({ children }) {
@@ -45,6 +46,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="couriers" element={<CouriersPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="catalog" element={<CatalogPage />} />
           <Route path="settings" element={<SettingsPage />} />

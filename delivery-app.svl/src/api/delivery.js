@@ -17,3 +17,8 @@ export const getMyDeliveries = () => client.get('/deliveries/my');
  * @param {number} id - Delivery ID
  */
 export const acceptDelivery = (id) => client.put(`/deliveries/${id}/accepted`);
+/**
+ * User confirms delivery completion.
+ * @param {number} id - Delivery ID
+ */
+export const userConfirmDelivery = (id) => client.put(`/deliveries/${id}/confirmations`);

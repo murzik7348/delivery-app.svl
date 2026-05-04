@@ -11,7 +11,7 @@ import { BlurView } from 'expo-blur';
 import Colors from '../constants/Colors';
 import { formatUkraineDate } from '../constants/dateUtils';
 import { t } from '../constants/translations';
-import { fetchOrderDetails } from '../store/ordersSlice';
+import { fetchOrderDetails, confirmOrder } from '../store/ordersSlice';
 import * as Haptics from 'expo-haptics';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { safeBack } from '../utils/navigation';
@@ -28,20 +28,20 @@ const NEON_BLUE = '#34C759';
 const STATUS_CONFIG = {
   0: { key: 'created', icon: 'receipt', color: '#8e44ad', titleEn: 'Ordered', titleUk: 'Оформлено', lottie: '📝' },
   1: { key: 'accepted', icon: 'checkmark-circle', color: '#2ecc71', titleEn: 'Confirmed', titleUk: 'Підтверджено', lottie: '✅' },
-  2: { key: 'paid', icon: 'card', color: '#2ecc71', titleEn: 'Paid', titleUk: 'Оплачено', lottie: '💳' },
-  3: { key: 'preparing', icon: 'flame', color: '#f39c12', titleEn: 'Cooking', titleUk: 'Готується', lottie: '👨‍🍳' },
-  4: { key: 'ready_for_pickup', icon: 'cube', color: '#f39c12', titleEn: 'Ready', titleUk: 'Готово до видачі', lottie: '📦' },
-  5: { key: 'delivering', icon: 'bicycle', color: '#3498db', titleEn: 'Delivering', titleUk: 'Хутко мчить', lottie: '🛵' },
-  6: { key: 'delivered', icon: 'home', color: '#2ecc71', titleEn: 'Delivered', titleUk: 'Доставлено', lottie: '🎉' },
+  2: { key: 'preparing', icon: 'flame', color: '#f39c12', titleEn: 'Cooking', titleUk: 'Готується', lottie: '👨‍🍳' },
+  3: { key: 'ready_for_pickup', icon: 'cube', color: '#f39c12', titleEn: 'Ready', titleUk: 'Готово до видачі', lottie: '📦' },
+  4: { key: 'delivering', icon: 'bicycle', color: '#3498db', titleEn: 'Delivering', titleUk: 'Хутко мчить', lottie: '🛵' },
+  5: { key: 'delivered', icon: 'home', color: '#2ecc71', titleEn: 'Delivered', titleUk: 'Доставлено', lottie: '🎉' },
+  6: { key: 'canceled', icon: 'close-circle', color: '#e74c3c', titleEn: 'Canceled', titleUk: 'Скасовано', lottie: '❌' },
 };
 
 function statusToStep(status) {
   const s = String(status).toLowerCase();
-  if (s === '6' || s === 'delivered' || s === 'completed') return 6;
-  if (s === '5' || s === 'delivering') return 5;
-  if (s === '4' || s === 'ready_for_pickup' || s === 'ready') return 4;
-  if (s === '3' || s === 'preparing') return 3;
-  if (s === '2' || s === 'paid') return 2;
+  if (s === '6' || s === 'canceled' || s === 'cancelled') return 6;
+  if (s === '5' || s === 'delivered' || s === 'completed') return 5;
+  if (s === '4' || s === 'picked_up' || s === 'delivering') return 4;
+  if (s === '3' || s === 'ready_for_pickup' || s === 'ready') return 3;
+  if (s === '2' || s === 'preparing') return 2;
   if (s === '1' || s === 'accepted') return 1;
   return 0;
 }
@@ -165,6 +165,8 @@ export default function OrderDetailsScreen() {
   const courierPhone = order.courierPhone;
   const courierPhoto = order.courierPhoto;
 
+  const [isConfirming, setIsConfirming] = useState(false);
+
   const handleSupportPress = () => {
     Alert.alert(
       locale === 'en' ? 'Support' : 'Служба підтримки',
@@ -181,6 +183,34 @@ export default function OrderDetailsScreen() {
         {
           text: locale === 'en' ? 'Cancel' : 'Скасувати',
           style: 'cancel'
+        }
+      ]
+    );
+  };
+
+  const handleConfirm = () => {
+    Alert.alert(
+      locale === 'en' ? 'Confirm Delivery' : 'Підтвердити отримання',
+      locale === 'en' ? 'Did you receive your order?' : 'Ви отримали своє замовлення?',
+      [
+        { text: locale === 'en' ? 'No' : 'Ні', style: 'cancel' },
+        { 
+          text: locale === 'en' ? 'Yes, Received' : 'Так, отримано', 
+          onPress: async () => {
+            try {
+              setIsConfirming(true);
+              await dispatch(confirmOrder(order.deliveryId || order.id)).unwrap();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert(
+                locale === 'en' ? 'Success' : 'Успішно',
+                locale === 'en' ? 'Thank you for your confirmation!' : 'Дякуємо за підтвердження!'
+              );
+            } catch (e) {
+              Alert.alert('Error', e);
+            } finally {
+              setIsConfirming(false);
+            }
+          }
         }
       ]
     );
@@ -271,6 +301,26 @@ export default function OrderDetailsScreen() {
               </View>
             )}
 
+            {/* Confirm Delivery Button for User */}
+            {currentStep === 4 && (
+              <TouchableOpacity
+                onPress={handleConfirm}
+                disabled={isConfirming}
+                style={[
+                  styles.confirmBtn,
+                  { backgroundColor: MAGENTA, shadowColor: MAGENTA }
+                ]}
+              >
+                <Ionicons name="checkmark-done-circle" size={24} color="white" />
+                <Text style={styles.confirmBtnText}>
+                  {isConfirming 
+                    ? (locale === 'en' ? 'Confirming...' : 'Підтвердження...')
+                    : (locale === 'en' ? 'Confirm Delivery' : 'Підтвердити отримання')}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+
             <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'items')}</Text>
           </View>
         }
@@ -300,7 +350,7 @@ export default function OrderDetailsScreen() {
                   {formatUkraineDate(order.createdAt || order.date)}
                 </Text>
               </View>
-              {activeStatus === 'paid' && (
+              {order.paymentStatus === 'success' && (
                 <View style={[styles.summaryRow, { marginTop: 8 }]}>
                   <Text style={styles.summaryLabel}>Статус оплати</Text>
                   <View style={styles.paidBadge}>
@@ -346,6 +396,28 @@ const styles = StyleSheet.create({
   etaText: { fontSize: 16, fontWeight: '800', color: '#111' },
 
   bodyWrap: { paddingHorizontal: 20, paddingTop: 20 },
+  
+  confirmBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    borderRadius: 20,
+    marginTop: 20,
+    marginBottom: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 8,
+    gap: 12,
+  },
+  confirmBtnText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+
   trackerCard: { borderRadius: 24, padding: 20, borderWidth: 1, marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
   datesRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -10, paddingHorizontal: 5 },
   dateText: { fontSize: 12, color: 'gray', fontWeight: '600' },

@@ -94,12 +94,11 @@ const initialState = {
 const STATUSES_KEYS = {
   0: 'created', 
   1: 'accepted', 
-  2: 'paid', 
-  3: 'preparing', 
-  4: 'ready_for_pickup', 
-  5: 'delivering', 
-  6: 'delivered', 
-  7: 'canceled'
+  2: 'preparing', 
+  3: 'ready_for_pickup', 
+  4: 'picked_up', 
+  5: 'delivered', 
+  6: 'canceled'
 };
 
 const ordersSlice = createSlice({

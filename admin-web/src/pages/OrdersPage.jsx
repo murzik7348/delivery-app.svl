@@ -9,25 +9,23 @@ import { formatOrderNumber } from '../utils/formatOrderNumber';
 
 const STATUSES = [
   { id: 0, key: 'created', label: 'Нові', color: 'border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-400' },
-  { id: 2, key: 'paid', label: 'Оплачено 💰', color: 'border-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-400', action: 'markPaid' },
   { id: 1, key: 'accepted', label: 'Прийнято', color: 'border-secondary', bg: 'bg-secondary/10', text: 'text-secondary', action: 'generalAccept' },
-  { id: 3, key: 'preparing', label: 'Готується', color: 'border-purple-500', bg: 'bg-purple-500/10', text: 'text-purple-400', action: 'confirmRest' },
-  { id: 4, key: 'ready_for_pickup', label: 'Готово', color: 'border-amber-500', bg: 'bg-amber-500/10', text: 'text-amber-400', action: 'confirmRest' },
-  { id: 5, key: 'delivering', label: 'Доставка', color: 'border-primary', bg: 'bg-primary/10', text: 'text-primary', action: 'pickupCour' },
-  { id: 6, key: 'delivered', label: 'Доставлено', color: 'border-success', bg: 'bg-success/10', text: 'text-success', action: 'confirmCour' },
-  { id: 7, key: 'canceled', label: 'Скасовано', color: 'border-danger', bg: 'bg-danger/10', text: 'text-danger', action: 'cancelRest' }
+  { id: 2, key: 'preparing', label: 'Готується', color: 'border-purple-500', bg: 'bg-purple-500/10', text: 'text-purple-400', action: 'confirmRest' },
+  { id: 3, key: 'ready_for_pickup', label: 'Готово', color: 'border-amber-500', bg: 'bg-amber-500/10', text: 'text-amber-400', action: 'confirmRest' },
+  { id: 4, key: 'delivering', label: 'Доставка', color: 'border-primary', bg: 'bg-primary/10', text: 'text-primary', action: 'pickupCour' },
+  { id: 5, key: 'delivered', label: 'Доставлено', color: 'border-success', bg: 'bg-success/10', text: 'text-success', action: 'confirmCour' },
+  { id: 6, key: 'canceled', label: 'Скасовано', color: 'border-danger', bg: 'bg-danger/10', text: 'text-danger', action: 'cancelRest' }
 ];
 
 const getStatusDetails = (status) => {
   const s = String(status).toLowerCase();
   if (s === '0' || s === 'created') return { label: 'New', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
   if (s === '1' || s === 'accepted') return { label: 'Accepted', color: 'bg-secondary/10 text-secondary border-secondary/20' };
-  if (s === '2' || s === 'paid') return { label: 'Paid 💰', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
-  if (s === '3' || s === 'preparing') return { label: 'Preparing', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' };
-  if (s === '4' || s === 'ready_for_pickup') return { label: 'Ready', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
-  if (s === '5' || s === 'delivering') return { label: 'Delivering', color: 'bg-primary/10 text-primary border-primary/20' };
-  if (s === '6' || s === 'delivered' || s === 'completed') return { label: 'Delivered', color: 'bg-success/10 text-success border-success/20' };
-  if (s === '7' || s === 'canceled') return { label: 'Canceled', color: 'bg-danger/10 text-danger border-danger/20' };
+  if (s === '2' || s === 'preparing') return { label: 'Preparing', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' };
+  if (s === '3' || s === 'ready_for_pickup') return { label: 'Ready', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
+  if (s === '4' || s === 'delivering' || s === 'picked_up') return { label: 'Delivering', color: 'bg-primary/10 text-primary border-primary/20' };
+  if (s === '5' || s === 'delivered' || s === 'completed') return { label: 'Delivered', color: 'bg-success/10 text-success border-success/20' };
+  if (s === '6' || s === 'canceled') return { label: 'Canceled', color: 'bg-danger/10 text-danger border-danger/20' };
   return { label: status, color: 'bg-borderWhite/10 text-textSecondary border-borderWhite/20' };
 };
 
@@ -313,9 +311,10 @@ export default function OrdersPage() {
               <div className="flex-1 overflow-y-auto space-y-4 kanban-column pr-1">
                 {visibleOrders.filter(o => {
                   const sMap = {
-                    created: 0, paid: 2, accepted: 1, preparing: 3,
-                    ready_for_pickup: 4, delivering: 5, delivered: 6, canceled: 7,
-                    restaurant_confirmed: 1, cancelled: 7
+                    created: 0, accepted: 1, restaurant_confirmed: 1,
+                    paid: 2, preparing: 3, ready_for_pickup: 4, ready: 4,
+                    picked_up: 5, delivering: 5, delivered: 6, completed: 6,
+                    canceled: 7, cancelled: 7
                   };
                   let sNum = Number(o.deliveryStatus || o.status);
                   if (isNaN(sNum) || (o.deliveryStatus == null && o.status == null) || (typeof o.status === 'string' && isNaN(Number(o.status)))) {
@@ -327,9 +326,10 @@ export default function OrdersPage() {
                     Number(sNum) === Number(column.id);
                 }).map((order) => {
                   const sMap = {
-                    created: 0, paid: 2, accepted: 1, preparing: 3,
-                    ready_for_pickup: 4, delivering: 5, delivered: 6, canceled: 7,
-                    restaurant_confirmed: 1, cancelled: 7
+                    created: 0, accepted: 1, restaurant_confirmed: 1,
+                    preparing: 2, ready_for_pickup: 3, ready: 3,
+                    picked_up: 4, delivering: 4, delivered: 5, completed: 5,
+                    canceled: 6, cancelled: 6
                   };
                   let sNum = Number(order.deliveryStatus || order.status);
                   if (isNaN(sNum) || (order.deliveryStatus == null && order.status == null) || (typeof order.status === 'string' && isNaN(Number(order.status)))) {

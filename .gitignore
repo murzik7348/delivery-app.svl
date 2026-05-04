@@ -1,1 +1,8 @@
 node_modules
+
+# xcode-build-server files
+buildServer.json
+.compile
+
+# Local build artifacts
+.build/

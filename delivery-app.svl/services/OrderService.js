@@ -130,45 +130,55 @@ class OrderService {
 
         const id = item.deliveryId?.toString() || item.id?.toString();
 
-        // Числовий або рядковий статус перетворюємо на внутрішній ключ
+        // Map numeric OR string statusDelivery from backend to internal key
+        // Backend returns statusDelivery as a string: "Created", "Accepted", "Preparing",
+        // "ReadyForPickup", "Delivering", "Delivered", "Canceled"
         const numericStatusMap = { 
             0: 'created', 
             1: 'accepted',        
-            2: 'paid',            
-            3: 'preparing',       
-            4: 'ready_for_pickup',
-            5: 'delivering',      
-            6: 'delivered',       // aligned with backend 0-6
+            2: 'preparing',       
+            3: 'ready_for_pickup',
+            4: 'delivering',      
+            5: 'delivered',       
+            6: 'canceled'
+        };
+        const stringStatusMap = {
+            'created': 'created',
+            'accepted': 'accepted',
+            'restaurantconfirmed': 'accepted',
+            'restaurant_confirmed': 'accepted',
+            'preparing': 'preparing',
+            'readyforpickup': 'ready_for_pickup',
+            'ready_for_pickup': 'ready_for_pickup',
+            'ready': 'ready_for_pickup',
+            'pickedup': 'delivering',
+            'picked_up': 'delivering',
+            'delivering': 'delivering',
+            'delivered': 'delivered',
+            'completed': 'delivered',
+            'canceled': 'canceled',
+            'cancelled': 'canceled',
         };
 
-        const rawStatus = item.statusDelivery ?? item.status ?? item.deliveryStatus;
+        const rawStatus = item.statusDelivery ?? item.deliveryStatus ?? item.status;
         let sNum = -1;
+        let status = 'created';
 
         if (typeof rawStatus === 'number') {
             sNum = rawStatus;
-        } else if (rawStatus != null && !isNaN(Number(rawStatus))) {
+            status = numericStatusMap[sNum] ?? 'created';
+        } else if (rawStatus != null && !isNaN(Number(rawStatus)) && rawStatus !== '') {
             sNum = Number(rawStatus);
-        }
-
-        let status = 'created';
-        if (sNum >= 0 && sNum <= 6) {
-            status = numericStatusMap[sNum];
+            status = numericStatusMap[sNum] ?? 'created';
         } else if (rawStatus) {
-            const sStr = String(rawStatus).toLowerCase();
-            if (sStr === 'restaurant_confirmed' || sStr === 'restaurantconfirmed') status = 'accepted';
-            else if (sStr === 'completed' || sStr === 'delivered') status = 'delivered';
-            else if (sStr === 'canceled' || sStr === 'cancelled') status = 'canceled';
-            else status = sStr; 
+            // String status from backend — normalize to lowercase, strip spaces
+            const sStr = String(rawStatus).toLowerCase().replace(/[^a-z_]/g, '');
+            status = stringStatusMap[sStr] ?? sStr;
+            // Derive sNum from resolved status for deliveryStatus field
+            const reverseMap = { created:0, accepted:1, preparing:2, ready_for_pickup:3, delivering:4, delivered:5, canceled:6 };
+            sNum = reverseMap[status] ?? -1;
         }
 
-        // Automated Paid status from payment provider
-        // If paymentStatus is success but the delivery is still in 'created' or 'accepted' state from backend perspective
-        const pStatus = String(item.paymentStatus || item.statusPayment || '').toLowerCase().trim();
-        // Allow transition from created (0) or accepted (1) to paid (2)
-        if ((pStatus === 'success' || pStatus === 'subscribed') && (sNum <= 1 || status === 'created' || status === 'accepted')) {
-            status = 'paid';
-            sNum = 2;
-        }
 
         let paymentMethodStr = item.paymentMethod;
 
@@ -213,8 +223,19 @@ class OrderService {
      */
     static async getActiveOrders() {
         const response = await getMyDeliveries();
-        const items = Array.isArray(response) ? response : response?.items ?? [];
-        return items.map(item => OrderService.normalizeOrder(item));
+        // /deliveries/my returns a SINGLE object (not an array)
+        // Wrap it in an array if needed, filter null
+        let items;
+        if (Array.isArray(response)) {
+            items = response;
+        } else if (response && typeof response === 'object' && response.deliveryId != null) {
+            items = [response];
+        } else if (response?.items) {
+            items = response.items;
+        } else {
+            items = [];
+        }
+        return items.map(item => OrderService.normalizeOrder(item)).filter(Boolean);
     }
 
     /**

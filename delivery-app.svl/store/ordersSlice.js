@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import OrderService from '../services/OrderService';
+import { userConfirmDelivery } from '../src/api';
 
 // ── Async Thunk ───────────────────────────────────────────────────────────────
 export const fetchOrders = createAsyncThunk(
@@ -22,10 +23,9 @@ export const fetchOrders = createAsyncThunk(
               // Status translations aligned with backend DeliveryStatus enum 0-6
               const statusTranslations = {
                  'created': 'Створено',
-                 'paid': 'Оплачено 💰',
                  'accepted': 'Прийнято рестораном 🍽',
                  'preparing': 'Готується 👨‍🍳',
-                 'ready': 'Готово до видачі 📦',
+                 'ready_for_pickup': 'Готово до видачі 📦',
                  'delivering': 'Вже в дорозі 🛵',
                  'delivered': 'Доставлено ✅',
               };
@@ -56,6 +56,19 @@ export const fetchOrderDetails = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       return await OrderService.getOrderById(id);
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+export const confirmOrder = createAsyncThunk(
+  'orders/confirmOrder',
+  async (id, { dispatch, rejectWithValue }) => {
+    try {
+      await userConfirmDelivery(id);
+      dispatch(fetchOrderDetails(id));
+      return id;
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -161,7 +174,9 @@ const ordersSlice = createSlice({
         }
       })
       // Clear entire state on logout to prevent cross-account data leak
-      .addCase('auth/logoutUser', () => initialState);
+      .addCase('auth/logoutUser', () => initialState)
+      // Clear orders when a NEW user logs in — prevents previous user's orders leaking
+      .addCase('auth/loginUser', () => initialState);
   },
 });
 

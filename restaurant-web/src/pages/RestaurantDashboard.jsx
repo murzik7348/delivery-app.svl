@@ -200,22 +200,19 @@ export default function RestaurantDashboard() {
   useEffect(() => {
     dispatch(fetchOrders());
     dispatch(fetchRestaurantInfo());
-    const interval = setInterval(() => dispatch(fetchOrders()), 60000);
+    const interval = setInterval(() => dispatch(fetchOrders()), 30000);
     return () => clearInterval(interval);
   }, [dispatch]);
 
   const stats = [
-    { label: 'Нові', value: items.filter(o => [0, 2].includes(getStatusNum(o))).length, icon: Package, color: 'text-primary' },
-    { label: 'Готуються', value: items.filter(o => getStatusNum(o) === 3).length, icon: ChefHat, color: 'text-secondary' },
-    { label: 'Завершені', value: items.filter(o => [6, 7].includes(getStatusNum(o))).length, icon: TrendingUp, color: 'text-success' },
+    { label: 'Нові', value: items.filter(o => [0, 1, 2, 3].includes(getStatusNum(o))).length, icon: Package, color: 'text-primary' },
+    { label: 'Завершені', value: items.filter(o => [4, 5, 6].includes(getStatusNum(o))).length, icon: TrendingUp, color: 'text-success' },
   ];
 
   const filteredOrders = items.filter(order => {
     const sNum = getStatusNum(order);
-    if (activeTab === 'new') return [0, 2].includes(sNum);
-    if (activeTab === 'preparing') return sNum === 1 || sNum === 3;
-    if (activeTab === 'ready') return sNum === 4;
-    if (activeTab === 'completed') return [5, 6, 7].includes(sNum);
+    if (activeTab === 'new') return [0, 1, 2, 3].includes(sNum); // Show everything active in 'New' for now to debug
+    if (activeTab === 'completed') return [4, 5, 6].includes(sNum);
     return false;
   }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -296,10 +293,8 @@ export default function RestaurantDashboard() {
       <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
         <div className="flex gap-2 bg-surface p-2 rounded-2xl border border-borderWhite shadow-inner w-full md:w-auto overflow-x-auto scrollbar-hide">
           {[
-            { id: 'new', label: '🆕 Нові', count: items.filter(o => [0, 2].includes(getStatusNum(o))).length },
-            { id: 'preparing', label: '👨‍🍳 Готуються', count: items.filter(o => [1, 3].includes(getStatusNum(o))).length },
-            { id: 'ready', label: '📦 Готові', count: items.filter(o => getStatusNum(o) === 4).length },
-            { id: 'completed', label: '✅ Історія', count: items.filter(o => [5, 6, 7].includes(getStatusNum(o))).length },
+            { id: 'new', label: '🆕 Нові', count: items.filter(o => [0, 1, 2, 3].includes(getStatusNum(o))).length },
+            { id: 'completed', label: '✅ Історія', count: items.filter(o => [4, 5, 6].includes(getStatusNum(o))).length },
           ].map(tab => (
             <button
               key={tab.id}
@@ -322,7 +317,7 @@ export default function RestaurantDashboard() {
         
         <div className="text-right">
            <div className="text-[10px] font-black text-textSecondary uppercase tracking-widest mb-1">Останнє оновлення</div>
-           <div className="text-xs font-medium text-white flex items-center justify-end gap-2">
+           <div className="text-xs font-medium text-white flex items-center gap-2">
              <div className="w-2 h-2 bg-success rounded-full animate-pulse" /> {new Date().toLocaleTimeString()}
            </div>
         </div>
@@ -354,7 +349,7 @@ export default function RestaurantDashboard() {
           order={acceptModal} 
           isOpen={!!acceptModal} 
           onClose={() => setAcceptModal(null)} 
-          onConfirm={() => handleAccept(acceptModal.id || acceptModal.deliveryId)}
+          onConfirm={(prepTime) => handleAccept(acceptModal.id || acceptModal.deliveryId, prepTime)}
         />
       )}
       

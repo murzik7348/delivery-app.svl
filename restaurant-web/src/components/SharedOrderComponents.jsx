@@ -17,26 +17,24 @@ export function getElapsedTime(createdAt) {
 export function getStatusBadge(status) {
   const s = Number(status);
   if (s === 0) return 'bg-blue-500/10 text-blue-400 border-blue-500/20'; // Created
-  if (s === 2) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'; // Paid
   if (s === 1) return 'bg-secondary/10 text-secondary border-secondary/20'; // Accepted
-  if (s === 3) return 'bg-purple-500/10 text-purple-400 border-purple-500/20'; // Preparing
-  if (s === 4) return 'bg-amber-500/10 text-amber-400 border-amber-500/20'; // Ready
-  if (s === 5) return 'bg-primary/10 text-primary border-primary/20'; // Delivering
-  if (s === 6) return 'bg-success/10 text-success border-success/20'; // Delivered
-  if (s === 7) return 'bg-danger/10 text-danger border-danger/20'; // Canceled
+  if (s === 2) return 'bg-purple-500/10 text-purple-400 border-purple-500/20'; // Preparing
+  if (s === 3) return 'bg-amber-500/10 text-amber-400 border-amber-500/20'; // Ready
+  if (s === 4) return 'bg-primary/10 text-primary border-primary/20'; // PickedUp/Delivering
+  if (s === 5) return 'bg-success/10 text-success border-success/20'; // Delivered
+  if (s === 6) return 'bg-danger/10 text-danger border-danger/20'; // Canceled
   return 'bg-borderWhite/10 text-textSecondary border-borderWhite/20';
 }
 
 export function getStatusLabel(status) {
   const s = Number(status);
   if (s === 0) return 'Нове';
-  if (s === 2) return 'Оплачено💰';
   if (s === 1) return 'Прийнято';
-  if (s === 3) return 'Готується';
-  if (s === 4) return 'Готово';
-  if (s === 5) return 'Доставка';
-  if (s === 6) return 'Доставлено';
-  if (s === 7) return 'Скасовано';
+  if (s === 2) return 'Готується';
+  if (s === 3) return 'Готово';
+  if (s === 4) return 'Доставка';
+  if (s === 5) return 'Доставлено';
+  if (s === 6) return 'Скасовано';
   return 'Очікування';
 }
 export function getTimerColor(createdAt) {
@@ -54,21 +52,27 @@ export function getItemsSummary(order) {
 
 export const STATUS_NUM = {
   created: 0,
-  paid: 2,
+  new: 0,
   accepted: 1,
-  preparing: 3,
-  ready_for_pickup: 4,
-  delivering: 5,
-  delivered: 6,
-  canceled: 7,
   restaurant_confirmed: 1,
-  cancelled: 7,
+  restaurantconfirmed: 1,
+  preparing: 2,
+  ready_for_pickup: 3,
+  readyforpickup: 3,
+  ready: 3,
+  picked_up: 4,
+  pickedup: 4,
+  delivering: 4,
+  delivered: 5,
+  completed: 5,
+  canceled: 6,
+  cancelled: 6,
 };
 
 export function getStatusNum(order) {
   if (order.deliveryStatus != null) return Number(order.deliveryStatus);
   if (order.status != null && !isNaN(Number(order.status))) return Number(order.status);
-  const s = String(order.statusDelivery || order.status || '').toLowerCase();
+  const s = String(order.statusDelivery || order.status || '').toLowerCase().trim();
   return STATUS_NUM[s] ?? -1;
 }
 
@@ -200,14 +204,14 @@ export function OrderCard({ order, onAccept, onReject, onStartCooking, onMarkRea
   const statusNum = getStatusNum(order);
   const pStatus = String(order.paymentStatus || order.statusPayment || '').toLowerCase().trim();
   const isUnpaid = statusNum === 0 && pStatus !== 'success'; 
-  const isPaid = statusNum === 2 || pStatus === 'success';
+  const isPaid = pStatus === 'success';
   const isAccepted = statusNum === 1; // Restaurant Confirmed
-  const isPreparing = statusNum === 3;
-  const isReady = statusNum === 4;
-  const _isDelivering = statusNum === 5;
+  const isPreparing = statusNum === 2;
+  const isReady = statusNum === 3;
+  const _isDelivering = statusNum === 4;
   
   const diffMin = order.createdAt ? (Date.now() - new Date(order.createdAt).getTime()) / 60000 : 0;
-  const isCritical = diffMin >= 25 && [0, 1, 2, 3].includes(statusNum);
+  const isCritical = diffMin >= 25 && [0, 1, 2].includes(statusNum);
 
   const { catalog } = useSelector(state => state.restaurantOrders);
   const [itemMods, setItemMods] = useState({}); // { itemId: { ingName: 'excluded' | 'extra' | 'normal' } }
@@ -307,18 +311,18 @@ export function OrderCard({ order, onAccept, onReject, onStartCooking, onMarkRea
       <div className="flex justify-between items-center">
         <span className="font-bold text-white text-base">{order.totalPrice || 0} ₴</span>
         <div className="flex gap-2">
-          {(isPaid || isUnpaid) && onAccept && onReject && (
+          {statusNum === 0 && onAccept && onReject && (
             <>
               <button onClick={() => onReject(order)} className="px-3 py-2 rounded-lg bg-danger/10 text-danger border border-danger/20 hover:bg-danger hover:text-white transition-all text-xs font-bold">ВІДМОВА</button>
               <button onClick={() => onAccept(order)} className="px-3 py-2 rounded-lg bg-success text-white hover:bg-success/90 transition-all text-xs font-bold">ПРИЙНЯТИ</button>
             </>
           )}
-          {(isAccepted || isPaid) && onStartCooking && (
+          {statusNum === 1 && onStartCooking && (
             <button onClick={() => onStartCooking(order)} className="px-6 py-2.5 rounded-xl bg-secondary text-white shadow-glow-secondary hover:bg-secondary/90 transition-all text-sm font-black flex items-center gap-2">
               <ChefHat className="w-4 h-4" /> ПОЧАТИ ГОТУВАННЯ
             </button>
           )}
-          {isPreparing && (
+          {statusNum === 2 && onMarkReady && (
             <button onClick={() => onMarkReady(order)} className="px-6 py-2.5 rounded-xl bg-success text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:bg-success/90 transition-all text-sm font-black flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" /> ПРИГОТОВАНО
             </button>

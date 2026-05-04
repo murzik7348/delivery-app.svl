@@ -8,8 +8,8 @@ export const fetchRestaurantDeliveries = (params = { page: 1, pageSize: 50, stat
   return client.get('/restaurant/deliveries', { params: query });
 };
 
-export const acceptDelivery = (id) =>
-  client.put(`/restaurant/deliveries/${id}/confirm`, {});
+export const acceptDelivery = (id, data = {}) =>
+  client.put(`/restaurant/deliveries/${id}/confirm`, data);
 
 export const confirmDelivery = (id, data = {}) => {
   console.log('🛠️ [API] Confirming delivery for ID:', id, 'Data:', data);
@@ -23,9 +23,9 @@ export const startPreparing = (id) =>
 export const markReady = (id) =>
   client.put(`/restaurant/deliveries/${id}/ready`);
 
-// 0=created, 2=paid, 1=accepted, 3=preparing, 4=ready, 5=delivering, 6=delivered, 7=canceled
+// 0=created, 1=accepted, 2=preparing, 3=ready_for_pickup, 4=delivering, 5=delivered, 6=canceled
 export const DELIVERY_STATUS = {
-  0: 'created', 2: 'paid', 1: 'accepted', 3: 'preparing', 4: 'ready', 5: 'delivering', 6: 'delivered', 7: 'canceled',
+  0: 'created', 1: 'accepted', 2: 'preparing', 3: 'ready_for_pickup', 4: 'delivering', 5: 'delivered', 6: 'canceled',
 };
 
 export const cancelDelivery = (id, reason) =>

@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { LayoutDashboard, Users, ShoppingBag, List, Settings, LogOut, Crown } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, List, Settings, LogOut, Crown, Truck } from 'lucide-react';
 import { logout } from '../store/slices/authSlice';
 
 const menuItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/orders', icon: ShoppingBag, label: 'Orders' },
+  { path: '/couriers', icon: Truck, label: 'Couriers' },
   { path: '/users', icon: Users, label: 'Users' },
   { path: '/catalog', icon: List, label: 'Catalog' },
   { path: '/settings', icon: Settings, label: 'Settings' },

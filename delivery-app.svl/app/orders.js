@@ -45,15 +45,18 @@ export default function OrdersTabScreen() {
   }, [dispatch]);
 
   const renderOrderItem = ({ item }) => {
-    const statusNum = Number(item.statusDelivery || item.status || 0);
-    // Align with order-details config
+    // Prioritize numeric deliveryStatus from our normalization or backend
+    const sNum = item.deliveryStatus ?? Number(item.statusDelivery ?? item.status ?? 0);
+    const activeStatus = String(item.statusDelivery ?? item.status ?? 'created').toLowerCase();
+    
+    // Align with order-details config (0-6)
     let color = '#8e44ad';
-    if (statusNum >= 6 || item.status === 'completed' || item.status === 'delivered') color = '#2ecc71';
-    else if (statusNum === 5 || item.status === 'delivering') color = '#3498db';
-    else if (statusNum === 4 || item.status === 'ready_for_pickup') color = '#f39c12';
-    else if (statusNum === 3 || item.status === 'preparing') color = '#f39c12';
-    else if (statusNum === 2 || item.status === 'paid') color = '#2ecc71';
-    else if (statusNum === 1 || item.status === 'accepted') color = '#2ecc71';
+    if (sNum === 6 || activeStatus === 'canceled' || activeStatus === 'cancelled') color = '#e74c3c';
+    else if (sNum === 5 || activeStatus === 'delivered' || activeStatus === 'completed') color = '#2ecc71';
+    else if (sNum === 4 || activeStatus === 'delivering' || activeStatus === 'picked_up') color = '#3498db';
+    else if (sNum === 3 || activeStatus === 'ready_for_pickup' || activeStatus === 'ready') color = '#f39c12';
+    else if (sNum === 2 || activeStatus === 'preparing') color = '#f39c12';
+    else if (sNum === 1 || activeStatus === 'accepted') color = '#2ecc71';
 
     return (
       <TouchableOpacity
@@ -79,7 +82,7 @@ export default function OrdersTabScreen() {
         <View style={styles.divider} />
 
         <View style={styles.cardFooter}>
-          <StatusBadge status={item.statusDelivery || item.status} locale={locale} />
+          <StatusBadge order={item} locale={locale} />
           <View style={styles.detailsBtn}>
             <Text style={styles.detailsText}>{t(locale, 'details')}</Text>
             <Ionicons name="chevron-forward" size={16} color="#e334e3" />
@@ -147,34 +150,35 @@ export default function OrdersTabScreen() {
   );
 }
 
-function StatusBadge({ status, locale }) {
+function StatusBadge({ order, locale }) {
   let color = '#8e44ad';
   let text = locale === 'en' ? 'New' : 'Новий';
   let icon = 'receipt';
 
-  const statusNum = Number(status || 0);
+  const s = String(order.statusDelivery ?? order.status ?? '0').toLowerCase();
+  const num = order.deliveryStatus ?? Number(s);
 
-  if (statusNum >= 6 || status === 'completed' || status === 'delivered') {
+  if (num === 6 || s === 'canceled' || s === 'cancelled') {
+    color = '#e74c3c';
+    text = locale === 'en' ? 'Canceled' : 'Скасовано';
+    icon = 'close-circle';
+  } else if (num === 5 || s === 'delivered' || s === 'completed') {
     color = '#2ecc71';
     text = locale === 'en' ? 'Delivered' : 'Доставлено';
     icon = 'home';
-  } else if (statusNum === 5 || status === 'delivering') {
+  } else if (num === 4 || s === 'delivering' || s === 'picked_up') {
     color = '#3498db';
     text = locale === 'en' ? 'Delivering' : 'Хутко мчить';
     icon = 'bicycle';
-  } else if (statusNum === 4 || status === 'ready_for_pickup') {
+  } else if (num === 3 || s === 'ready_for_pickup' || s === 'ready') {
     color = '#f39c12';
     text = locale === 'en' ? 'Ready' : 'Готово до видачі';
     icon = 'cube';
-  } else if (statusNum === 3 || status === 'preparing') {
+  } else if (num === 2 || s === 'preparing') {
     color = '#f39c12';
     text = locale === 'en' ? 'Cooking' : 'Готується';
     icon = 'flame';
-  } else if (statusNum === 2 || status === 'paid') {
-    color = '#2ecc71';
-    text = locale === 'en' ? 'Paid' : 'Оплачено';
-    icon = 'card';
-  } else if (statusNum === 1 || status === 'accepted') {
+  } else if (num === 1 || s === 'accepted') {
     color = '#2ecc71';
     text = locale === 'en' ? 'Confirmed' : 'Підтверджено';
     icon = 'checkmark-circle';

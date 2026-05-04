@@ -54,21 +54,15 @@ client.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
 
-        console.log(`\n============== 🚀 API REQUEST 🚀 ==============`);
-        console.log(`URL: ${config.baseURL || ''}${config.url}`);
-        console.log(`Method: ${config.method?.toUpperCase()}`);
-        console.log(`Headers:`, JSON.stringify(config.headers || {}, null, 2));
-        if (config.data) {
-            console.log(`Body:`, JSON.stringify(config.data, null, 2));
+        // Minimal logging for development if not in quiet mode
+        if (!config._quiet) {
+            console.log(`📡 [API] ${config.method?.toUpperCase()} ${config.url}`);
         }
-        console.log(`===============================================\n`);
 
         return config;
     },
     (error) => {
-        console.log(`\n============== ❌ API REQUEST ERROR ❌ ==============`);
-        console.error(error);
-        console.log(`=====================================================\n`);
+        console.error(`❌ [API Request Error]`, error);
         return Promise.reject(error);
     },
 );
@@ -90,16 +84,6 @@ const processQueue = (error, token = null) => {
 
 client.interceptors.response.use(
     (response) => {
-        console.log(`\n============== ✅ API RESPONSE ✅ ==============`);
-        console.log(`URL: ${response.config?.url}`);
-        console.log(`Status: ${response.status}`);
-        try {
-            const dataStr = JSON.stringify(response.data, null, 2) || '';
-            console.log(`Data:`, dataStr.length > 500 ? dataStr.substring(0, 500) + '... (truncated)' : dataStr);
-        } catch (e) {
-            console.log(`Data: [Unserializable]`);
-        }
-        console.log(`================================================\n`);
         return response.data;
     },
     async (error) => {
@@ -180,13 +164,10 @@ client.interceptors.response.use(
         const isSilent = error.config?._silentErrors?.includes(error.response?.status);
 
         if (!isSilent) {
-            console.log(`\n============== ❌ API ERROR RESPONSE ❌ ==============`);
             if (error.response) {
-                console.log(`URL: ${error.config?.url}`);
-                console.log(`Status: ${error.response.status}`);
-                console.log(`Response Data:`, JSON.stringify(error.response.data || {}, null, 2));
+                console.warn(`❌ [API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url} (${error.response.status}):`, 
+                    JSON.stringify(error.response.data || {}, null, 2));
             }
-            console.log(`======================================================\n`);
         }
         if (error.response) {            // Auto-logout as last resort if no refresh possible
             if (

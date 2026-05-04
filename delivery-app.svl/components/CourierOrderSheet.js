@@ -11,80 +11,97 @@ import {
     Alert,
     Linking,
     TouchableWithoutFeedback,
+    Platform,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
 import Colors from '../constants/Colors';
 import * as ImagePicker from 'expo-image-picker';
+import { BlurView } from 'expo-blur';
 import {
     courierAcceptOrderThunk,
     courierPickupOrderThunk,
     courierConfirmOrderThunk,
     fetchCourierOrders,
     updateActiveOrderStatus,
+    completeActiveOrder,
 } from '../store/courierSlice';
 import { t } from '../constants/translations';
 import { useSelector } from 'react-redux';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
+import SwipeButton from './SwipeButton';
 
 export default function CourierOrderSheet({ visible, onClose, order }) {
     const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
     const theme = Colors[colorScheme ?? 'light'];
     const insets = useSafeAreaInsets();
     const dispatch = useDispatch();
     const locale = useSelector((state) => state.language?.locale ?? 'uk');
     const user = useSelector((state) => state.auth.user);
     
-    // Photo state for delivery confirmation
-    const [deliveryPhoto, setDeliveryPhoto] = useState(null);
+    // Get live order data from store to stay synced
+    const activeOrders = useSelector((state) => state.courier.activeOrders || []);
+    const availableOrders = useSelector((state) => state.courier.availableOrders || []);
+    const completedOrders = useSelector((state) => state.courier.completedOrders || []);
+    
+    const liveOrder = [...activeOrders, ...availableOrders, ...completedOrders].find(o => o.id === order?.id) || order;
 
-    if (!order) return null;
+    // Local states
+    const [deliveryPhoto, setDeliveryPhoto] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    if (!liveOrder) return null;
 
     const pickImage = async () => {
-        let result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 0.7,
-        });
+        try {
+            // Request camera permissions first
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert(
+                    locale === 'en' ? 'Permission Needed' : 'Потрібен дозвіл',
+                    locale === 'en' ? 'We need camera access to take a photo of the delivery.' : 'Нам потрібен доступ до камери, щоб зробити фото доставки.'
+                );
+                return;
+            }
 
-        if (!result.canceled) {
-            setDeliveryPhoto(result.assets[0].uri);
+            let result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['images'], // Updated from deprecated MediaTypeOptions
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.7,
+            });
+
+            if (!result.canceled) {
+                setDeliveryPhoto(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.error('Camera Error:', error);
+            Alert.alert(locale === 'en' ? 'Camera Error' : 'Помилка камери', error.message);
         }
     };
 
     const handleAcceptOrder = async () => {
+        setIsSubmitting(true);
         try {
-            const resultAction = await dispatch(courierAcceptOrderThunk(order.id));
+            const resultAction = await dispatch(courierAcceptOrderThunk(liveOrder.id));
+            setIsSubmitting(false);
             if (courierAcceptOrderThunk.fulfilled.match(resultAction)) {
                 onClose();
                 Alert.alert(
                     locale === 'en' ? 'Accepted!' : 'Прийнято!',
                     locale === 'en' ? 'Order is now assigned to you.' : 'Замовлення тепер закріплене за вами.'
                 );
-                // Wait slightly before refetching to allow backend to update its indices
-                // This prevents the order from 'disappearing' for a second during the sync
-                setTimeout(() => {
-                    dispatch(fetchCourierOrders());
-                }, 1500);
             } else {
                 const error = resultAction.payload;
-                const isAlreadyTaken = error === 'Delivery already taken' || (typeof error === 'string' && error.includes('ALREADY_TAKEN'));
-                
-                if (isAlreadyTaken) {
-                    Alert.alert(
-                        locale === 'en' ? 'Order Already Taken' : 'Замовлення вже зайняте',
-                        locale === 'en' ? 'Sorry, another courier has already accepted this order.' : 'Вибачте, інший кур\'єр вже прийняв це замовлення.'
-                    );
-                    onClose();
-                    dispatch(fetchCourierOrders());
-                } else {
-                    Alert.alert(locale === 'en' ? 'Error' : 'Помилка', error || (locale === 'en' ? 'Failed to accept order' : 'Не вдалося прийняти замовлення'));
-                    dispatch(fetchCourierOrders());
-                }
+                const errorStr = String(error || '');
+                Alert.alert(locale === 'en' ? 'Error' : 'Помилка', errorStr || (locale === 'en' ? 'Failed to accept order' : 'Не вдалося прийняти замовлення'));
             }
+            dispatch(fetchCourierOrders());
         } catch (e) {
+            setIsSubmitting(false);
             Alert.alert(locale === 'en' ? 'Error' : 'Помилка', e.message);
         }
     };
@@ -93,24 +110,40 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
         dispatch(updateActiveOrderStatus(nextStatus));
     };
 
-    const handleConfirmDelivery = () => {
-        if (!deliveryPhoto) {
+    const handleConfirmDelivery = async () => {
+        // Photo is currently optional since backend doesn't support upload yet
+        
+        console.log(`[CourierAction] Attempting Delivery Confirm for order ${liveOrder.id}`);
+        setIsSubmitting(true);
+        const resultAction = await dispatch(courierConfirmOrderThunk(liveOrder.id));
+        setIsSubmitting(false);
+
+        if (courierConfirmOrderThunk.fulfilled.match(resultAction)) {
+            console.log(`[CourierAction] Delivery Confirm SUCCESS for order ${liveOrder.id}`);
             Alert.alert(
-                locale === 'en' ? 'Photo Required' : 'Потрібне фото',
-                locale === 'en' ? 'Please take a photo of the delivered order to confirm.' : 'Будь ласка, зробіть фото доставленого замовлення для підтвердження.'
+                locale === 'en' ? 'Delivered!' : 'Доставлено!',
+                locale === 'en' ? 'Order completed successfully.' : 'Замовлення успішно завершено.'
             );
-            return;
+            onClose();
+        } else {
+            const errorPayload = resultAction.payload;
+            const errorMsg = String(typeof errorPayload === 'object' ? errorPayload?.message || errorPayload?.code : errorPayload || '');
+            
+            console.error(`[CourierAction] Delivery Confirm ERROR for order ${liveOrder.id}: ${errorMsg}`);
+            Alert.alert(
+                locale === 'en' ? 'Error' : 'Помилка', 
+                errorMsg || (locale === 'en' ? 'Failed to confirm delivery' : 'Не вдалося підтвердити доставку')
+            );
         }
-        dispatch(courierConfirmOrderThunk(order.id));
-        onClose();
+        dispatch(fetchCourierOrders());
     };
 
     const getReadyByTime = () => {
-        if (!order.createdAt || !order.cookingTimeMinutes) return null;
+        if (!liveOrder.createdAt || !liveOrder.cookingTimeMinutes) return null;
         try {
-            const createdDate = new Date(order.createdAt);
+            const createdDate = new Date(liveOrder.createdAt);
             if (isNaN(createdDate.getTime())) return null;
-            const readyByDate = new Date(createdDate.getTime() + order.cookingTimeMinutes * 60000);
+            const readyByDate = new Date(createdDate.getTime() + liveOrder.cookingTimeMinutes * 60000);
             return readyByDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         } catch (e) {
             return null;
@@ -119,25 +152,27 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
 
     const renderWorkflowButtons = () => {
         // Statuses from courierSlice: created, accepted, paid, preparing, ready_for_pickup, delivering, completed, canceled
-        switch (order.status) {
+        switch (liveOrder.status) {
             case 'created':
             case 'pending':
-            case 'paid':
             case 'preparing':
             case 'accepted':
                 // Check if this courier is already assigned
-                if (!order.isBooked) {
+                if (!liveOrder.isBooked) {
                     return (
-                        <TouchableOpacity style={styles.primaryBtn} onPress={handleAcceptOrder}>
-                            <Text style={styles.btnText}>
-                                {locale === 'en' ? 'Accept Order' : 'Прийняти замовлення'}
-                            </Text>
-                        </TouchableOpacity>
+                        <SwipeButton 
+                            title={locale === 'en' ? 'Swipe to Accept' : 'Свайпніть, щоб прийняти'} 
+                            onSwipeSuccess={handleAcceptOrder} 
+                            isLoading={isSubmitting} 
+                            isDark={isDark} 
+                            color="#e334e3" 
+                            icon="chevron-forward"
+                        />
                     );
                 }
                 
                 const currentUserId = user?.userId || user?.id;
-                if (Number(order.courierId) !== Number(currentUserId)) {
+                if (Number(liveOrder.courierId) !== Number(currentUserId)) {
                     return (
                         <View style={[styles.primaryBtn, { backgroundColor: '#e74c3c', opacity: 0.8, flexDirection: 'row' }]}>
                             <Ionicons name="lock-closed" size={20} color="white" style={{ marginRight: 10 }} />
@@ -150,7 +185,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                 
                 // If already booked/assigned but not delivering yet
                 return (
-                    <View style={[styles.infoBox, { backgroundColor: theme.input }]}>
+                    <View style={[styles.infoBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                         <Ionicons name="time-outline" size={24} color="#e67e22" />
                         <Text style={{ color: theme.text, fontWeight: 'bold', marginLeft: 10 }}>
                             {locale === 'en' ? 'Wait for pickup' : 'Очікуйте на видачу'}
@@ -158,18 +193,21 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                     </View>
                 );
             case 'ready_for_pickup':
-                if (!order.isBooked) {
+                if (!liveOrder.isBooked) {
                    return (
-                        <TouchableOpacity style={styles.primaryBtn} onPress={handleAcceptOrder}>
-                            <Text style={styles.btnText}>
-                                {locale === 'en' ? 'Accept & Pick Up' : 'Прийняти та забрати'}
-                            </Text>
-                        </TouchableOpacity>
+                        <SwipeButton 
+                            title={locale === 'en' ? 'Swipe to Accept & Pick Up' : 'Свайпніть, щоб прийняти і забрати'} 
+                            onSwipeSuccess={handleAcceptOrder} 
+                            isLoading={isSubmitting} 
+                            isDark={isDark} 
+                            color="#e334e3" 
+                            icon="chevron-forward"
+                        />
                     );
                 }
 
                 const currentUserIdReady = user?.userId || user?.id;
-                if (Number(order.courierId) !== Number(currentUserIdReady)) {
+                if (Number(liveOrder.courierId) !== Number(currentUserIdReady)) {
                     return (
                         <View style={[styles.primaryBtn, { backgroundColor: '#e74c3c', opacity: 0.8, flexDirection: 'row' }]}>
                             <Ionicons name="lock-closed" size={20} color="white" style={{ marginRight: 10 }} />
@@ -180,17 +218,48 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                     );
                 }
                 return (
-                    <TouchableOpacity
-                        style={styles.primaryBtn}
-                        onPress={() => {
-                            dispatch(courierPickupOrderThunk(order.id));
-                            handleNextStage('delivering');
-                        }}
-                    >
-                        <Text style={styles.btnText}>
-                            {locale === 'en' ? 'Pick Up from Restaurant' : 'Забрати з ресторану'}
-                        </Text>
-                    </TouchableOpacity>
+                    <SwipeButton 
+                        title={locale === 'en' ? 'Swipe to Pick Up' : 'Свайпніть, щоб забрати'} 
+                        onSwipeSuccess={async () => {
+                            console.log(`[CourierAction] Attempting Pickup for order ${liveOrder.id}`);
+                            setIsSubmitting(true);
+                            const result = await dispatch(courierPickupOrderThunk(liveOrder.id));
+                            setIsSubmitting(false);
+                            
+                            if (courierPickupOrderThunk.fulfilled.match(result)) {
+                                console.log(`[CourierAction] Pickup SUCCESS for order ${liveOrder.id}`);
+                                Alert.alert(
+                                    locale === 'en' ? 'Picked Up!' : 'Забрано!',
+                                    locale === 'en' ? 'Deliver to the client.' : 'Прямуйте до клієнта.'
+                                );
+                                dispatch(fetchCourierOrders());
+                            } else if (courierPickupOrderThunk.rejected.match(result)) {
+                                const errorMsg = String(result.payload || '');
+                                if (
+                                    errorMsg.includes('ALREADY_PICKED_UP') || 
+                                    errorMsg.includes('DELIVERY_STATUS_NOT_CHANGED') ||
+                                    errorMsg.includes('cannot be picked up')
+                                ) {
+                                    console.log(`[CourierAction] Pseudo-SUCCESS (Already picked up) for order ${liveOrder.id}`);
+                                    Alert.alert(
+                                        locale === 'en' ? 'Picked Up!' : 'Забрано!',
+                                        locale === 'en' ? 'Deliver to the client.' : 'Прямуйте до клієнта.'
+                                    );
+                                    dispatch(fetchCourierOrders());
+                                } else {
+                                    console.error(`[CourierAction] Pickup ERROR for order ${liveOrder.id}: ${errorMsg}`);
+                                    Alert.alert(
+                                        locale === 'en' ? 'Pickup Failed' : 'Помилка видачі',
+                                        errorMsg || (locale === 'en' ? 'Server error during pickup.' : 'Помилка сервера під час видачі.')
+                                    );
+                                }
+                            }
+                        }} 
+                        isLoading={isSubmitting} 
+                        isDark={isDark} 
+                        color="#3498db" 
+                        icon="cube-outline"
+                    />
                 );
             case 'delivering':
                 return (
@@ -208,20 +277,21 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                             )}
                         </TouchableOpacity>
 
-                        <TouchableOpacity 
-                            style={[styles.primaryBtn, { opacity: deliveryPhoto ? 1 : 0.5 }]} 
-                            onPress={handleConfirmDelivery}
-                            disabled={!deliveryPhoto}
-                        >
-                            <Text style={styles.btnText}>
-                                {locale === 'en' ? 'Confirm Delivery' : 'Підтвердити доставку'}
-                            </Text>
-                        </TouchableOpacity>
+                        <View style={{ opacity: 1 }}>
+                            <SwipeButton 
+                                title={locale === 'en' ? 'Swipe to Deliver' : 'Свайпніть, щоб віддати'} 
+                                onSwipeSuccess={handleConfirmDelivery} 
+                                isLoading={isSubmitting} 
+                                isDark={isDark} 
+                                color="#2ecc71" 
+                                icon="home-outline"
+                            />
+                        </View>
                     </View>
                 );
             default:
                 // Show nothing if order is completed, canceled or in an unknown state
-                if (order.status === 'completed') {
+                if (liveOrder.status === 'completed') {
                     return (
                         <View style={[styles.infoBox, { backgroundColor: '#2ecc7120' }]}>
                              <Ionicons name="checkmark-done-circle" size={24} color="#2ecc71" />
@@ -248,21 +318,23 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                     onPress={onClose}
                     style={StyleSheet.absoluteFill}
                 />
-                <View
-                    style={[styles.sheet, { backgroundColor: theme.card }]}
+                <BlurView
+                    intensity={isDark ? 40 : 80}
+                    tint={isDark ? 'dark' : 'light'}
+                    style={[styles.sheet, { backgroundColor: isDark ? 'rgba(30,30,30,0.7)' : 'rgba(255,255,255,0.8)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', borderWidth: 1 }]}
                 >
-                    <View style={styles.pill} />
+                    <View style={[styles.pill, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)' }]} />
                     
                     <View style={styles.header}>
                         <View>
                             <Text style={[styles.title, { color: theme.text }]}>
-                                {locale === 'en' ? 'Order' : 'Замовлення'} {formatOrderNumber(order.id)}
+                                {locale === 'en' ? 'Order' : 'Замовлення'} {formatOrderNumber(liveOrder.id)}
                             </Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                                 {(() => {
                                     const currentUserId = user?.userId || user?.id;
-                                    const isMine = Number(order.courierId) === Number(currentUserId);
-                                    const isBookedByOther = order.isBooked && !isMine;
+                                    const isMine = Number(liveOrder.courierId) === Number(currentUserId);
+                                    const isBookedByOther = liveOrder.isBooked && !isMine;
                                     
                                     if (isBookedByOther) {
                                         return (
@@ -308,25 +380,25 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                         contentContainerStyle={{ paddingBottom: 250 }}
                     >
                         <View style={styles.statsRow}>
-                            <View style={[styles.statBox, { backgroundColor: theme.input }]}>
+                            <View style={[styles.statBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                                 <Ionicons name="wallet-outline" size={24} color="#2ecc71" />
-                                <Text style={[styles.statValue, { color: theme.text }]}>{order.earnings} ₴</Text>
+                                <Text style={[styles.statValue, { color: theme.text }]}>{liveOrder.earnings} ₴</Text>
                                 <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
                                     {locale === 'en' ? 'Earnings' : 'Заробіток'}
                                 </Text>
                             </View>
-                            <View style={[styles.statBox, { backgroundColor: theme.input }]}>
+                            <View style={[styles.statBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                                 <Ionicons name="time-outline" size={24} color="#3498db" />
                                 <Text style={[styles.statValue, { color: theme.text }]}>
-                                    {getReadyByTime() || (order.cookingTimeMinutes ? `${order.cookingTimeMinutes}m` : '—')}
+                                    {getReadyByTime() || (liveOrder.cookingTimeMinutes ? `${liveOrder.cookingTimeMinutes}m` : '—')}
                                 </Text>
                                 <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
                                     {getReadyByTime() ? (locale === 'en' ? 'Ready by' : 'Готово до') : (locale === 'en' ? 'Cooking' : 'Готується')}
                                 </Text>
                             </View>
-                            <View style={[styles.statBox, { backgroundColor: theme.input }]}>
+                            <View style={[styles.statBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                                 <Ionicons name="barbell-outline" size={24} color="#e67e22" />
-                                <Text style={[styles.statValue, { color: theme.text }]}>{order.weight} kg</Text>
+                                <Text style={[styles.statValue, { color: theme.text }]}>{liveOrder.weight} kg</Text>
                                 <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
                                     {locale === 'en' ? 'Weight' : 'Вага'}
                                 </Text>
@@ -336,22 +408,22 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>
                             {locale === 'en' ? 'Customer' : 'Клієнт'}
                         </Text>
-                        <View style={[styles.navContainer, { backgroundColor: theme.input, marginBottom: 20 }]}>
+                        <View style={[styles.navContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', marginBottom: 20 }]}>
                             <View style={styles.navRow}>
                                 <Ionicons name="person-outline" size={20} color="#3498db" style={styles.navIcon} />
                                 <View style={styles.navTextContainer}>
                                     <Text style={[styles.navPrimaryText, { color: theme.text }]}>
-                                        {order.customerName}
+                                        {liveOrder.customerName}
                                     </Text>
                                     <View style={styles.rowBetween}>
                                         <Text style={[styles.navSecondaryText, { color: theme.textSecondary }]}>
-                                            {order.status === 'delivering' ? order.customerPhone : '****'}
+                                            {liveOrder.status === 'delivering' ? liveOrder.customerPhone : '****'}
                                         </Text>
-                                        {order.status === 'delivering' && (
+                                        {liveOrder.status === 'delivering' && (
                                             <TouchableOpacity
                                                 style={styles.callBtn}
                                                 onPress={() => {
-                                                    const phone = order.customerPhone?.replace(/[^+\d]/g, '');
+                                                    const phone = liveOrder.customerPhone?.replace(/[^+\d]/g, '');
                                                     if (phone && phone.length >= 7) {
                                                         Linking.openURL(`tel:${phone}`);
                                                     } else {
@@ -374,7 +446,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>
                             {locale === 'en' ? 'Locations' : 'Локації'}
                         </Text>
-                        <View style={[styles.navContainer, { backgroundColor: theme.input }]}>
+                        <View style={[styles.navContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                             <View style={styles.navRow}>
                                 <Ionicons name="restaurant-outline" size={20} color="#e334e3" style={styles.navIcon} />
                                 <View style={styles.navTextContainer}>
@@ -383,11 +455,11 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                                             {locale === 'en' ? 'To Shop' : 'В заклад'}
                                         </Text>
                                         <Text style={[styles.navSecondaryText, { color: theme.textSecondary }]}>
-                                            {order.navigationStats.toShopDistance || order.totalDistance}
+                                            {liveOrder.navigationStats.toShopDistance || liveOrder.totalDistance}
                                         </Text>
                                     </View>
                                     <Text style={[styles.restaurantNameSmall, { color: theme.textSecondary }]} numberOfLines={1}>
-                                        {order.restaurantName}
+                                        {liveOrder.restaurantName}
                                     </Text>
                                 </View>
                             </View>
@@ -400,21 +472,21 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                                             {locale === 'en' ? 'To Client' : 'До клієнта'}
                                         </Text>
                                         <Text style={[styles.navSecondaryText, { color: theme.textSecondary }]}>
-                                            {order.navigationStats.toClientDistance || '—'}
+                                            {liveOrder.navigationStats.toClientDistance || '—'}
                                         </Text>
                                     </View>
                                     <Text style={[styles.navSecondaryText, { color: theme.textPrimary, fontWeight: 'bold' }]} numberOfLines={2}>
-                                        { (Number(order.courierId) === Number(user?.userId || user?.id)) ? order.address : (locale === 'en' ? 'Address hidden (Book first)' : 'Адреса прихована (Забронюйте)') }
+                                        { (Number(liveOrder.courierId) === Number(user?.userId || user?.id)) ? liveOrder.address : (locale === 'en' ? 'Address hidden (Book first)' : 'Адреса прихована (Забронюйте)') }
                                     </Text>
                                 </View>
                             </View>
                         </View>
 
                         <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 20 }]}>
-                            {locale === 'en' ? 'Order Contents' : 'Вміст замовлення'} - {order.restaurantName}
+                            {locale === 'en' ? 'Order Contents' : 'Вміст замовлення'} - {liveOrder.restaurantName}
                         </Text>
-                        <View style={[styles.itemsContainer, { backgroundColor: theme.input }]}>
-                            {order.items.map((item, index) => (
+                        <View style={[styles.itemsContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+                            {liveOrder.items.map((item, index) => (
                                 <View key={index} style={styles.itemRow}>
                                     <Text style={[styles.itemName, { color: theme.text }]}>{item.name}</Text>
                                     <Text style={[styles.itemQty, { color: theme.textSecondary }]}>x{item.quantity}</Text>
@@ -425,11 +497,11 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
 
                     {/* Fixed Sticky Footer for Actions */}
                     <View style={[styles.fixedFooter, { 
-                        backgroundColor: theme.card, 
-                        borderTopColor: theme.border,
+                        backgroundColor: 'transparent', 
+                        borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                         paddingBottom: Math.max(insets.bottom, 20) 
                     }]}>
-                        {(!order.address || order.address === 'Address N/A') && (
+                        {(!liveOrder.address || liveOrder.address === 'Address N/A') && (
                             <View style={styles.warningBox}>
                                 <Ionicons name="warning-outline" size={16} color="#e67e22" />
                                 <Text style={styles.warningText}>
@@ -439,7 +511,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                         )}
                         {renderWorkflowButtons()}
                     </View>
-                </View>
+                </BlurView>
             </View>
         </Modal>
     );

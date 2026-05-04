@@ -43,7 +43,7 @@ const rootReducer = (state, action) => {
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['cart', 'auth', 'orders', 'favorites', 'location', 'language', 'courier'], // Only persist these slices
+  whitelist: ['cart', 'auth', 'favorites', 'location', 'language'], // orders/courier fetched fresh from server on login — NOT persisted to avoid cross-account leakage
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -53,6 +53,7 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false, // Required for Redux Persist
+      immutableCheck: false,    // Disable to prevent lag with large order lists in dev mode
     }),
 });
 

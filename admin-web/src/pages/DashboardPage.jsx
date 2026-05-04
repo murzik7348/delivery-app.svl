@@ -202,8 +202,11 @@ export default function DashboardPage() {
   }, [dispatch]);
 
   const totalRevenue = orders.reduce((sum, order) => sum + (order.totalPrice || order.total || 0), 0);
-  const newOrdersCount = orders.filter(o => o.status === 0 || o.status === 'accepted').length;
-  const couriersCount = users.filter(u => u.role === 'courier' || u.role === 1).length;
+  const newOrdersCount = orders.filter(o => {
+    const num = Number(o.deliveryStatus || o.status);
+    return num === 0 || num === 1;
+  }).length;
+  const couriersCount = users.filter(u => u.role === 'courier' || u.role === 1 || String(u.role).toLowerCase() === 'courier').length;
 
   // Real Top Restaurants Calculation
   const restaurantStats = orders.reduce((acc, order) => {
