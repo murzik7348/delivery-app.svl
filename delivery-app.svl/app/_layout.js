@@ -1,4 +1,4 @@
-import { Stack, usePathname } from "expo-router";
+import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import { Provider } from "react-redux";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { store, persistor } from "../store";
@@ -16,15 +16,15 @@ import BottomBar from './components/BottomBar';
 // import AiAssistantFAB from '../components/AiAssistantFAB';
 // import AiChatSheet from '../components/AiChatSheet';
 
-/**
- * Loads user data and addresses on app startup if already authenticated (persistent login).
- * fetchMe refreshes user profile from backend (including role).
- */
 function AppStartup() {
   const dispatch = useDispatch();
   const isAuthenticated = useSelector(s => s.auth?.isAuthenticated);
   const { expoPushToken } = usePushNotifications();
+  const router = useRouter();
+  const segments = useSegments();
+  const pathname = usePathname();
 
+  // Global Auth Guard
   useEffect(() => {
     let interval;
     if (isAuthenticated) {
@@ -36,11 +36,21 @@ function AppStartup() {
       interval = setInterval(() => {
         dispatch(fetchOrders());
       }, 30000);
+    } else {
+      // If NOT authenticated, ensure we redirect to login
+      // We ignore the root index '/' since it has its own logic, 
+      // but if we somehow land on a protected screen, redirect immediately.
+      const inAuthGroup = segments[0] === '(auth)';
+      if (!inAuthGroup && pathname !== '/' && pathname) {
+        setTimeout(() => {
+          router.replace('/(auth)/login');
+        }, 0);
+      }
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, segments, pathname]);
 
   useEffect(() => {
     if (isAuthenticated && expoPushToken) {

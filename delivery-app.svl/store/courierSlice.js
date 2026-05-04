@@ -19,14 +19,15 @@ const initialState = {
 
 // Map backend delivery into UI model for the courier panel
 const mapDeliveryToCourierOrder = (d, currentUserId) => {
-  const courierId = d.courierId || d.courier_id || d.courier?.userId || d.courier?.id || d.courier?.user_id || 0;
+  const isMine = d._fromMy === true || (Number(d.courierId || d.courier_id || d.courier?.userId || d.courier?.id || d.courier?.user_id || 0) === Number(currentUserId) && currentUserId !== undefined);
+  const courierId = isMine ? currentUserId : (d.courierId || d.courier_id || d.courier?.userId || d.courier?.id || d.courier?.user_id || 0);
   const isBooked = !!(
+    isMine ||
     d.isBooked || 
     d.is_booked || 
-    courierId || 
+    d.courierId || 
     (d.courier && Object.keys(d.courier).length > 0)
   );
-  const isMine = Number(courierId) === Number(currentUserId) && currentUserId !== undefined;
 
   return {
     id: d.deliveryId || d.id,
@@ -117,13 +118,13 @@ export const fetchCourierOrders = createAsyncThunk(
       // Add general pool items
       poolResults.flat().forEach(item => {
         const id = item.deliveryId || item.id;
-        if (id) mergedMap.set(id, item);
+        if (id) mergedMap.set(id, { ...item, _fromMy: false });
       });
       
       // Add specifically assigned items (they might be in the pool too, but we prioritize /my data)
       myAssignedOrders.forEach(item => {
         const id = item.deliveryId || item.id;
-        if (id) mergedMap.set(id, item);
+        if (id) mergedMap.set(id, { ...item, _fromMy: true });
       });
 
       const list = Array.from(mergedMap.values());
