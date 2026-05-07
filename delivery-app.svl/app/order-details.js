@@ -267,8 +267,8 @@ export default function OrderDetailsScreen() {
               </View>
             </View>
 
-            {/* Courier Glassmorphism Card */}
-            {(currentStep >= 5 || courierPhoto) && (
+            {/* Courier Glassmorphism Card — visible from 'accepted' onwards */}
+            {(currentStep >= 1 || courierPhoto) && (
               <View style={styles.blurWrapper}>
                 <BlurView intensity={colorScheme === 'dark' ? 30 : 60} tint={colorScheme} style={styles.glassCard}>
                   <View style={styles.courierRow}>
@@ -298,6 +298,21 @@ export default function OrderDetailsScreen() {
                     </TouchableOpacity>
                   </View>
                 </BlurView>
+              </View>
+            )}
+
+            {/* Distance to client banner when delivering */}
+            {currentStep === 4 && order.navigationStats?.toClientDistance && (
+              <View style={[styles.distanceBanner, { backgroundColor: '#3498db12', borderColor: '#3498db30' }]}>
+                <Ionicons name="navigate" size={22} color="#3498db" />
+                <View style={{ marginLeft: 12 }}>
+                  <Text style={{ color: '#3498db', fontWeight: '800', fontSize: 13 }}>
+                    {locale === 'en' ? 'Courier is on the way' : 'Курєр вже їде'}
+                  </Text>
+                  <Text style={{ color: '#3498db', fontWeight: '900', fontSize: 20 }}>
+                    {order.navigationStats.toClientDistance}{order.navigationStats.toClientTime ? `  ·  ${order.navigationStats.toClientTime}` : ''}
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -451,4 +466,5 @@ const styles = StyleSheet.create({
 
   paidBadge: { backgroundColor: '#2ecc71', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 },
   paidBadgeText: { color: 'white', fontWeight: '800', fontSize: 12, textTransform: 'uppercase' },
+  distanceBanner: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, borderWidth: 1, padding: 16, marginBottom: 16 },
 });

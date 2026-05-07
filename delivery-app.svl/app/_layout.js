@@ -7,8 +7,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import usePushNotifications from '../hooks/usePushNotifications';
-import DynamicIsland from '../components/DynamicIsland';
-// import useLiveActivitySync from '../hooks/useLiveActivitySync';
+import useLiveActivitySync from '../hooks/useLiveActivitySync';
 import { fetchAddresses, fetchMe } from '../store/authSlice';
 import { fetchOrders } from '../store/ordersSlice';
 import { updatePushToken } from '../src/api';
@@ -98,11 +97,16 @@ export default function RootLayout() {
             
             {/* <AiAssistantFAB /> */}
             {/* <AiChatSheet /> */}
-            <DynamicIsland />
             <AppStartup />
+            <LiveActivityHookCaller />
           </View>
         </PersistGate>
       </Provider>
     </SafeAreaProvider>
   );
+}
+
+function LiveActivityHookCaller() {
+  useLiveActivitySync();
+  return null;
 }

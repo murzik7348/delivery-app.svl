@@ -6,6 +6,7 @@ import {
   courierBookDelivery,
   courierPickupDelivery,
   courierConfirmDelivery,
+  courierSetOnlineStatus,
 } from '../src/api';
 
 const initialState = {
@@ -181,6 +182,18 @@ export const courierConfirmOrderThunk = createAsyncThunk(
   }
 );
 
+export const updateOnlineStatusThunk = createAsyncThunk(
+  'courier/updateOnlineStatus',
+  async (isOnline, { rejectWithValue }) => {
+    try {
+      await courierSetOnlineStatus(isOnline);
+      return isOnline;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to update online status');
+    }
+  }
+);
+
 const courierSlice = createSlice({
   name: 'courier',
   initialState,
@@ -286,6 +299,12 @@ const courierSlice = createSlice({
           state.completedOrders.push({ ...order, status: 'completed' });
           state.activeOrders.splice(orderIdx, 1);
         }
+      })
+      .addCase(updateOnlineStatusThunk.fulfilled, (state, action) => {
+        state.isOnline = action.payload;
+      })
+      .addCase(updateOnlineStatusThunk.rejected, (state, action) => {
+        state.error = action.payload;
       })
       // Clear Entire state on logout
       .addCase('auth/logoutUser', () => initialState)

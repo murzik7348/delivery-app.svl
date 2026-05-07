@@ -7,7 +7,6 @@ import OrderService from '../services/OrderService';
 import { getLiqPayCheckout } from '../src/api';
 import { addOrder } from '../store/ordersSlice';
 import { clearCart } from '../store/cartSlice';
-import { showDynamicIsland } from '../store/uiSlice';
 
 /**
  * useCheckoutFlow manages the complex state and validation rules for submitting an order.
@@ -109,13 +108,6 @@ export default function useCheckoutFlow() {
             dispatch(addOrder(serverOrder));
             dispatch(clearCart());
             console.log('[STEP 4] Cart cleared and order saved to local Redux store.');
-
-            dispatch(showDynamicIsland({
-                title: locale === 'en' ? 'Success!' : 'Успішно!',
-                message: locale === 'en' ? 'Order placed 🎉' : 'Замовлення оформлено 🎉',
-                icon: 'checkmark-circle',
-                type: 'success',
-            }));
 
             const isOnlinePayment = activePayment?.id === '1' || 
                                     activePayment?.id === '2' || 

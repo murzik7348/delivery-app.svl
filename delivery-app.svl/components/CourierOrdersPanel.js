@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import Colors from '../constants/Colors';
 import CourierOrderSheet from './CourierOrderSheet';
-import { fetchCourierOrders, setOnlineStatus } from '../store/courierSlice';
+import { fetchCourierOrders, updateOnlineStatusThunk } from '../store/courierSlice';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { courierUpdateLocation } from '../src/api';
 import * as Location from 'expo-location';
@@ -41,9 +41,9 @@ export default function CourierOrdersPanel() {
         }
     }, [activeOrders.length, isLoading]);
 
-    // Online status is local-only (backend /courier/status endpoint does not exist yet).
+    // Online status is synchronized with the backend.
     const toggleOnlineStatus = () => {
-        dispatch(setOnlineStatus(!isOnline));
+        dispatch(updateOnlineStatusThunk(!isOnline));
     };
 
     const openOrderDetails = (order) => {
@@ -75,7 +75,7 @@ export default function CourierOrdersPanel() {
                 try {
                     const { status } = await Location.requestForegroundPermissionsAsync();
                     if (status !== 'granted') {
-                        dispatch(setOnlineStatus(false));
+                        dispatch(updateOnlineStatusThunk(false));
                         return;
                     }
 
