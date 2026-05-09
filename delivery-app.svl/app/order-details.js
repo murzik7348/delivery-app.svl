@@ -15,6 +15,7 @@ import { fetchOrderDetails, confirmOrder } from '../store/ordersSlice';
 import * as Haptics from 'expo-haptics';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { safeBack } from '../utils/navigation';
+import { syncLiveActivity, endActivity } from '../services/LiveActivityService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -138,10 +139,23 @@ export default function OrderDetailsScreen() {
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
 
       if (!id) return;
-      dispatch(fetchOrderDetails(id));
-      intervalRef.current = setInterval(() => {
-        dispatch(fetchOrderDetails(id));
-      }, 10000); // Polling every 10s for snappier updates
+
+      const fetchAndSync = async () => {
+        const result = await dispatch(fetchOrderDetails(id));
+        const updatedOrder = result?.payload;
+        if (updatedOrder) {
+          const s = updatedOrder.statusDelivery ?? updatedOrder.status ?? '';
+          const terminal = ['delivered', 'completed', 'canceled', 'cancelled', '5', '6'].includes(String(s).toLowerCase());
+          if (terminal) {
+            await endActivity();
+          } else {
+            await syncLiveActivity(updatedOrder);
+          }
+        }
+      };
+
+      fetchAndSync();
+      intervalRef.current = setInterval(fetchAndSync, 10000);
 
       return () => clearInterval(intervalRef.current);
     }, [id, dispatch])

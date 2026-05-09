@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 func resizableImage(imageName: String) -> some View {
@@ -31,3 +32,4 @@ extension View {
     onPreferenceChange(ContainerSizeKey.self, perform: perform)
   }
 }
+#endif

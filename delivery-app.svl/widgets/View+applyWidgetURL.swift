@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 private let cachedScheme: String? = {
@@ -22,3 +23,4 @@ extension View {
     }
   }
 }
+#endif

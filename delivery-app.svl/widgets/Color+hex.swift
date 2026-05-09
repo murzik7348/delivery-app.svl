@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 extension Color {
@@ -35,3 +36,4 @@ extension Color {
     }
   }
 }
+#endif
