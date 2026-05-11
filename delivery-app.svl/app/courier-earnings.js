@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import { useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { BlurView } from 'expo-blur';
-import { formatUkraineDate } from '../constants/dateUtils';
+import { formatUkraineDate } from '../utils/dateUtils';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { safeBack } from '../utils/navigation';
 import BackButton from '../components/BackButton';
@@ -17,7 +17,7 @@ export default function CourierEarningsScreen() {
     const theme = Colors[colorScheme ?? 'light'];
     const isDark = colorScheme === 'dark';
     const locale = useSelector((state) => state.language?.locale ?? 'uk');
-    
+
     // Using completedOrders from Redux courierSlice
     const completedOrders = useSelector((state) => state.courier.completedOrders || []);
 
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 },
     backBtn: { width: 34, height: 34, justifyContent: 'center', alignItems: 'flex-start' },
     headerTitle: { fontSize: 22, fontWeight: '800' },
-    
+
     statsContainer: { flexDirection: 'row', paddingHorizontal: 20, gap: 15, marginBottom: 30 },
     statBox: { flex: 1, padding: 20, borderRadius: 24, overflow: 'hidden' },
     statLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 12, marginBottom: 4, fontWeight: '600' },

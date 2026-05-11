@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Colors from '../../constants/Colors';
-import { t } from '../../constants/translations';
+import Colors from '../constants/Colors';
+import { t } from '../constants/translations';
 
 function CartBadge({ color, focused, count }) {
   return (

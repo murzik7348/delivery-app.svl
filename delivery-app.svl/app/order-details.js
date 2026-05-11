@@ -9,13 +9,13 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSelector, useDispatch } from 'react-redux';
 import { BlurView } from 'expo-blur';
 import Colors from '../constants/Colors';
-import { formatUkraineDate } from '../constants/dateUtils';
+import { formatUkraineDate } from '../utils/dateUtils';
 import { t } from '../constants/translations';
 import { fetchOrderDetails, confirmOrder } from '../store/ordersSlice';
 import * as Haptics from 'expo-haptics';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { safeBack } from '../utils/navigation';
-import { syncLiveActivity, endActivity } from '../services/LiveActivityService';
+import { syncLiveActivity, endActivity, startPolling, stopPolling } from '../services/LiveActivityService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -142,22 +142,14 @@ export default function OrderDetailsScreen() {
 
       const fetchAndSync = async () => {
         const result = await dispatch(fetchOrderDetails(id));
-        const updatedOrder = result?.payload;
-        if (updatedOrder) {
-          const s = updatedOrder.statusDelivery ?? updatedOrder.status ?? '';
-          const terminal = ['delivered', 'completed', 'canceled', 'cancelled', '5', '6'].includes(String(s).toLowerCase());
-          if (terminal) {
-            await endActivity();
-          } else {
-            await syncLiveActivity(updatedOrder);
-          }
-        }
+        return result?.payload;
       };
 
-      fetchAndSync();
-      intervalRef.current = setInterval(fetchAndSync, 10000);
+      startPolling(id, fetchAndSync);
 
-      return () => clearInterval(intervalRef.current);
+      return () => {
+        // MM: We don't stop polling here so it continues globally
+      };
     }, [id, dispatch])
   );
 

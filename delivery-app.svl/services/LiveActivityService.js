@@ -72,6 +72,7 @@ function getSubtitle(step) {
  * Starts the Live Activity if not running; updates if already running.
  */
 export async function syncLiveActivity(order) {
+  return; // DYNAMIC ISLAND TEMPORARILY DISABLED
   if (Platform.OS !== 'ios') return;
   if (!order) return;
 
@@ -109,11 +110,20 @@ export async function syncLiveActivity(order) {
   };
 
   const payload = {
+    // ── New Flat Fields (Server/APNs compatible) ──────────────────────────
+    status:          step,
+    eta:             String(estMins || ''),
+    courierName:     order.courierName   || '',
+    courierPhoto:    courierPhotoFile    || '',
+    courierPhone:    order.courierPhone  || '',
+    restaurantName:  order.restaurantName || 'Restaurant',
+    reservationTime: order.reservationTime || '',
+
+    // ── Legacy Bridge Fields ──────────────────────────────────────────────
     title:    getTitle(step),
     subtitle: JSON.stringify(deliveryData),
     progress: step / 5,
     ...(timerEndMs ? { timerEndDateInMilliseconds: timerEndMs } : {}),
-    ...(order.courierPhoto ? { imageName: order.courierPhoto } : {}),
   };
 
   try {
@@ -137,6 +147,7 @@ export async function syncLiveActivity(order) {
 
 /** Call when order is delivered or cancelled */
 export async function endActivity() {
+  return; // DYNAMIC ISLAND TEMPORARILY DISABLED
   if (Platform.OS !== 'ios' || !_activityId) return;
   try {
     const LA = await getLiveActivity();
@@ -149,4 +160,44 @@ export async function endActivity() {
   }
 }
 
-export default { syncLiveActivity, endActivity, statusToStep };
+/** 
+ * ── Global Polling ──────────────────────────────────────────────────────────
+ * Managed polling that persists across screens.
+ */
+let _pollInterval = null;
+
+export async function startPolling(orderId, fetchOrderFn) {
+  return; // DYNAMIC ISLAND TEMPORARILY DISABLED
+  if (_pollInterval) clearInterval(_pollInterval);
+  
+  const poll = async () => {
+    console.log(`[LiveActivity] Polling order ${orderId}...`);
+    try {
+      const order = await fetchOrderFn(orderId);
+      if (order) {
+        await syncLiveActivity(order);
+        const step = statusToStep(order.statusDelivery ?? order.status);
+        if (step === 0 || step === 5) {
+          console.log('[LiveActivity] Terminal state reached, stopping poll.');
+          stopPolling();
+        }
+      }
+    } catch (e) {
+      console.warn('[LiveActivity] Polling error:', e.message);
+    }
+  };
+
+  await poll(); 
+  _pollInterval = setInterval(poll, 15000); 
+}
+
+export function stopPolling() {
+  return; // DYNAMIC ISLAND TEMPORARILY DISABLED
+  if (_pollInterval) {
+    clearInterval(_pollInterval);
+    _pollInterval = null;
+    console.log('[LiveActivity] Polling stopped.');
+  }
+}
+
+export default { syncLiveActivity, endActivity, statusToStep, startPolling, stopPolling };

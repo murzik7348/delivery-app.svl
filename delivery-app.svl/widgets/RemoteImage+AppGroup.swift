@@ -47,6 +47,36 @@ struct CourierPhotoView: View {
         }
     }
 }
+
+struct RemoteThumbnailView: View {
+    let fileName: String?
+    let width: CGFloat
+    let height: CGFloat
+    
+    private var cachedImage: UIImage? {
+        guard let fn = fileName, !fn.isEmpty else { return nil }
+        return UIImage.dynamic(assetNameOrPath: fn)
+    }
+    
+    var body: some View {
+        Group {
+            if let img = cachedImage {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                ZStack {
+                    Color.white.opacity(0.05)
+                    Image(systemName: "map.fill")
+                        .foregroundColor(.white.opacity(0.1))
+                }
+            }
+        }
+        .frame(width: width, height: height)
+        .clipped()
+        .cornerRadius(12)
+    }
+}
 #else
 struct CourierPhotoView: View {
     let photoFileName: String?

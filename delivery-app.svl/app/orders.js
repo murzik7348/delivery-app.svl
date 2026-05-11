@@ -5,7 +5,7 @@ import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
-import { formatUkraineDate } from '../constants/dateUtils';
+import { formatUkraineDate } from '../utils/dateUtils';
 import { t } from '../constants/translations';
 import { clearOrders, fetchOrders } from '../store/ordersSlice';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
