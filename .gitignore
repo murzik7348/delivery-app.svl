@@ -6,3 +6,8 @@ buildServer.json
 
 # Local build artifacts
 .build/
+
+# Agent and IDE specific directories
+.agents
+.gemini
+
