@@ -1,3 +1,4 @@
+<pre>
 .
 ├── app/                            # Основні екрани (Expo Router)
 │   ├── (auth)/                     # Авторизація та реєстрація
@@ -92,3 +93,4 @@
 ├── babel.config.js                 # Налаштування компіляції JS
 ├── package.json                    # Залежності та скрипти запуску
 └── tsconfig.json                   # Налаштування TypeScript
+</pre>
