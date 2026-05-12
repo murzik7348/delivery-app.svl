@@ -139,7 +139,7 @@ function ModifierChips({ modifiers }) {
 const chipStyles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 5, gap: 4 },
   chip: {
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: NEON,
     borderRadius: 8,
     paddingHorizontal: 7,
@@ -818,6 +818,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 20,
     marginHorizontal: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 2 }
+    })
   },
   itemLeft: { flex: 1, flexDirection: 'row', alignItems: 'flex-start' },
   itemImage: { width: 66, height: 66, borderRadius: 16, backgroundColor: '#eee' },
@@ -836,7 +842,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 10,
     alignItems: 'center',
-    elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 1 }
+    })
   },
   recImage: { width: 100, height: 78, borderRadius: 12, marginBottom: 7, backgroundColor: '#eee' },
   recName: { fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 2 },
@@ -866,6 +877,8 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: -6 },
     zIndex: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
   dragHandleArea: {
     alignItems: 'center',
@@ -905,7 +918,7 @@ const styles = StyleSheet.create({
   checkoutBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
 
   expandedZone: { flex: 1 },
-  divider: { height: 1, marginBottom: 14, opacity: 0.35 },
+  divider: { height: StyleSheet.hairlineWidth, marginBottom: 14, opacity: 0.2, backgroundColor: 'rgba(0,0,0,0.1)' },
 
   priceRow: {
     flexDirection: 'row',
@@ -930,6 +943,8 @@ const styles = StyleSheet.create({
     padding: 13,
     borderRadius: 14,
     marginBottom: 9,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
   actionRowLeft: { flexDirection: 'row', alignItems: 'center' },
   actionRowText: { fontSize: 14, fontWeight: '600', marginLeft: 10 },

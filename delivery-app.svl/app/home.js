@@ -370,10 +370,12 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 18,
     paddingHorizontal: 14,
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(227, 52, 227, 0.15)',
+    ...Platform.select({
+      ios: { shadowColor: '#e334e3', shadowOpacity: 0.12, shadowRadius: 18, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 6 }
+    }),
   },
   searchIconWrap: {
     width: 32,
@@ -403,11 +405,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 6 }
+    }),
   },
   promoImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   promoOverlay: {
@@ -438,10 +441,27 @@ const styles = StyleSheet.create({
   promoTagText: { color: 'white', fontWeight: '900', fontSize: 12, letterSpacing: 0.5 },
 
   catItem: { alignItems: 'center', marginRight: 20 },
-  catCircle: { width: 68, height: 68, borderRadius: 34, justifyContent: 'center', alignItems: 'center', marginBottom: 8, elevation: 4, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+  catCircle: { 
+    width: 68, height: 68, borderRadius: 34, 
+    justifyContent: 'center', alignItems: 'center', marginBottom: 8, 
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 4 }
+    })
+  },
   catText: { fontSize: 13, fontWeight: '600' },
 
-  storeCard: { marginHorizontal: 20, marginBottom: 24, borderRadius: 24, overflow: 'hidden', elevation: 6, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
+  storeCard: { 
+    marginHorizontal: 20, marginBottom: 24, borderRadius: 24, overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
+      android: { elevation: 4 }
+    })
+  },
   storeImage: { width: '100%', height: 200 },
   badgesOverlay: { position: 'absolute', top: 140, right: 14, flexDirection: 'row' },
   timeBadgeBlur: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, overflow: 'hidden' },
@@ -449,7 +469,11 @@ const styles = StyleSheet.create({
   
   storeInfo: { padding: 18 },
   storeName: { fontSize: 20, fontWeight: '900', flex: 1, marginRight: 10, letterSpacing: -0.2 },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  ratingBadge: { 
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
   ratingText: { fontSize: 13, fontWeight: '800' },
   storeMeta: { fontSize: 14, marginTop: 6, opacity: 0.8, fontWeight: '500' },
 });

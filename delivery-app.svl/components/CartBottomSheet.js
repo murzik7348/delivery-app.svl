@@ -147,8 +147,13 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: '#1c1c1e', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    shadowColor: "#000", shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.3, shadowRadius: 10, elevation: 20, zIndex: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.3, shadowRadius: 20 },
+      android: { elevation: 20 }
+    }),
+    zIndex: 999,
   },
   dragHandleArea: { width: '100%', height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
   dragIndicator: { width: 40, height: 4, backgroundColor: '#555', borderRadius: 2 },
@@ -159,12 +164,21 @@ const styles = StyleSheet.create({
   orderButton: { backgroundColor: '#d946ef', paddingVertical: 16, borderRadius: 16, alignItems: 'center', marginBottom: 20 },
   orderButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
   detailsContainer: { marginTop: 10 },
-  divider: { height: 1, backgroundColor: '#333', marginBottom: 15 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#333', marginBottom: 15 },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   detailText: { color: 'gray', fontSize: 16 },
   detailPrice: { color: 'white', fontSize: 16 },
-  menuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#2c2c2e', padding: 15, borderRadius: 12, marginTop: 10 },
+  menuItem: { 
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
+    backgroundColor: '#2c2c2e', padding: 15, borderRadius: 12, marginTop: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
   menuText: { color: 'white', fontSize: 16, fontWeight:'500' },
-  noteContainer: { backgroundColor: '#2c2c2e', borderRadius: 12, padding: 10 },
+  noteContainer: { 
+    backgroundColor: '#2c2c2e', borderRadius: 12, padding: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
   noteInput: { color: 'white', fontSize: 14, maxHeight: 60 },
 });

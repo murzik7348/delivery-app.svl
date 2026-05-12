@@ -197,16 +197,29 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   headerTitle: { fontSize: 20, fontWeight: 'bold' },
   clearBtn: { padding: 4 },
-  card: { borderRadius: 20, marginBottom: 16, borderWidth: 1, padding: 18, elevation: 2, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+  card: { 
+    borderRadius: 24, marginBottom: 16, 
+    borderWidth: StyleSheet.hairlineWidth, 
+    padding: 18, 
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 2 }
+    })
+  },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   row: { flexDirection: 'row', alignItems: 'center' },
   iconBox: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   orderTitle: { fontSize: 18, fontWeight: '900', fontFamily: 'Menlo' },
   date: { fontSize: 13, color: 'gray', marginTop: 4, fontWeight: '600' },
   price: { fontSize: 20, fontWeight: '900' },
-  divider: { height: 1, backgroundColor: '#eee', marginVertical: 12 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(0,0,0,0.05)', marginVertical: 12 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+  statusBadge: { 
+    flexDirection: 'row', alignItems: 'center', 
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)'
+  },
   detailsBtn: { flexDirection: 'row', alignItems: 'center' },
   detailsText: { color: '#e334e3', fontWeight: '600', marginRight: 4 },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },

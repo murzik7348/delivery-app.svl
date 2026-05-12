@@ -69,7 +69,7 @@ export default function AddressBottomSheet({ visible, onClose }) {
                     )}
 
                     <TouchableOpacity
-                        style={[styles.addBtn, { backgroundColor: '#e334e3', borderRadius: 12, padding: 12, justifyContent: 'center', marginTop: 15 }]}
+                        style={styles.addBtnAction}
                         onPress={() => {
                             onClose();
                             router.push('/location-picker');
@@ -96,6 +96,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingBottom: 40,
         paddingTop: 12,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(0,0,0,0.05)',
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: -4 } },
+            android: { elevation: 10 }
+        })
     },
     pill: {
         width: 44,
@@ -117,6 +123,12 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         marginBottom: 10,
         gap: 10,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(0,0,0,0.05)',
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
+            android: { elevation: 1 }
+        })
     },
     addressText: {
         flex: 1,
@@ -127,14 +139,22 @@ const styles = StyleSheet.create({
         fontSize: 15,
         marginBottom: 16,
     },
-    addBtn: {
+    addBtnAction: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 8,
-        marginTop: 8,
+        marginTop: 15,
+        backgroundColor: '#e334e3',
+        borderRadius: 12,
+        padding: 12,
+        ...Platform.select({
+            ios: { shadowColor: '#e334e3', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+            android: { elevation: 4 }
+        })
     },
     addBtnText: {
-        color: '#e334e3',
+        color: 'white',
         fontSize: 15,
         fontWeight: '600',
     },

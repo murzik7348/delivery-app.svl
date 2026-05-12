@@ -284,6 +284,8 @@ const s = StyleSheet.create({
         position: 'absolute', bottom: 0, left: 0, right: 0,
         borderTopLeftRadius: 28, borderTopRightRadius: 28,
         paddingHorizontal: 20, paddingBottom: 32,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(0,0,0,0.05)',
     },
     pill: {
         width: 38, height: 4, borderRadius: 2, backgroundColor: '#555',
@@ -302,9 +304,10 @@ const s = StyleSheet.create({
         backgroundColor: '#15052a',
         padding: 16, marginBottom: 16,
         overflow: 'hidden',
-        shadowColor: '#e334e3', shadowOpacity: 0.3,
-        shadowRadius: 18, shadowOffset: { width: 0, height: 8 },
-        elevation: 10,
+        ...Platform.select({
+            ios: { shadowColor: '#e334e3', shadowOpacity: 0.2, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
+            android: { elevation: 8 },
+        }),
     },
     cardGlow1: {
         position: 'absolute', width: 120, height: 120, borderRadius: 60,
@@ -337,7 +340,7 @@ const s = StyleSheet.create({
     field: {
         flexDirection: 'row', alignItems: 'center',
         height: 50, borderRadius: 13, paddingHorizontal: 14, gap: 10,
-        marginBottom: 12, borderWidth: 1.5, borderColor: 'transparent',
+        marginBottom: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: 'transparent',
     },
     fieldFocused: { borderColor: '#e334e3' },
     fieldInput: { flex: 1, fontSize: 16, letterSpacing: 2, fontWeight: '600' },
@@ -367,8 +370,10 @@ const s = StyleSheet.create({
     saveBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         backgroundColor: '#e334e3', height: 52, borderRadius: 16,
-        shadowColor: '#e334e3', shadowOpacity: 0.4, shadowRadius: 14,
-        shadowOffset: { width: 0, height: 5 }, elevation: 8,
+        ...Platform.select({
+            ios: { shadowColor: '#e334e3', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } },
+            android: { elevation: 6 },
+        }),
     },
     saveTxt: { color: 'white', fontWeight: '800', fontSize: 16 },
 });

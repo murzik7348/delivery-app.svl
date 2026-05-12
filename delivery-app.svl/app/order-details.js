@@ -439,11 +439,24 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  trackerCard: { borderRadius: 24, padding: 20, borderWidth: 1, marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
+  trackerCard: { 
+    borderRadius: 24, padding: 20, 
+    borderWidth: StyleSheet.hairlineWidth, 
+    borderColor: 'rgba(0,0,0,0.05)',
+    marginBottom: 20, 
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 2 }
+    })
+  },
   datesRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -10, paddingHorizontal: 5 },
   dateText: { fontSize: 12, color: 'gray', fontWeight: '600' },
 
-  blurWrapper: { borderRadius: 24, overflow: 'hidden', marginBottom: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  blurWrapper: { 
+    borderRadius: 24, overflow: 'hidden', marginBottom: 24, 
+    borderWidth: StyleSheet.hairlineWidth, 
+    borderColor: 'rgba(255,255,255,0.1)' 
+  },
   glassCard: { padding: 18 },
   courierRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   courierLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
@@ -451,7 +464,16 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { backgroundColor: '#FF9500', justifyContent: 'center', alignItems: 'center' },
   courierName: { fontSize: 18, fontWeight: '800', marginBottom: 2 },
   courierSub: { fontSize: 13, color: '#888', fontWeight: '600' },
-  premiumCallBtn: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
+  premiumCallBtn: { 
+    width: 50, height: 50, borderRadius: 25, 
+    justifyContent: 'center', alignItems: 'center', 
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.2)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 3 }
+    })
+  },
 
   sectionTitle: { fontSize: 20, fontWeight: '800', marginBottom: 16, marginTop: 10 },
 
@@ -462,15 +484,27 @@ const styles = StyleSheet.create({
   itemPriceText: { fontSize: 16, fontWeight: '800', marginLeft: 10 },
 
   summaryWrap: { paddingHorizontal: 20, marginTop: 20 },
-  totalCard: { borderRadius: 24, padding: 20, borderWidth: 1, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
+  totalCard: { 
+    borderRadius: 24, padding: 20, 
+    borderWidth: StyleSheet.hairlineWidth, 
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
+      android: { elevation: 2 }
+    })
+  },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   summaryLabel: { fontSize: 15, color: '#888', fontWeight: '600' },
   summaryVal: { fontSize: 15, fontWeight: '600' },
-  divider: { height: 1, marginVertical: 16, opacity: 0.5 },
+  divider: { height: StyleSheet.hairlineWidth, marginVertical: 16, opacity: 0.5 },
   summaryLabelTotal: { fontSize: 18, fontWeight: '800', color: '#888' },
   summaryTotalVal: { fontSize: 26, fontWeight: '900', color: MAGENTA },
 
   paidBadge: { backgroundColor: '#2ecc71', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 },
   paidBadgeText: { color: 'white', fontWeight: '800', fontSize: 12, textTransform: 'uppercase' },
-  distanceBanner: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, borderWidth: 1, padding: 16, marginBottom: 16 },
+  distanceBanner: { 
+    flexDirection: 'row', alignItems: 'center', borderRadius: 20, 
+    borderWidth: StyleSheet.hairlineWidth, 
+    padding: 16, marginBottom: 16 
+  },
 });

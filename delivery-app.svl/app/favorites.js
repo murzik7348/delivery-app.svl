@@ -197,12 +197,14 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.3 },
 
   tabRow: {
-    flexDirection: 'row',
+    borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 12,
     borderRadius: 16,
     padding: 4,
     gap: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
   tab: {
     flex: 1,
@@ -231,9 +233,15 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 24,
     marginBottom: 12,
     padding: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 2 }
+    })
   },
   storeImg: { width: 70, height: 70, borderRadius: 14, backgroundColor: '#eee' },
   productImg: { width: 70, height: 70, borderRadius: 14, backgroundColor: '#eee' },

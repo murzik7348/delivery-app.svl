@@ -104,7 +104,7 @@ const jStyles = StyleSheet.create({
     row: { flexDirection: 'row', alignItems: 'flex-start' },
     leftCol: { alignItems: 'center', width: 40, marginRight: 14 },
     iconCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-    line: { width: 2, flex: 1, minHeight: 28, marginVertical: 2, borderRadius: 1 },
+    line: { width: 1.5, flex: 1, minHeight: 28, marginVertical: 2, borderRadius: 1 },
     label: { fontSize: 15, paddingTop: 8 },
 });
 
@@ -234,7 +234,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
             <View style={s.backdrop}>
                 <TouchableOpacity activeOpacity={1} onPress={onClose} style={StyleSheet.absoluteFill} />
                 <BlurView intensity={isDark ? 40 : 80} tint={isDark ? 'dark' : 'light'}
-                    style={[s.sheet, { backgroundColor: isDark ? 'rgba(20,20,20,0.8)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', borderWidth: 1 }]}>
+                    style={[s.sheet, { backgroundColor: isDark ? 'rgba(20,20,20,0.8)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : theme.subtleBorder, borderWidth: StyleSheet.hairlineWidth }]}>
 
                     <View style={[s.pill, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.18)' }]} />
 
@@ -288,7 +288,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
 
                         {/* Status Journey */}
                         <Text style={[s.sectionTitle, { color: theme.text }]}>{locale === 'en' ? 'Order Journey' : 'Шлях замовлення'}</Text>
-                        <View style={[s.journeyCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+                        <View style={[s.journeyCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: theme.separator, borderWidth: StyleSheet.hairlineWidth }]}>
                             <StatusJourney currentStep={currentStep} locale={locale} isDark={isDark} />
                         </View>
 
@@ -319,7 +319,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                                 <Text style={[s.sectionTitle, { color: theme.text }]}>{locale === 'en' ? 'Items' : 'Склад'}</Text>
                                 <View style={[s.infoCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                                     {liveOrder.items.map((item, i) => (
-                                        <View key={i} style={[s.itemRow, i > 0 && { borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', paddingTop: 10 }]}>
+                                        <View key={i} style={[s.itemRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.separator, paddingTop: 10 }]}>
                                             <Text style={[{ color: theme.text, flex: 1, fontWeight: '500' }]}>{item.name}</Text>
                                             <Text style={{ color: '#e334e3', fontWeight: '800' }}>×{item.quantity}</Text>
                                         </View>
@@ -330,7 +330,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                     </ScrollView>
 
                     {/* Sticky footer */}
-                    <View style={[s.fixedFooter, { borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', paddingBottom: Math.max(insets.bottom, 20) }]}>
+                    <View style={[s.fixedFooter, { borderTopColor: theme.separator, paddingBottom: Math.max(insets.bottom, 20), borderTopWidth: StyleSheet.hairlineWidth }]}>
                         {(!liveOrder.address || liveOrder.address === 'Address N/A') && (
                             <View style={s.warningBox}>
                                 <Ionicons name="warning-outline" size={14} color="#e67e22" />
@@ -360,7 +360,7 @@ const s = StyleSheet.create({
     infoCard: { borderRadius: 16, padding: 16, gap: 12 },
     infoRow: { flexDirection: 'row', alignItems: 'center' },
     itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
-    distanceCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, borderWidth: 1, padding: 16, marginBottom: 4, gap: 14 },
+    distanceCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 16, marginBottom: 4, gap: 14 },
     distanceIconWrap: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#3498db20', alignItems: 'center', justifyContent: 'center' },
     callBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#27ae60', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
     callBtnText: { color: 'white', fontSize: 12, fontWeight: '800', marginLeft: 4 },
@@ -369,7 +369,7 @@ const s = StyleSheet.create({
     btnText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
     infoBox: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, justifyContent: 'center', marginVertical: 8 },
     deliveryProofContainer: { marginTop: 8 },
-    photoBtn: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 16, height: 140, justifyContent: 'center', alignItems: 'center', marginBottom: 14, overflow: 'hidden' },
+    photoBtn: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 16, height: 140, justifyContent: 'center', alignItems: 'center', marginBottom: 14, overflow: 'hidden' },
     photoBtnText: { marginTop: 10, fontSize: 15, fontWeight: '500' },
     deliveryImage: { width: '100%', height: '100%' },
     warningBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fdf2e9', padding: 8, borderRadius: 8, marginBottom: 10 },

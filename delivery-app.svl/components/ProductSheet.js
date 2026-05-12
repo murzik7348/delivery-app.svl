@@ -162,6 +162,12 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         overflow: 'hidden',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(0,0,0,0.05)',
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: -4 } },
+            android: { elevation: 12 }
+        })
     },
     pill: {
         width: 44, height: 4,
@@ -179,6 +185,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(0,0,0,0.05)',
     },
     heartBtn: {
         position: 'absolute',
@@ -188,6 +196,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(227, 52, 227, 0.2)',
     },
     image: {
         width: '100%',
@@ -226,6 +236,10 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         paddingHorizontal: 24,
         borderRadius: 18,
+        ...Platform.select({
+            ios: { shadowColor: '#e334e3', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+            android: { elevation: 6 }
+        })
     },
     addBtnText: {
         color: 'white',
@@ -242,6 +256,8 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(0,0,0,0.05)',
     },
     counterQty: {
         fontSize: 20,

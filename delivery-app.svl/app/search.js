@@ -189,7 +189,7 @@ export default function SearchScreen() {
               key={hint}
               style={[
                 styles.hintChip, 
-                { backgroundColor: theme.card, borderColor: colorScheme === 'dark' ? '#333' : '#eee', borderWidth: 1 }
+                { backgroundColor: theme.card, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth }
               ]}
               onPress={() => handleChange(hint)}
             >
@@ -297,11 +297,12 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 27,
     flex: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12 },
+      android: { elevation: 2 }
+    })
   },
   input: { flex: 1, fontSize: 16, height: '100%' },
 
@@ -319,11 +320,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     marginRight: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 8 },
+      android: { elevation: 1 }
+    })
   },
   hintEmoji: {
     fontSize: 16,
@@ -345,13 +347,15 @@ const styles = StyleSheet.create({
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 24,
     marginBottom: 12,
     padding: 12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.04, shadowRadius: 12 },
+      android: { elevation: 2 }
+    })
   },
   productImg: { width: 72, height: 72, borderRadius: 16, backgroundColor: '#eee' },
   productInfo: { flex: 1, marginLeft: 14 },
@@ -375,13 +379,15 @@ const styles = StyleSheet.create({
   storeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 24,
     marginBottom: 12,
     padding: 12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.04, shadowRadius: 12 },
+      android: { elevation: 2 }
+    })
   },
   storeImg: { width: 72, height: 72, borderRadius: 16, backgroundColor: '#eee' },
   storeInfo: { flex: 1, marginLeft: 14 },

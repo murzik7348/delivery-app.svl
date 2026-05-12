@@ -274,8 +274,8 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(150,150,150,0.2)',
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: 'rgba(150,150,150,0.15)',
     },
     title: {
         fontSize: 18,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         padding: 16,
         paddingBottom: Platform.OS === 'ios' ? 36 : 16,
-        borderTopWidth: 1,
+        borderTopWidth: StyleSheet.hairlineWidth,
         alignItems: 'center',
     },
     input: {
@@ -338,11 +338,12 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         justifyContent: 'flex-start',
         // Match the elevation/shadow style of catalog.js
-        shadowColor: '#000',
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 2,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+            android: { elevation: 3 }
+        }),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(0,0,0,0.05)',
     },
     gridCardImage: {
         width: '100%',

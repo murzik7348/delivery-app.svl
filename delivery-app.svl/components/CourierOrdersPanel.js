@@ -138,8 +138,8 @@ export default function CourierOrdersPanel() {
                     style={[
                         styles.card,
                         { 
-                            borderColor: isActive ? '#e334e3' : (isBookedByOther ? '#e74c3c' : (isHistory ? '#eee' : theme.border)),
-                            borderWidth: (isActive || isBookedByOther) ? 2 : 1,
+                            borderColor: isActive ? '#e334e3' : (isBookedByOther ? '#e74c3c' : (isHistory ? theme.border : theme.subtleBorder)),
+                            borderWidth: (isActive || isBookedByOther) ? 1.5 : StyleSheet.hairlineWidth,
                             opacity: isBookedByOther ? 0.7 : 1
                         }
                     ]}
@@ -275,7 +275,7 @@ export default function CourierOrdersPanel() {
         <View style={styles.mainContainer}>
             {/* Header / Status Section */}
             <View style={styles.syncHeaderWrapper}>
-                <BlurView intensity={isDark ? 30 : 60} tint={isDark ? 'dark' : 'light'} style={styles.syncHeaderBlur}>
+                <BlurView intensity={isDark ? 30 : 60} tint={isDark ? 'dark' : 'light'} style={[styles.syncHeaderBlur, { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.separator }]}>
                     <TouchableOpacity 
                         activeOpacity={0.8}
                         onPress={toggleOnlineStatus}
@@ -283,8 +283,8 @@ export default function CourierOrdersPanel() {
                             styles.syncHeader, 
                             {   
                                 backgroundColor: isOnline ? '#2ecc7115' : 'transparent',
-                                borderColor: isOnline ? '#2ecc7140' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'),
-                                borderWidth: 1,
+                                borderColor: isOnline ? '#2ecc7140' : theme.separator,
+                                borderWidth: StyleSheet.hairlineWidth,
                             }
                         ]}
                     >
@@ -482,8 +482,8 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: 18,
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.15)',
         overflow: 'hidden',
     },
     statValue: {
@@ -546,8 +546,8 @@ const styles = StyleSheet.create({
         marginBottom: 14,
         borderRadius: 24,
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 15, shadowOffset: { width: 0, height: 6 } },
-            android: { elevation: 4 },
+            ios: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 15, shadowOffset: { width: 0, height: 6 } },
+            android: { elevation: 3 },
         }),
     },
     activeCardWrapper: {
@@ -599,8 +599,8 @@ const styles = StyleSheet.create({
         fontWeight: '900'
     },
     divider: {
-        height: 1,
-        backgroundColor: '#f0f0f0',
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: 'rgba(0,0,0,0.05)',
         marginVertical: 16
     },
     cardFooter: {

@@ -201,7 +201,7 @@ export default function PromoSheet({ promo, onClose }) {
 const s = StyleSheet.create({
     backdrop: {
         position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.65)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
     },
     sheet: {
         position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -240,7 +240,12 @@ const s = StyleSheet.create({
     productCard: {
         flexDirection: 'row', alignItems: 'center',
         borderRadius: 16, padding: 12, marginBottom: 16, gap: 12,
-        shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+            android: { elevation: 2 },
+        }),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(0,0,0,0.08)',
     },
     productImg: { width: 72, height: 72, borderRadius: 12, backgroundColor: '#222' },
     productInfo: { flex: 1 },
@@ -263,7 +268,7 @@ const s = StyleSheet.create({
     codeLbl: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' },
     codeBox: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        borderWidth: 1.5, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 14,
+        borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 14,
     },
     codeText: { fontSize: 19, fontWeight: '900', letterSpacing: 2 },
     copyBtn: {
@@ -283,7 +288,10 @@ const s = StyleSheet.create({
     ctaBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         height: 52, borderRadius: 16,
-        shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 7,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+            android: { elevation: 6 },
+        }),
     },
     ctaBtnText: { color: 'white', fontWeight: '800', fontSize: 15 },
 });

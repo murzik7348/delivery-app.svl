@@ -129,7 +129,7 @@ export default function ProfileScreen() {
       onPress={onPress}
       style={[
         styles.menuItem,
-        { backgroundColor: theme.card, borderBottomColor: theme.border, borderBottomWidth: isLast ? 0 : 1 }
+        { backgroundColor: theme.card, borderBottomColor: theme.border, borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth }
       ]}
     >
       <View style={styles.menuRow}>
@@ -258,8 +258,12 @@ export default function ProfileScreen() {
                   marginBottom: 10,
                   backgroundColor: '#f9f9f9',
                   borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: '#eee'
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: theme.border,
+                  ...Platform.select({
+                    ios: { shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+                    android: { elevation: 1 }
+                  })
                 }}>
                   {/* Ліва частина: Назва і Вулиця */}
                   <View style={{ flex: 1 }}>
@@ -305,16 +309,24 @@ const styles = StyleSheet.create({
   guestSubtitle: { fontSize: 16, textAlign: 'center', marginBottom: 40, lineHeight: 24 },
   primaryBtn: { width: '100%', height: 56, backgroundColor: '#e334e3', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   primaryBtnText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-  secondaryBtn: { width: '100%', height: 56, borderWidth: 1, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  secondaryBtn: { width: '100%', height: 56, borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   secondaryBtnText: { fontSize: 18, fontWeight: '600' },
   header: { alignItems: 'center', marginVertical: 20 },
   avatarContainer: { position: 'relative', marginBottom: 15 },
-  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: '#e334e3' },
-  editBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#e334e3', padding: 8, borderRadius: 20, borderWidth: 3, borderColor: 'white' },
+  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: '#e334e3' },
+  editBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#e334e3', padding: 8, borderRadius: 20, borderWidth: 2, borderColor: 'white' },
   name: { fontSize: 24, fontWeight: 'bold', marginBottom: 5 },
   phone: { fontSize: 16 },
   sectionTitle: { marginLeft: 16, marginBottom: 8, marginTop: 24, fontSize: 13, textTransform: 'uppercase', fontWeight: '600' },
-  section: { borderRadius: 16, marginHorizontal: 16, overflow: 'hidden' },
+  section: { 
+    borderRadius: 16, marginHorizontal: 16, overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 1 }
+    })
+  },
   menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, height: 56 },
   menuRow: { flexDirection: 'row', alignItems: 'center' },
   iconBox: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
@@ -325,7 +337,7 @@ const styles = StyleSheet.create({
   logoutText: { color: 'red', fontSize: 16, fontWeight: 'bold' },
   version: { textAlign: 'center', marginTop: 20, fontSize: 12 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, height: '60%' },
+  modalContent: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, height: '60%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 22, fontWeight: 'bold' },
   addressItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1 },

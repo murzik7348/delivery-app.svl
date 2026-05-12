@@ -62,7 +62,7 @@ export default function SwipeButton({ onSwipeSuccess, title, icon = "arrow-forwa
     });
 
     return (
-        <View style={[styles.container, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: color, borderWidth: 1 }]}>
+        <View style={[styles.container, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', borderColor: color + '30', borderWidth: StyleSheet.hairlineWidth * 2 }]}>
             <Animated.View style={[styles.progressOverlay, { backgroundColor: color + '40', width: interpolatedWidth }]} />
             <Text style={[styles.title, { color: isDark ? 'white' : 'black' }]}>
                 {isLoading ? '...' : title}
@@ -117,9 +117,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 2,
         shadowColor: '#000',
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        shadowOffset: { width: 0, height: 0 },
-        elevation: 5,
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
     }
 });
