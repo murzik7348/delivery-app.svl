@@ -4,7 +4,7 @@ import { logoutUser } from '../store/authSlice';
 
 // Base URL for the future production backend. 
 // Uses localhost for iOS simulator, interchangeable for production.
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = 'https://api.andi.delivery';
 
 const ApiService = axios.create({
     baseURL: BASE_URL,

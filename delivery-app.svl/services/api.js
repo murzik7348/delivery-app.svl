@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-export const API_URL = 'https://your-backend-url.com/api';
+export const API_URL = 'https://api.andi.delivery';
 
 const api = axios.create({
   baseURL: API_URL,

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getStore } from './storeRef';
 
 // ─── Change this to your real backend URL ───────────────────────────────────
-export const BASE_URL = 'http://37.27.220.44';
+export const BASE_URL = 'https://api.andi.delivery';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const TOKEN_KEY = '@delivery_app_token';
