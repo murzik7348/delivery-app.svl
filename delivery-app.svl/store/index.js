@@ -43,7 +43,7 @@ const rootReducer = (state, action) => {
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['cart', 'auth', 'favorites', 'location', 'language'], // orders/courier fetched fresh from server on login — NOT persisted to avoid cross-account leakage
+  whitelist: ['cart', 'auth', 'favorites', 'location', 'language', 'ui'], // orders/courier fetched fresh from server on login — NOT persisted to avoid cross-account leakage
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

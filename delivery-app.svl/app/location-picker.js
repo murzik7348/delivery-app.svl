@@ -688,6 +688,8 @@ const styles = StyleSheet.create({
     borderColor: '#eee',
     color: 'black',
     textAlign: 'center',
+    paddingVertical: 0,
+    textAlignVertical: 'center'
   },
 
   btnSave: {

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View, RefreshControl } from 'react-native';
+import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl } from 'react-native';
+import { useColorScheme } from '../../hooks/use-color-scheme';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useDispatch, useSelector } from 'react-redux';

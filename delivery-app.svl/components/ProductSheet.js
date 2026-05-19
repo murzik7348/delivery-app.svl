@@ -10,9 +10,9 @@ import {
     TouchableOpacity,
     TouchableWithoutFeedback,
     View,
-    useColorScheme,
     Platform,
 } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { addToCart, removeFromCart } from '../store/cartSlice';

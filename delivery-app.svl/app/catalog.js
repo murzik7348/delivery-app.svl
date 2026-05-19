@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '../constants/Colors';
 import useCatalogFilter from '../hooks/useCatalogFilter';
 import { RefreshControl } from 'react-native';
@@ -14,6 +15,7 @@ export default function CatalogScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const insets = useSafeAreaInsets();
 
   const [modalVisible, setModalVisible] = useState(false);
   const { sortOrder, setSortOrder, finalProducts } = useCatalogFilter();
@@ -78,7 +80,7 @@ export default function CatalogScreen() {
       </View>
 
       <ScrollView 
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={{ paddingBottom: 140 + insets.bottom }}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 

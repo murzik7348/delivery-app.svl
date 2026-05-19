@@ -12,9 +12,9 @@ import {
     TouchableOpacity,
     TouchableWithoutFeedback,
     View,
-    useColorScheme,
     Platform,
 } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import Colors from '../constants/Colors';
 
 const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
@@ -344,7 +344,7 @@ const s = StyleSheet.create({
         marginBottom: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: 'transparent',
     },
     fieldFocused: { borderColor: '#e334e3' },
-    fieldInput: { flex: 1, fontSize: 16, letterSpacing: 2, fontWeight: '600' },
+    fieldInput: { flex: 1, fontSize: 16, letterSpacing: 2, fontWeight: '600', paddingVertical: 0, textAlignVertical: 'center' },
     lbl: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
 
     // Row
@@ -365,6 +365,8 @@ const s = StyleSheet.create({
     cvvInput: {
         fontSize: 22, fontWeight: '800',
         letterSpacing: 8, textAlign: 'center', width: '100%',
+        paddingVertical: 0,
+        textAlignVertical: 'center',
     },
 
     // Save

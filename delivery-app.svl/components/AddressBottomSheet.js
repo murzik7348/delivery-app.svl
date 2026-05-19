@@ -5,9 +5,9 @@ import {
     StyleSheet,
     Modal,
     TouchableOpacity,
-    useColorScheme,
     Platform,
 } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';

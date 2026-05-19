@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, ScrollView, RefreshControl, Switch, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, RefreshControl, Switch, Platform } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';

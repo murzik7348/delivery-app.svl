@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, Modal, TouchableOpacity, useColorScheme,
+    View, Text, StyleSheet, Modal, TouchableOpacity,
     ScrollView, Image, Alert, Linking, Platform, ActivityIndicator, Animated,
 } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';

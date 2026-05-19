@@ -9,14 +9,14 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  useColorScheme,
   View,
   RefreshControl,
   Platform,
 } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
@@ -76,6 +76,7 @@ const StoreCardItem = ({ store, theme, router }) => {
 export default function HomeScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const { user } = useSelector((state) => state.auth);
@@ -141,7 +142,7 @@ export default function HomeScreen() {
 
       <ScrollView 
         showsVerticalScrollIndicator={false} 
-        contentContainerStyle={{ paddingBottom: 140 }}
+        contentContainerStyle={{ paddingBottom: 140 + insets.bottom }}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 

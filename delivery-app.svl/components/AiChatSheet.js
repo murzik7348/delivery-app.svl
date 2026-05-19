@@ -12,10 +12,10 @@ import {
     KeyboardAvoidingView,
     FlatList,
     Keyboard,
-    useColorScheme,
     Image,
     ScrollView
 } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleAiChat, addMessage, setTyping } from '../store/aiSlice';
@@ -321,6 +321,8 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         paddingHorizontal: 20,
         fontSize: 16,
+        paddingVertical: 0,
+        textAlignVertical: 'center'
     },
     sendBtn: {
         width: 44,

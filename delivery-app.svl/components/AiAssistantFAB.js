@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, TouchableOpacity, Animated, StyleSheet, useColorScheme } from 'react-native';
+import { View, TouchableOpacity, Animated, StyleSheet, Platform } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { toggleAiChat } from '../store/aiSlice';

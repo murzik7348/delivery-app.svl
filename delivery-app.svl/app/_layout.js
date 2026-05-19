@@ -2,7 +2,8 @@ import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import { Provider } from "react-redux";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { store, persistor } from "../store";
-import { Platform, StatusBar, useColorScheme, View } from 'react-native';
+import { Platform, StatusBar, View } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import { PersistGate } from 'redux-persist/integration/react';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -61,8 +62,18 @@ function AppStartup() {
   return null;
 }
 
-export default function RootLayout() {
+function ThemeStatusBar() {
   const colorScheme = useColorScheme();
+  return (
+    <StatusBar
+      translucent={false}
+      backgroundColor={colorScheme === 'dark' ? '#171717' : '#fff'}
+      barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+    />
+  );
+}
+
+export default function RootLayout() {
   const pathname = usePathname();
 
   // Define screens that should display the BottomBar
@@ -71,14 +82,9 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      {/* Fix Android status bar so it is NOT translucent */}
-      <StatusBar
-        translucent={false}
-        backgroundColor={colorScheme === 'dark' ? '#000' : '#fff'}
-        barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
-      />
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
+          <ThemeStatusBar />
           <View style={{ flex: 1 }}>
             <Stack screenOptions={{ 
               headerShown: false,

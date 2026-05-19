@@ -20,9 +20,9 @@ import {
   TouchableOpacity,
   UIManager,
   View,
-  useColorScheme,
   RefreshControl,
 } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
@@ -952,7 +952,7 @@ const styles = StyleSheet.create({
 
   addNoteText: { color: NEON, fontWeight: 'bold', paddingVertical: 6 },
   noteBox: { borderRadius: 14, padding: 12 },
-  noteInput: { fontSize: 14, maxHeight: 70, lineHeight: 20 },
+  noteInput: { fontSize: 14, maxHeight: 70, lineHeight: 20, paddingVertical: 0, textAlignVertical: 'top' },
 
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: -50 },
   emptyText: { fontSize: 18, marginTop: 16, marginBottom: 20 },

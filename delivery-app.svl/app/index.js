@@ -15,6 +15,7 @@ const getNotifications = () => {
 const Notifications = getNotifications();
 
 import { useSelector } from 'react-redux';
+import WelcomeScreen from '../components/WelcomeScreen';
 
 export default function Index() {
   const router = useRouter();
@@ -60,9 +61,5 @@ export default function Index() {
     checkLaunch();
   }, [rootNavigationState?.key, isAuthenticated]);
 
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-      <ActivityIndicator size="large" color="#e334e3" />
-    </View>
-  );
+  return <WelcomeScreen />;
 }

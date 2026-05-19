@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, Image, FlatList, Alert,
-  StyleSheet, useColorScheme, Animated, Easing, Dimensions, Linking, Platform
+  StyleSheet, Animated, Easing, Dimensions, Linking, Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSelector, useDispatch } from 'react-redux';
@@ -126,6 +127,7 @@ export default function OrderDetailsScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const locale = useSelector(s => s.language?.locale ?? 'uk');
+  const insets = useSafeAreaInsets();
   const intervalRef = useRef(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -260,7 +262,7 @@ export default function OrderDetailsScreen() {
       <FlatList
         data={order.items || []}
         keyExtractor={(item, index) => (item.id ? item.id.toString() : index.toString())}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.bodyWrap}>

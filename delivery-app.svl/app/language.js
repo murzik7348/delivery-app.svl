@@ -2,9 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-    StyleSheet, Text, TouchableOpacity, useColorScheme, View,
+    StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
@@ -24,6 +25,7 @@ export default function LanguageScreen() {
     const isDark = scheme === 'dark';
     const locale = useSelector(s => s.language?.locale ?? 'uk');
     const [selected, setSelected] = useState(locale);
+    const insets = useSafeAreaInsets();
 
     const handleSave = () => {
         dispatch(setLanguage(selected));
@@ -31,7 +33,7 @@ export default function LanguageScreen() {
     };
 
     return (
-        <SafeAreaView edges={['top']} style={[s.container, { backgroundColor: theme.background }]}>
+        <SafeAreaView edges={['top']} style={[s.container, { backgroundColor: theme.background, paddingBottom: Math.max(insets.bottom, 20) }]}>
             {/* Header */}
             <View style={s.header}>
                 <BackButton color={theme.text} />

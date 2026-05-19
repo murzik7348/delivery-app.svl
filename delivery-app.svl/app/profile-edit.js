@@ -9,10 +9,10 @@ import {
   StyleSheet,
   Text,
   TextInput, TouchableOpacity,
-  useColorScheme,
   View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
@@ -28,6 +28,7 @@ export default function ProfileEditScreen() {
   const theme = Colors[colorScheme ?? 'light'];
   const locale = useSelector((state) => state.language?.locale ?? 'uk');
   const { user } = useSelector((state) => state.auth);
+  const insets = useSafeAreaInsets();
   
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -103,7 +104,7 @@ export default function ProfileEditScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) }]}>
 
         {/* Аватарка з кнопкою зміни */}
         <View style={styles.avatarContainer}>
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
 
   form: { marginBottom: 30 },
   label: { marginBottom: 8, fontSize: 14, fontWeight: '600' },
-  input: { height: 50, borderRadius: 12, paddingHorizontal: 15, fontSize: 16, marginBottom: 20 },
+  input: { height: 50, borderRadius: 12, paddingHorizontal: 15, fontSize: 16, marginBottom: 20, paddingVertical: 0, textAlignVertical: 'center' },
 
   saveBtn: { backgroundColor: '#e334e3', padding: 18, borderRadius: 16, alignItems: 'center', elevation: 5 },
   saveBtnText: { color: 'white', fontSize: 18, fontWeight: 'bold' }

@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, useColorScheme, RefreshControl, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Platform } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { formatUkraineDate } from '../utils/dateUtils';
@@ -21,6 +22,7 @@ export default function OrdersTabScreen() {
   const isLoading = useSelector((state) => state.orders.isLoading);
   const locale = useSelector((state) => state.language?.locale ?? 'uk');
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -106,7 +108,7 @@ export default function OrdersTabScreen() {
         data={orders}
         keyExtractor={(item, index) => String(item.deliveryId || item.id || index)}
         renderItem={renderOrderItem}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 + insets.bottom }}
         ListHeaderComponent={
           <View style={[styles.header, { paddingHorizontal: 0, paddingBottom: 16 }]}>
             <BackButton />

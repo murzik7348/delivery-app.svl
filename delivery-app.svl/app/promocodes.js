@@ -3,9 +3,10 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert, FlatList, Keyboard, StyleSheet, Text, TextInput,
-  TouchableOpacity, View, useColorScheme
+  TouchableOpacity, View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
@@ -18,6 +19,7 @@ export default function PromocodesScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const locale = useSelector(s => s.language?.locale ?? 'uk');
+  const insets = useSafeAreaInsets();
 
   const [code, setCode] = useState('');
   const promos = [
@@ -82,7 +84,7 @@ export default function PromocodesScreen() {
         <FlatList
           data={promos}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) }}
           renderItem={({ item }) => (
             <TouchableOpacity activeOpacity={0.8} onPress={() => setCode(item.code)} style={styles.ticketContainer}>
               <View style={[styles.ticketLeft, { backgroundColor: item.color }]}>
@@ -115,7 +117,7 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   inputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, marginRight: 10 },
   inputIcon: { marginRight: 8 },
-  input: { flex: 1, fontSize: 16 },
+  input: { flex: 1, fontSize: 16, paddingVertical: 0, textAlignVertical: 'center' },
   applyBtn: { backgroundColor: '#e334e3', height: 50, paddingHorizontal: 20, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   applyBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
   divider: { height: 1, marginVertical: 10, marginBottom: 20 },

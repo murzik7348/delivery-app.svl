@@ -8,11 +8,11 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
   RefreshControl,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
@@ -26,6 +26,7 @@ export default function FavoritesScreen() {
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const insets = useSafeAreaInsets();
   const locale = useSelector(s => s.language?.locale ?? 'uk');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -112,7 +113,7 @@ export default function FavoritesScreen() {
         </View>
       ) : (
         <ScrollView 
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }} 
+          contentContainerStyle={{ padding: 16, paddingBottom: 100 + insets.bottom }} 
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl

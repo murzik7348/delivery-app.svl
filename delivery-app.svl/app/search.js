@@ -10,13 +10,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
   RefreshControl,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
@@ -29,6 +29,7 @@ import BackButton from '../components/BackButton';
 export default function SearchScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -243,7 +244,7 @@ export default function SearchScreen() {
             <FlatList
               data={sections}
               keyExtractor={(item, index) => item.id || index.toString()}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, paddingTop: 10 }}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 40), paddingTop: 10 }}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               ListHeaderComponent={renderHeader}
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
       android: { elevation: 2 }
     })
   },
-  input: { flex: 1, fontSize: 16, height: '100%' },
+  input: { flex: 1, fontSize: 16, height: '100%', paddingVertical: 0, textAlignVertical: 'center' },
 
   hintsContainer: {
     marginBottom: 10,

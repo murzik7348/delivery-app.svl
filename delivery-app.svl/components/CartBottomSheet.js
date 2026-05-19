@@ -180,5 +180,5 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.05)',
   },
-  noteInput: { color: 'white', fontSize: 14, maxHeight: 60 },
+  noteInput: { color: 'white', fontSize: 14, maxHeight: 60, paddingVertical: 0, textAlignVertical: 'top' },
 });
