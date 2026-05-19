@@ -13,6 +13,7 @@ import {
     TouchableWithoutFeedback,
     View,
     useColorScheme,
+    Platform,
 } from 'react-native';
 import Colors from '../constants/Colors';
 

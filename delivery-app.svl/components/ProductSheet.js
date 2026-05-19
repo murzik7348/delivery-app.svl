@@ -11,6 +11,7 @@ import {
     TouchableWithoutFeedback,
     View,
     useColorScheme,
+    Platform,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';

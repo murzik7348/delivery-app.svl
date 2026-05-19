@@ -96,7 +96,7 @@ export default function useCheckoutFlow() {
             type: deliveryType,
             address: activeAddress ?? { type: 'Pickup' },
             paymentInfo: activePayment,
-            userId: user?.id || 'guest'
+            userId: user?.userId || user?.id || 'guest'
         };
 
         try {

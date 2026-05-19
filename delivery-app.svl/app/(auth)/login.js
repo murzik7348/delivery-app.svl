@@ -14,6 +14,7 @@ import {
   View,
   Dimensions,
   Animated,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
@@ -102,7 +103,7 @@ export default function LoginScreen() {
         url = 'https://t.me/delivery_app_support';
         break;
       case 'viber':
-        url = 'viber://chat?number=%2B380930000000'; 
+        url = 'viber://chat?number=%2B380930000000';
         break;
       case 'email':
         url = 'mailto:support@delivery-app.com.ua';
@@ -131,17 +132,21 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
-          <ScrollView 
+          <ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
             <Animated.View style={[styles.headerSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <View style={styles.logoContainer}>
-                <Ionicons name="bicycle" size={50} color="#e334e3" />
+                <Image
+                  source={isDark ? require('../../photo/Group 3.png') : require('../../photo/Group 6.png')}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
               </View>
               <Text style={[styles.header, { color: isDark ? '#fff' : '#000' }]}>Вітаємо!</Text>
               <Text style={[styles.subHeader, { color: isDark ? '#aaa' : '#666' }]}>Увійдіть, щоб продовжити</Text>
@@ -206,15 +211,15 @@ export default function LoginScreen() {
       {/* Support Selection Modal */}
       {isSupportVisible && (
         <View style={StyleSheet.absoluteFill}>
-          <TouchableOpacity 
-            style={styles.modalOverlay} 
-            activeOpacity={1} 
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
             onPress={() => setIsSupportVisible(false)}
           />
           <View style={styles.modalContentWrapper}>
             <BlurView intensity={80} tint={isDark ? 'dark' : 'light'} style={styles.supportModal}>
               <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#000' }]}>Допомога та підтримка</Text>
-              
+
               <TouchableOpacity style={styles.supportOption} onPress={() => openSupport('telegram')}>
                 <View style={[styles.iconCircle, { backgroundColor: '#0088cc' }]}>
                   <Ionicons name="paper-plane" size={24} color="white" />
@@ -236,8 +241,8 @@ export default function LoginScreen() {
                 <Text style={[styles.supportOptionText, { color: isDark ? '#fff' : '#333' }]}>Email</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[styles.closeButton, { backgroundColor: isDark ? '#333' : '#eee' }]} 
+              <TouchableOpacity
+                style={[styles.closeButton, { backgroundColor: isDark ? '#333' : '#eee' }]}
                 onPress={() => setIsSupportVisible(false)}
               >
                 <Text style={[styles.closeButtonText, { color: isDark ? '#fff' : '#333' }]}>Скасувати</Text>
@@ -279,17 +284,15 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, paddingHorizontal: 30, paddingBottom: 40 },
   headerSection: { alignItems: 'center', marginTop: 40, marginBottom: 40 },
   logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 30,
-    backgroundColor: '#fff',
+    width: 150,
+    height: 150,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    ...Platform.select({
-      ios: { shadowColor: '#e334e3', shadowOpacity: 0.2, shadowRadius: 15, shadowOffset: { width: 0, height: 10 } },
-      android: { elevation: 10 },
-    }),
+    marginBottom: 10,
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
   },
   header: { fontSize: 32, fontWeight: '800', marginBottom: 10 },
   subHeader: { fontSize: 16, fontWeight: '500' },
@@ -322,7 +325,7 @@ const styles = StyleSheet.create({
   link: { padding: 10 },
   linkText: { fontSize: 16 },
   linkHighlight: { color: '#e334e3', fontWeight: '800' },
-  
+
   // Modal Styles
   modalOverlay: {
     ...StyleSheet.absoluteFillObject,

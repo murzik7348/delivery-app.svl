@@ -1,5 +1,5 @@
 {
-  "name": "delivery-app.svl",
+  "name": "k-and-m-delivery",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
@@ -27,11 +27,13 @@
     "@google/genai": "^1.42.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
+    "@react-native-firebase/app": "^24.0.0",
+    "@react-native-firebase/auth": "^24.0.0",
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.13.5",
     "expo": "~54.0.33",
     "expo-blur": "^15.0.8",
-    "expo-build-properties": "^1.0.10",
+    "expo-build-properties": "~1.0.10",
     "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.20",
     "expo-device": "^8.0.10",

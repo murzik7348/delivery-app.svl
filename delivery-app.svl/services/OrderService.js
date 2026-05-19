@@ -35,8 +35,7 @@ class OrderService {
             })),
             addressId: addressId || 0,
             paymentMethodId: paymentMethodId || 0,
-            description: orderPayload.note || "Без коментарів",
-            Description: orderPayload.note || "Без коментарів",
+            description: (orderPayload.note?.trim() || "Без коментарів").slice(0, 100),
         };
 
         console.log('[OrderService] Final delivery payload:', JSON.stringify(deliveryPayload, null, 2));

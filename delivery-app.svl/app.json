@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "delivery-app",
+    "name": "K&M",
     "slug": "delivery-app",
     "version": "1.0.0",
     "scheme": "delivery-app",
@@ -17,6 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.murzik7348.deliveryapp",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": false,
       "infoPlist": {
         "NSAppTransportSecurity": {
@@ -27,6 +28,7 @@
     },
     "android": {
       "package": "com.murzik7348.deliveryapp",
+      "googleServicesFile": "./google-services.json",
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyAYVwd3Ckl9k_eOhrNd3vLfzHEa98897rw"
@@ -48,6 +50,7 @@
       "**/*"
     ],
     "plugins": [
+      "@react-native-firebase/app",
       "./plugins/withLiveActivity",
       "@react-native-community/datetimepicker",
       [
@@ -58,6 +61,7 @@
           }
         }
       ],
+      "./plugins/withRNFirebaseStatic.js",
       "expo-font",
       "expo-secure-store",
       "expo-web-browser",

@@ -6,6 +6,7 @@ import {
     Modal,
     TouchableOpacity,
     useColorScheme,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';

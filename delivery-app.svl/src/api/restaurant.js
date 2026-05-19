@@ -31,6 +31,20 @@ export const restaurantCancelDelivery = (id) =>
     client.put(`/restaurant/deliveries/${id}/cancel`);
 
 /**
+ * Restaurant marks a delivery order as cooking (preparing).
+ * @param {number} id - Delivery ID
+ */
+export const restaurantCookingDelivery = (id) =>
+    client.put(`/restaurant/deliveries/${id}/cooking`);
+
+/**
+ * Restaurant marks a delivery order as ready for pickup.
+ * @param {number} id - Delivery ID
+ */
+export const restaurantReadyDelivery = (id) =>
+    client.put(`/restaurant/deliveries/${id}/ready`);
+
+/**
  * Get all restaurants (for the customer app catalog)
  */
 export const getRestaurants = () =>

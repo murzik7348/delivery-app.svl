@@ -54,6 +54,8 @@ export {
 export {
     getRestaurantDeliveries,
     restaurantConfirmDelivery,
+    restaurantCookingDelivery,
+    restaurantReadyDelivery,
     restaurantCancelDelivery,
     getRestaurants,
 } from './restaurant';

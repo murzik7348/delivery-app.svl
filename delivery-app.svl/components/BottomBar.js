@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { useSelector } from 'react-redux';
@@ -52,8 +52,8 @@ export default function BottomBar() {
   const insets = useSafeAreaInsets();
   const locale = useSelector(s => s.language?.locale ?? 'uk');
   const user = useSelector(state => state.auth.user);
-  const colorScheme = 'light'; // Standardizing or using dynamic if needed
-  const theme = Colors[colorScheme];
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
 
   const cartItems = useSelector((s) => s.cart.items);
   const cartCount = cartItems.reduce((sum, i) => sum + (i.quantity || 1), 0);

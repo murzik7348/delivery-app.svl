@@ -12,6 +12,7 @@ import {
   useColorScheme,
   View,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';

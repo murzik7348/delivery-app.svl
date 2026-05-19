@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "136533216086",
+    "project_id": "kandm-delivery",
+    "storage_bucket": "kandm-delivery.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:136533216086:android:02d13e62db00a405d024f7",
+        "android_client_info": {
+          "package_name": "com.murzik7348.deliveryapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGnVrgrstXhpiHHw2VDxgE8zm3EDV7898"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
