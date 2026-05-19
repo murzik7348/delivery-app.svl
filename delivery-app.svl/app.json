@@ -58,10 +58,14 @@
         {
           "android": {
             "usesCleartextTraffic": true
+          },
+          "ios": {
+            "useFrameworks": "static"
           }
         }
       ],
       "./plugins/withRNFirebaseStatic.js",
+      "./plugins/withNoPushNotifications.js",
       "expo-font",
       "expo-secure-store",
       "expo-web-browser",
