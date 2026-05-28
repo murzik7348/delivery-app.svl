@@ -19,6 +19,8 @@ export default function SwipeButton({ onSwipeSuccess, title, icon = "arrow-forwa
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: () => !swiped && !isLoading,
+            onMoveShouldSetPanResponder: (e, gesture) => !swiped && !isLoading && Math.abs(gesture.dx) > 10,
+            onPanResponderTerminationRequest: () => false,
             onPanResponderMove: (e, gesture) => {
                 if (gesture.dx > 0 && gesture.dx < BUTTON_WIDTH - BUTTON_HEIGHT) {
                     pan.setValue({ x: gesture.dx, y: 0 });
@@ -52,6 +54,13 @@ export default function SwipeButton({ onSwipeSuccess, title, icon = "arrow-forwa
                     }).start();
                 }
             },
+            onPanResponderTerminate: () => {
+                Animated.spring(pan, {
+                    toValue: { x: 0, y: 0 },
+                    useNativeDriver: false,
+                    bounciness: 10,
+                }).start();
+            }
         })
     ).current;
 

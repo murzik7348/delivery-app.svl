@@ -26,6 +26,7 @@ import Colors from '../../constants/Colors';
 import { authLogin, getMe } from '../../src/api';
 import { fetchAddresses, loginUser } from '../../store/authSlice';
 import { setTheme } from '../../store/uiSlice';
+import DarkModeToggle from '../../components/DarkModeToggle';
 
 const { width, height } = Dimensions.get('window');
 
@@ -250,22 +251,10 @@ export default function LoginScreen() {
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         {/* Style Toggle & Support Action Buttons */}
         <Animated.View style={[styles.topActions, { opacity: fadeAnim }]}>
-          <TouchableOpacity 
-            style={[
-              styles.styleButton, 
-              { 
-                backgroundColor: isDarkCover ? 'rgba(255, 255, 255, 0.12)' : 'rgba(10, 5, 20, 0.08)',
-                borderColor: isDarkCover ? 'rgba(255, 255, 255, 0.25)' : 'rgba(10, 5, 20, 0.15)'
-              }
-            ]} 
-            onPress={() => dispatch(setTheme(isDarkCover ? 'light' : 'dark'))}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="sparkles" size={16} color={primaryColor} />
-            <Text style={[styles.topActionsText, { color: isDarkCover ? '#ffffff' : '#0a0514' }]}>
-              Стиль: {isDarkCover ? 'Dark' : 'Light'}
-            </Text>
-          </TouchableOpacity>
+          <DarkModeToggle
+            initialState={isDarkCover}
+            onToggle={(isDark) => dispatch(setTheme(isDark ? 'dark' : 'light'))}
+          />
 
           <TouchableOpacity 
             style={[

@@ -158,6 +158,13 @@ const cartSlice = createSlice({
       calculateTotals(state);
     },
 
+    /** Remove all items from cart with matching productId. */
+    removeFromCart: (state, action) => {
+      const productId = action.payload;
+      state.items = state.items.filter((item) => resolveId(item) !== productId);
+      calculateTotals(state);
+    },
+
     /** Set an absolute quantity for a line item. Enforces a minimum of 1. */
     updateQuantity: (state, action) => {
       const { cartKey, quantity } = action.payload;
@@ -209,6 +216,7 @@ export const {
   addToCart,
   decrementItem,
   removeItem,
+  removeFromCart,
   updateQuantity,
   clearCart,
   applyDiscount,
@@ -216,9 +224,6 @@ export const {
   setDeliveryType,
   setOrderNote,
 } = cartSlice.actions;
-
-// Backwards-compat alias so existing call-sites don't immediately break
-export const removeFromCart = removeItem;
 
 // ─── Selectors ────────────────────────────────────────────────────────────────
 const selectCartState = (state) => state.cart;

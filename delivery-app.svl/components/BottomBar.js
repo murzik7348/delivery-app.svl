@@ -5,15 +5,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 
 function CartBadge({ color, focused, count }) {
+  const colorScheme = useColorScheme();
   return (
     <View style={styles.iconContainer}>
       <Ionicons name={focused ? 'cart' : 'cart-outline'} size={24} color={color} />
       {count > 0 && (
-        <View style={styles.badge}>
+        <View style={[styles.badge, { borderColor: colorScheme === 'dark' ? '#171717' : '#ffffff' }]}>
           <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
         </View>
       )}
@@ -22,11 +24,12 @@ function CartBadge({ color, focused, count }) {
 }
 
 function OrdersBadge({ color, focused, count }) {
+  const colorScheme = useColorScheme();
   return (
     <View style={styles.iconContainer}>
       <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={24} color={color} />
       {count > 0 && (
-        <View style={[styles.badge, { backgroundColor: '#3498db' }]}>
+        <View style={[styles.badge, { backgroundColor: '#3498db', borderColor: colorScheme === 'dark' ? '#171717' : '#ffffff' }]}>
           <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
         </View>
       )}
@@ -35,11 +38,12 @@ function OrdersBadge({ color, focused, count }) {
 }
 
 function CourierBadge({ color, focused, count }) {
+  const colorScheme = useColorScheme();
   return (
     <View style={styles.iconContainer}>
       <Ionicons name={focused ? 'bicycle' : 'bicycle-outline'} size={24} color={color} />
       {count > 0 && (
-        <View style={[styles.badge, { backgroundColor: '#2ecc71' }]}>
+        <View style={[styles.badge, { backgroundColor: '#2ecc71', borderColor: colorScheme === 'dark' ? '#171717' : '#ffffff' }]}>
           <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
         </View>
       )}
@@ -94,11 +98,16 @@ export default function BottomBar() {
 
   return (
     <View style={[styles.container, { 
-      backgroundColor: theme.background, 
-      borderTopColor: theme.border,
+      backgroundColor: 'transparent', 
+      borderTopColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
       height: Platform.OS === 'ios' ? 85 : 65 + insets.bottom,
       paddingBottom: Platform.OS === 'ios' ? 25 : insets.bottom + 10,
     }]}>
+      {Platform.OS === 'ios' ? (
+        <BlurView intensity={85} tint={colorScheme === 'dark' ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: colorScheme === 'dark' ? 'rgba(23, 23, 23, 0.8)' : 'rgba(255, 255, 255, 0.85)' }]} />
+      )}
       {tabs.map((tab) => {
         const focused = pathname === tab.route;
         const color = focused ? '#e334e3' : 'gray';

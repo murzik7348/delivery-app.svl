@@ -4,6 +4,7 @@ import {
   PanResponder, TouchableOpacity, TextInput, LayoutAnimation, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const CLOSED_HEIGHT = 120; 
@@ -18,22 +19,68 @@ export default function CartBottomSheet({
   const panY = useRef(new Animated.Value(maxOffset)).current;
   const [isNoteVisible, setIsNoteVisible] = useState(false);
 
+  // Стан масштабування хендла для мікро-анімації
+  const activeScale = useRef(new Animated.Value(1)).current;
+
+  // Час та координати для розпізнавання тапу
+  const touchStartTime = useRef(0);
+
+  const toggleSheet = () => {
+    const currentValue = panY._value;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+    if (currentValue > maxOffset / 2) {
+      Animated.spring(panY, { toValue: 0, friction: 7, tension: 45, useNativeDriver: true }).start();
+    } else {
+      Animated.spring(panY, { toValue: maxOffset, friction: 7, tension: 45, useNativeDriver: true }).start();
+    }
+  };
+
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
-      onPanResponderGrant: () => panY.extractOffset(),
-      onPanResponderMove: (_, gestureState) => panY.setValue(gestureState.dy),
+      onStartShouldSetPanResponder: (evt) => {
+        const { locationY } = evt.nativeEvent;
+        return locationY < 48;
+      },
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 1.5;
+        if (!isVertical) return false;
+        
+        const { locationY } = evt.nativeEvent;
+        return locationY < 48 || Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        panY.stopAnimation();
+        touchStartTime.current = Date.now();
+        panY.extractOffset();
+        Animated.spring(activeScale, { toValue: 1.35, friction: 8, tension: 60, useNativeDriver: true }).start();
+      },
+      onPanResponderMove: (_, gestureState) => {
+        panY.setValue(gestureState.dy);
+      },
       onPanResponderRelease: (_, gestureState) => {
         panY.flattenOffset();
-        if (gestureState.dy < -50 || (gestureState.dy < 0 && gestureState.moveY < SCREEN_HEIGHT - 200)) {
-          Animated.spring(panY, { toValue: 0, friction: 6, tension: 50, useNativeDriver: true }).start();
+        Animated.spring(activeScale, { toValue: 1, friction: 8, tension: 60, useNativeDriver: true }).start();
+
+        const duration = Date.now() - touchStartTime.current;
+        const distance = Math.abs(gestureState.dy);
+
+        if (duration < 250 && distance < 7) {
+          toggleSheet();
         } else {
-          Animated.spring(panY, { toValue: maxOffset, friction: 6, tension: 50, useNativeDriver: true }).start();
+          if (gestureState.dy < -50 || (gestureState.dy < 0 && gestureState.moveY < SCREEN_HEIGHT - 200)) {
+            Animated.spring(panY, { toValue: 0, friction: 6, tension: 50, useNativeDriver: true }).start();
+          } else {
+            Animated.spring(panY, { toValue: maxOffset, friction: 6, tension: 50, useNativeDriver: true }).start();
+          }
         }
       },
+      onPanResponderTerminate: () => {
+        panY.flattenOffset();
+        Animated.spring(activeScale, { toValue: 1, friction: 8, tension: 60, useNativeDriver: true }).start();
+      }
     })
   ).current;
+
   const safeTotal = parseFloat(totalAmount) || 0;
   const safeSubtotal = parseFloat(subtotal) || 0;
   const safeDelivery = parseFloat(deliveryFee) || 0;
@@ -41,6 +88,7 @@ export default function CartBottomSheet({
 
   return (
     <Animated.View
+      {...panResponder.panHandlers}
       style={[
         styles.container,
         {
@@ -55,9 +103,19 @@ export default function CartBottomSheet({
         },
       ]}
     >
-      {/* Зона, за яку тягнемо */}
-      <View {...panResponder.panHandlers} style={styles.dragHandleArea}>
-        <View style={styles.dragIndicator} />
+      {/* Преміальна та надчутлива зона перетягування */}
+      <View style={styles.dragHandleArea}>
+        <Animated.View 
+          style={[
+            styles.dragIndicator, 
+            { 
+              transform: [
+                { scaleX: activeScale },
+                { scaleY: activeScale }
+              ] 
+            }
+          ]} 
+        />
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.content}>
@@ -155,8 +213,19 @@ const styles = StyleSheet.create({
     }),
     zIndex: 999,
   },
-  dragHandleArea: { width: '100%', height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
-  dragIndicator: { width: 40, height: 4, backgroundColor: '#555', borderRadius: 2 },
+  dragHandleArea: { 
+    width: '100%', 
+    height: 48, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    backgroundColor: 'transparent' 
+  },
+  dragIndicator: { 
+    width: 48, 
+    height: 5, 
+    backgroundColor: '#555', 
+    borderRadius: 2.5 
+  },
   content: { paddingHorizontal: 20, flex: 1 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   totalLabel: { color: 'white', fontSize: 18, fontWeight: 'bold' },

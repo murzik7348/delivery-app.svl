@@ -2,6 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import * as Haptics from 'expo-haptics';
 import {
   Alert,
   Animated,
@@ -197,6 +198,7 @@ export default function CartScreen() {
   } = useSelector(selectCartSummary);
 
   const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
+  const isOffline = useSelector((s) => s.ui?.isOffline ?? false);
   const paymentId = useSelector((s) => s.payment?.selectedMethodId);
   const paymentMethods = useSelector((s) => s.payment?.methods ?? []);
   const savedAddresses = useSelector((s) => s.auth?.addresses || []);
@@ -217,6 +219,7 @@ export default function CartScreen() {
   // ── Bottom sheet animation ─────────────────────────────────────────────────
   const translateY = useRef(new Animated.Value(MAX_TRANS)).current;
   const currentY = useRef(MAX_TRANS);
+  const startY = useRef(MAX_TRANS);
 
   useEffect(() => {
     const sub = translateY.addListener(({ value }) => {
@@ -255,6 +258,16 @@ export default function CartScreen() {
     };
   }, [keyboardOffset]);
 
+  const activeScale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(activeScale, { toValue: 1.35, friction: 8, tension: 60, useNativeDriver: true }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(activeScale, { toValue: 1, friction: 8, tension: 60, useNativeDriver: true }).start();
+  };
+
   const snapTo = useCallback(
     (toValue) => {
       Animated.timing(translateY, {
@@ -267,22 +280,45 @@ export default function CartScreen() {
     [translateY]
   );
 
+  const toggleCartSheet = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+    const target = currentY.current > MAX_TRANS / 2 ? MIN_TRANS : MAX_TRANS;
+    snapTo(target);
+  };
+
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 2,
-      onMoveShouldSetPanResponderCapture: () => false,
-      onPanResponderGrant: () => { translateY.extractOffset(); },
+      onStartShouldSetPanResponder: (evt) => {
+        const { locationY } = evt.nativeEvent;
+        return locationY < 48;
+      },
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 1.5;
+        if (!isVertical) return false;
+        
+        const { locationY } = evt.nativeEvent;
+        return locationY < 48 || Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => { 
+        translateY.stopAnimation();
+        startY.current = currentY.current;
+        translateY.extractOffset(); 
+        Animated.spring(activeScale, { toValue: 1.35, friction: 8, tension: 60, useNativeDriver: true }).start();
+      },
       onPanResponderMove: (_, gs) => {
         let dy = gs.dy;
-        const projected = currentY.current + dy;
-        if (projected < MIN_TRANS) dy *= 0.25;
-        else if (projected > MAX_TRANS) dy *= 0.25;
+        const projected = startY.current + dy;
+        if (projected < MIN_TRANS) {
+          dy = (MIN_TRANS - startY.current) + (projected - MIN_TRANS) * 0.25;
+        } else if (projected > MAX_TRANS) {
+          dy = (MAX_TRANS - startY.current) + (projected - MAX_TRANS) * 0.25;
+        }
         translateY.setValue(dy);
       },
       onPanResponderRelease: (_, gs) => {
         translateY.flattenOffset();
-        const cy = currentY.current;
+        Animated.spring(activeScale, { toValue: 1, friction: 8, tension: 60, useNativeDriver: true }).start();
+        const cy = translateY._value;
         const vy = gs.vy;
         let target;
         if (vy > 0.4) target = MAX_TRANS;
@@ -292,6 +328,7 @@ export default function CartScreen() {
       },
       onPanResponderTerminate: () => {
         translateY.flattenOffset();
+        Animated.spring(activeScale, { toValue: 1, friction: 8, tension: 60, useNativeDriver: true }).start();
         snapTo(currentY.current > MAX_TRANS / 2 ? MAX_TRANS : MIN_TRANS);
       },
     })
@@ -299,14 +336,16 @@ export default function CartScreen() {
 
   // ── Checkout ───────────────────────────────────────────────────────────────
   const handleCheckout = () => {
-    console.log('[cart.js] handleCheckout pressed. isMinOrderMet:', isMinOrderMet);
-    if (!isMinOrderMet) return; // guard — button is also visually disabled
+    console.log('[cart.js] handleCheckout pressed. isMinOrderMet:', isMinOrderMet, 'isOffline:', isOffline);
+    if (!isMinOrderMet || isOffline) return; // guard — button is also visually disabled
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     initiateCheckout();
   };
 
   // ── Feature 4: Safe decrement with Alert────────────────────────────────────
   const handleDecrement = useCallback(
     (item) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       if (item.quantity > 1) {
         dispatch(decrementItem(item.cartKey));
       } else {
@@ -321,6 +360,7 @@ export default function CartScreen() {
               text: locale === 'en' ? 'Remove' : 'Видалити',
               style: 'destructive',
               onPress: () => {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                 dispatch(removeItem(item.cartKey));
               },
@@ -369,9 +409,10 @@ export default function CartScreen() {
 
           <TouchableOpacity
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() =>
-              dispatch(updateQuantity({ cartKey: item.cartKey, quantity: item.quantity + 1 }))
-            }
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              dispatch(updateQuantity({ cartKey: item.cartKey, quantity: item.quantity + 1 }));
+            }}
           >
             <Ionicons name="add-circle" size={32} color={NEON} />
           </TouchableOpacity>
@@ -392,7 +433,10 @@ export default function CartScreen() {
       <TouchableOpacity
         style={styles.recAddBtn}
         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-        onPress={() => dispatch(addToCart({ ...item }))}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          dispatch(addToCart({ ...item }));
+        }}
       >
         <Ionicons name="add" size={20} color="white" />
       </TouchableOpacity>
@@ -409,7 +453,10 @@ export default function CartScreen() {
           <Text style={[styles.headerTitle, { color: theme.text, marginLeft: 8 }]}>{t(locale, 'cartTitle')}</Text>
         </View>
         {cartItems.length > 0 && (
-          <TouchableOpacity onPress={() => dispatch(clearCart())}>
+          <TouchableOpacity onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            dispatch(clearCart());
+          }}>
             <Text style={styles.clearBtn}>{t(locale, 'clearCart')}</Text>
           </TouchableOpacity>
         )}
@@ -423,7 +470,10 @@ export default function CartScreen() {
               <TouchableOpacity
                 key={type}
                 style={[styles.toggleBtn, deliveryType === type && styles.toggleBtnActive]}
-                onPress={() => dispatch(setDeliveryType(type))}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  dispatch(setDeliveryType(type));
+                }}
               >
                 <Text style={[styles.toggleText, deliveryType === type && styles.toggleTextActive]}>
                   {type === 'delivery'
@@ -476,6 +526,7 @@ export default function CartScreen() {
 
           {/* ── Bottom Sheet ── */}
           <Animated.View
+            {...panResponder.panHandlers}
             style={[
               styles.sheet,
               {
@@ -501,9 +552,25 @@ export default function CartScreen() {
             ]}
           >
             {/* Drag handle */}
-            <View style={styles.dragHandleArea} {...panResponder.panHandlers}>
-              <View style={styles.dragPill} />
-            </View>
+            <TouchableOpacity 
+              activeOpacity={1}
+              onPress={toggleCartSheet}
+              onPressIn={handlePressIn}
+              onPressOut={handlePressOut}
+              style={styles.dragHandleArea} 
+            >
+              <Animated.View 
+                style={[
+                  styles.dragPill,
+                  {
+                    transform: [
+                      { scaleX: activeScale },
+                      { scaleY: activeScale }
+                    ]
+                  }
+                ]} 
+              />
+            </TouchableOpacity>
 
             {/* ── COLLAPSED ZONE ── */}
             <View style={styles.collapsedZone}>
@@ -534,24 +601,26 @@ export default function CartScreen() {
                 </View>
               </View>
 
-              {/* Feature 1: Disabled checkout when min order not met */}
+              {/* Feature 1: Disabled checkout when min order not met or offline */}
               <TouchableOpacity
                 style={[
                   styles.checkoutBtn,
-                  (!isMinOrderMet || isLoading) && styles.checkoutBtnDisabled,
+                  (!isMinOrderMet || isLoading || isOffline) && styles.checkoutBtnDisabled,
                 ]}
-                activeOpacity={isMinOrderMet && !isLoading ? 0.85 : 1}
+                activeOpacity={isMinOrderMet && !isLoading && !isOffline ? 0.85 : 1}
                 onPress={handleCheckout}
-                disabled={!isMinOrderMet || isLoading}
+                disabled={!isMinOrderMet || isLoading || isOffline}
               >
                 <Text style={styles.checkoutBtnText}>
-                  {isLoading 
-                    ? (locale === 'en' ? 'Processing...' : 'Обробка...') 
-                    : (isMinOrderMet
-                      ? t(locale, 'placeOrder')
-                      : (locale === 'en'
-                        ? `Min. order ${MIN_ORDER_AMOUNT} ₴`
-                        : `Мін. замовлення ${MIN_ORDER_AMOUNT} ₴`))}
+                  {isOffline
+                    ? (locale === 'en' ? 'Offline Mode' : 'Офлайн-режим')
+                    : (isLoading 
+                      ? (locale === 'en' ? 'Processing...' : 'Обробка...') 
+                      : (isMinOrderMet
+                        ? t(locale, 'placeOrder')
+                        : (locale === 'en'
+                          ? `Min. order ${MIN_ORDER_AMOUNT} ₴`
+                          : `Мін. замовлення ${MIN_ORDER_AMOUNT} ₴`)))}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -882,11 +951,13 @@ const styles = StyleSheet.create({
   },
   dragHandleArea: {
     alignItems: 'center',
-    paddingVertical: 14,
+    justifyContent: 'center',
+    height: 48,
     marginHorizontal: -20,
     paddingHorizontal: 20,
+    backgroundColor: 'transparent',
   },
-  dragPill: { width: 44, height: 5, backgroundColor: '#C6C6CC', borderRadius: 3 },
+  dragPill: { width: 48, height: 5, backgroundColor: '#C6C6CC', borderRadius: 2.5 },
 
   collapsedZone: { paddingBottom: 18 },
   totalRow: {

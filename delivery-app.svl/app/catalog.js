@@ -1,175 +1,298 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { 
+  Image, 
+  Modal, 
+  ScrollView, 
+  StyleSheet, 
+  Text, 
+  TouchableOpacity, 
+  View, 
+  Animated,
+  Platform
+} from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Colors from '../constants/Colors';
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
+import { useSelector } from 'react-redux';
+import Colors, { Shadows } from '../constants/Colors';
 import useCatalogFilter from '../hooks/useCatalogFilter';
-import { RefreshControl } from 'react-native';
-import { useDispatch } from 'react-redux';
-import { fetchCatalog } from '../store/catalogSlice';
-import BackButton from '../components/BackButton';
+import { CatalogSkeleton } from '../components/Skeleton';
+
+const BouncyProductCard = ({ item, theme, router, isDark }) => {
+  const [scaleAnim] = useState(new Animated.Value(1));
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, { toValue: 0.95, useNativeDriver: true }).start();
+  };
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, { toValue: 1, friction: 4, tension: 40, useNativeDriver: true }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push(`/restaurant/${item.store_id}`);
+      }}
+      activeOpacity={1}
+    >
+      <Animated.View style={[
+        styles.card, 
+        { 
+          backgroundColor: isDark ? 'rgba(30, 30, 30, 0.65)' : 'rgba(255, 255, 255, 0.75)',
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.4)',
+          borderWidth: 1,
+          transform: [{ scale: scaleAnim }],
+          ...(isDark ? Shadows.dark : Shadows.light)
+        }
+      ]}>
+        <Image source={{ uri: item.image }} style={styles.cardImage} />
+        <View style={styles.cardContent}>
+          <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
+          <Text style={[styles.cardPrice, { color: theme.tint }]}>{item.price} грн</Text>
+          <View style={styles.addBtn}>
+            <Ionicons name="add" size={20} color="white" />
+          </View>
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
+const BouncyHorizontalCard = ({ item, router, theme, isDark, tag, tagColor }) => {
+  const [scaleAnim] = useState(new Animated.Value(1));
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, { toValue: 0.95, useNativeDriver: true }).start();
+  };
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, { toValue: 1, friction: 4, tension: 40, useNativeDriver: true }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push(`/restaurant/${item.store_id}`);
+      }}
+      activeOpacity={1}
+    >
+      <Animated.View style={[
+        styles.horizontalCard,
+        {
+          backgroundColor: isDark ? 'rgba(30, 30, 30, 0.65)' : 'rgba(255, 255, 255, 0.75)',
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.4)',
+          borderWidth: 1,
+          transform: [{ scale: scaleAnim }],
+          ...(isDark ? Shadows.dark : Shadows.light)
+        }
+      ]}>
+        <View style={[styles.badgeTop, { backgroundColor: tagColor }]}><Text style={styles.badgeText}>{tag}</Text></View>
+        <Image source={{ uri: item.image }} style={styles.horizontalImage} />
+        <Text style={[styles.hCardTitle, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
+        <Text style={[styles.hCardPrice, { color: theme.tint }]}>{item.price} грн</Text>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 export default function CatalogScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
-
+  
+  const isLoading = useSelector((state) => state.catalog.isLoading);
   const [modalVisible, setModalVisible] = useState(false);
   const { sortOrder, setSortOrder, finalProducts } = useCatalogFilter();
-  const dispatch = useDispatch();
-  const [refreshing, setRefreshing] = useState(false);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await dispatch(fetchCatalog()).unwrap();
-    } catch (error) {
-      console.error('Refresh catalog failed:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
 
   const topProducts = finalProducts.slice(0, 5);
   const newProducts = finalProducts.slice(5, 10);
-  const renderProductItem = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.card, { backgroundColor: theme.card }]}
-      onPress={() => router.push(`/restaurant/${item.store_id}`)}
-    >
-      <Image source={{ uri: item.image }} style={styles.cardImage} />
-      <View style={styles.cardContent}>
-        <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
-        <Text style={[styles.cardPrice, { color: theme.tint }]}>{item.price} грн</Text>
-        <TouchableOpacity style={styles.addBtn}>
-          <Ionicons name="add" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+  
+  const headerHeight = (Platform.OS === 'ios' ? 122 : 112) + insets.top;
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
 
-      {/* ШАПКА + КНОПКА ПОШУКУ */}
-      <View style={styles.headerContainer}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-          <BackButton />
-          <Text style={[styles.pageTitle, { color: theme.text, marginBottom: 0, marginLeft: 0 }]}>Каталог</Text>
-        </View>
+      {/* ШАПКА + КНОПКА ПОШУКУ (Sticky glass panel) */}
+      <View style={[
+        styles.stickyHeader,
+        {
+          paddingTop: insets.top + 6,
+          borderBottomColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+        }
+      ]}>
+        {Platform.OS === 'ios' ? (
+          <BlurView intensity={85} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(18, 18, 18, 0.9)' : 'rgba(255, 255, 255, 0.9)' }]} />
+        )}
 
-        <View style={styles.searchRow}>
-          {/* Натискання перекидає на search.js */}
-          <TouchableOpacity
-            style={[styles.searchBar, { backgroundColor: theme.input }]}
-            onPress={() => router.push('/search')}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="search" size={20} color="gray" style={{ marginRight: 8 }} />
-            <Text style={{ color: 'gray', fontSize: 16 }}>Пошук смачненького...</Text>
-          </TouchableOpacity>
+        <View style={styles.headerContainer}>
+          <Text style={[styles.pageTitle, { color: theme.text }]}>Каталог</Text>
 
-          {/* Кнопка Сортування */}
-          <TouchableOpacity style={styles.sortButton} onPress={() => setModalVisible(true)}>
-            <Ionicons name="options-outline" size={24} color="white" />
-          </TouchableOpacity>
+          <View style={styles.searchRow}>
+            <TouchableOpacity
+              style={[styles.searchBar, { backgroundColor: theme.input }]}
+              onPress={() => router.push('/search')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="search" size={20} color="gray" style={{ marginRight: 8 }} />
+              <Text style={{ color: 'gray', fontSize: 16 }}>Пошук смачненького...</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.sortButton, Shadows.primary]} 
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setModalVisible(true);
+              }}
+            >
+              <Ionicons name="options-outline" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={{ paddingBottom: 140 + insets.bottom }}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            tintColor="#e334e3" 
-            colors={["#e334e3"]}
-          />
-        }
-      >
+      <ScrollView contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: 140 }}>
 
-        {/* Секція: Топ сезону */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>🔥 Топ сезону</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16 }}>
-            {topProducts.map((item, index) => (
-              <TouchableOpacity key={index} style={[styles.horizontalCard, { backgroundColor: theme.card }]} onPress={() => router.push(`/restaurant/${item.store_id}`)}>
-                <View style={styles.badgeTop}><Text style={styles.badgeText}>TOP</Text></View>
-                <Image source={{ uri: item.image }} style={styles.horizontalImage} />
-                <Text style={[styles.hCardTitle, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
-                <Text style={[styles.hCardPrice, { color: theme.tint }]}>{item.price} грн</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Секція: Новинки */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>🆕 Новинки</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16 }}>
-            {newProducts.map((item, index) => (
-              <TouchableOpacity key={index} style={[styles.horizontalCard, { backgroundColor: theme.card }]} onPress={() => router.push(`/restaurant/${item.store_id}`)}>
-                <View style={[styles.badgeTop, { backgroundColor: '#4CAF50' }]}><Text style={styles.badgeText}>NEW</Text></View>
-                <Image source={{ uri: item.image }} style={styles.horizontalImage} />
-                <Text style={[styles.hCardTitle, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
-                <Text style={[styles.hCardPrice, { color: theme.tint }]}>{item.price} грн</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Всі товари */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Всі товари</Text>
-          <View style={styles.grid}>
-            {finalProducts.map((item, index) => (
-              <View key={index} style={{ width: '48%', marginBottom: 16 }}>
-                {renderProductItem({ item })}
+        {isLoading ? (
+          <CatalogSkeleton />
+        ) : (
+          <>
+            {/* Секція: Топ сезону */}
+            {topProducts.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>🔥 Топ сезону</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 16, paddingRight: 4, paddingBottom: 8 }}>
+                  {topProducts.map((item, index) => (
+                    <BouncyHorizontalCard 
+                      key={`top-${index}`} 
+                      item={item} 
+                      router={router} 
+                      theme={theme} 
+                      isDark={isDark} 
+                      tag="TOP" 
+                      tagColor="#FF5722" 
+                    />
+                  ))}
+                </ScrollView>
               </View>
-            ))}
-          </View>
-        </View>
+            )}
+
+            {/* Секція: Новинки */}
+            {newProducts.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>🆕 Новинки</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 16, paddingRight: 4, paddingBottom: 8 }}>
+                  {newProducts.map((item, index) => (
+                    <BouncyHorizontalCard 
+                      key={`new-${index}`} 
+                      item={item} 
+                      router={router} 
+                      theme={theme} 
+                      isDark={isDark} 
+                      tag="NEW" 
+                      tagColor="#4CAF50" 
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Всі товари */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Всі товари</Text>
+              <View style={styles.grid}>
+                {finalProducts.map((item, index) => (
+                  <View key={`prod-${index}`} style={{ width: '48%', marginBottom: 16 }}>
+                    <BouncyProductCard item={item} theme={theme} router={router} isDark={isDark} />
+                  </View>
+                ))}
+              </View>
+            </View>
+          </>
+        )}
 
       </ScrollView>
 
       {/* Модалка Сортування */}
       <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Сортування</Text>
+          {Platform.OS === 'ios' ? (
+            <BlurView intensity={90} tint={isDark ? 'dark' : 'light'} style={[styles.modalContent, { borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Сортування</Text>
 
-            <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder('asc'); setModalVisible(false); }}>
-              <Ionicons name="arrow-up" size={20} color={theme.text} />
-              <Text style={[styles.sortText, { color: theme.text }]}>Від дешевих до дорогих</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder('asc'); setModalVisible(false); }}>
+                <Ionicons name="arrow-up" size={20} color={theme.text} />
+                <Text style={[styles.sortText, { color: theme.text }]}>Від дешевих до дорогих</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder('desc'); setModalVisible(false); }}>
-              <Ionicons name="arrow-down" size={20} color={theme.text} />
-              <Text style={[styles.sortText, { color: theme.text }]}>Від дорогих до дешевих</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder('desc'); setModalVisible(false); }}>
+                <Ionicons name="arrow-down" size={20} color={theme.text} />
+                <Text style={[styles.sortText, { color: theme.text }]}>Від дорогих до дешевих</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder(null); setModalVisible(false); }}>
-              <Ionicons name="refresh" size={20} color={theme.text} />
-              <Text style={[styles.sortText, { color: theme.text }]}>За замовчуванням</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder(null); setModalVisible(false); }}>
+                <Ionicons name="refresh" size={20} color={theme.text} />
+                <Text style={[styles.sortText, { color: theme.text }]}>За замовчуванням</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.closeButton, { backgroundColor: '#e334e3' }]} onPress={() => setModalVisible(false)}>
-              <Text style={styles.closeButtonText}>Закрити</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity style={[styles.closeButton, { backgroundColor: '#e334e3' }]} onPress={() => setModalVisible(false)}>
+                <Text style={styles.closeButtonText}>Закрити</Text>
+              </TouchableOpacity>
+            </BlurView>
+          ) : (
+            <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Сортування</Text>
+
+              <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder('asc'); setModalVisible(false); }}>
+                <Ionicons name="arrow-up" size={20} color={theme.text} />
+                <Text style={[styles.sortText, { color: theme.text }]}>Від дешевих до дорогих</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder('desc'); setModalVisible(false); }}>
+                <Ionicons name="arrow-down" size={20} color={theme.text} />
+                <Text style={[styles.sortText, { color: theme.text }]}>Від дорогих до дешевих</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.sortOption} onPress={() => { setSortOrder(null); setModalVisible(false); }}>
+                <Ionicons name="refresh" size={20} color={theme.text} />
+                <Text style={[styles.sortText, { color: theme.text }]}>За замовчуванням</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.closeButton, { backgroundColor: '#e334e3' }]} onPress={() => setModalVisible(false)}>
+                <Text style={styles.closeButtonText}>Закрити</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </Modal>
 
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerContainer: { paddingHorizontal: 16, paddingVertical: 10 },
+  stickyHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    borderBottomWidth: 1,
+    overflow: 'hidden',
+  },
+  headerContainer: { paddingHorizontal: 16, paddingBottom: 12 },
   pageTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 10 },
   searchRow: { flexDirection: 'row', alignItems: 'center' },
   searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 46, borderRadius: 12, paddingHorizontal: 12, marginRight: 10 },
@@ -177,11 +300,11 @@ const styles = StyleSheet.create({
 
   section: { marginTop: 20 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 16, marginBottom: 10 },
-  horizontalCard: { width: 140, marginRight: 15, borderRadius: 12, padding: 8, alignItems: 'center' },
+  horizontalCard: { width: 140, marginRight: 15, borderRadius: 12, padding: 8, alignItems: 'center', position: 'relative' },
   horizontalImage: { width: 120, height: 100, borderRadius: 10, marginBottom: 8 },
   hCardTitle: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
   hCardPrice: { fontSize: 14, fontWeight: 'bold', marginTop: 4 },
-  badgeTop: { position: 'absolute', top: 5, left: 5, zIndex: 1, backgroundColor: '#FF5722', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  badgeTop: { position: 'absolute', top: 12, left: 12, zIndex: 1, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 16 },
@@ -190,12 +313,12 @@ const styles = StyleSheet.create({
   cardContent: { padding: 10 },
   cardTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
   cardPrice: { fontSize: 16, fontWeight: 'bold' },
-  addBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#e334e3', padding: 8, borderRadius: 8 },
+  addBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#e334e3', padding: 8, borderTopLeftRadius: 8, borderBottomRightRadius: 16 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
+  modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: Platform.OS === 'ios' ? 40 : 20 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  sortOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  sortOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: 'rgba(150,150,150,0.2)' },
   sortText: { fontSize: 16, marginLeft: 10, flex: 1 },
   closeButton: { marginTop: 20, padding: 15, borderRadius: 12, alignItems: 'center' },
   closeButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },

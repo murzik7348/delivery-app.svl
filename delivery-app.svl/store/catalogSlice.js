@@ -46,6 +46,10 @@ const catalogSlice = createSlice({
         },
         setLoading: (state, action) => { state.isLoading = action.payload; },
         setError: (state, action) => { state.error = action.payload; },
+        removeProductFromCatalog: (state, action) => {
+            const productId = action.payload;
+            state.products = state.products.filter(p => p.product_id !== productId);
+        },
     },
     extraReducers: (builder) => {
         builder
@@ -80,7 +84,7 @@ const catalogSlice = createSlice({
     },
 });
 
-export const { setCatalogData, setLoading, setError } = catalogSlice.actions;
+export const { setCatalogData, setLoading, setError, removeProductFromCatalog } = catalogSlice.actions;
 
 // Selectors
 export const selectAllProducts = (state) => state.catalog.products;

@@ -1,9 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, Image, FlatList, Alert,
   StyleSheet, Animated, Easing, Dimensions, Linking, Platform
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { HubConnectionBuilder } from '@microsoft/signalr';
+import { getToken } from '../src/api/client';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
@@ -58,6 +61,22 @@ const safeNumber = (val, fallback = 0) => {
   const parsed = Number(val);
   return isNaN(parsed) ? fallback : parsed;
 };
+
+const OrderItem = React.memo(({ item, theme }) => (
+  <View style={[styles.itemRowWrapper, { backgroundColor: theme.background }]}>
+    <View style={[styles.itemQtyBadge, { backgroundColor: theme.input }]}>
+      <Text style={[styles.itemQtyText, { color: MAGENTA }]}>{item.quantity}x</Text>
+    </View>
+    <Text style={[styles.itemNameText, { color: theme.text }]} numberOfLines={2}>
+      {item.productName || item.name || 'Товар'}
+    </Text>
+    <Text style={[styles.itemPriceText, { color: theme.text }]}>
+      {item.totalLineAmount !== undefined && item.totalLineAmount !== null 
+        ? safeNumber(item.totalLineAmount) 
+        : (safeNumber(item.price) * safeNumber(item.quantity, 1))} ₴
+    </Text>
+  </View>
+));
 
 // ──────────────────────────────────────────────────────────────
 // Animated Progress Bar (Horizontal)
@@ -131,10 +150,236 @@ export default function OrderDetailsScreen() {
   const intervalRef = useRef(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [liveCourierCoords, setLiveCourierCoords] = useState(null);
+  const [hasRealSignalRCoords, setHasRealSignalRCoords] = useState(false);
+  const mapRef = useRef(null);
 
   const order = useSelector(state =>
     state.orders.orders.find(o => String(o.deliveryId || o.id) === String(id))
   );
+
+  const activeStatus = order?.statusDelivery ?? order?.status ?? 'created';
+  const currentStep = statusToStep(activeStatus);
+  const courierName = order?.courierName || (locale === 'en' ? 'Searching...' : 'Шукаємо кур\'єра...');
+  const courierRating = order?.courierRating;
+  const courierPhone = order?.courierPhone;
+  const courierPhoto = order?.courierPhoto;
+
+  const [routeCoords, setRouteCoords] = useState([]);
+
+  // Animate map to show restaurant/courier and customer pin
+  useEffect(() => {
+    if (mapRef.current) {
+      const points = [];
+      if (order?.customerLatitude && order?.customerLongitude) {
+        points.push({ latitude: order.customerLatitude, longitude: order.customerLongitude });
+      }
+      if (liveCourierCoords?.latitude && liveCourierCoords?.longitude) {
+        points.push({ latitude: liveCourierCoords.latitude, longitude: liveCourierCoords.longitude });
+      } else if (order?.restaurantLatitude && order?.restaurantLongitude) {
+        points.push({ latitude: order.restaurantLatitude, longitude: order.restaurantLongitude });
+      }
+
+      if (points.length >= 2) {
+        console.log('📡 [OrderDetails] fitToCoordinates on map:', points);
+        const timer = setTimeout(() => {
+          mapRef.current?.fitToCoordinates(points, {
+            edgePadding: { top: 70, right: 70, bottom: 70, left: 70 },
+            animated: true,
+          });
+        }, 300);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [
+    liveCourierCoords?.latitude,
+    liveCourierCoords?.longitude,
+    order?.restaurantLatitude,
+    order?.restaurantLongitude,
+    order?.customerLatitude,
+    order?.customerLongitude
+  ]);
+
+  // Fetch precise route using OSRM
+  useEffect(() => {
+    let active = true;
+    const fetchRoute = async () => {
+      const startLat = liveCourierCoords?.latitude || order?.restaurantLatitude;
+      const startLng = liveCourierCoords?.longitude || order?.restaurantLongitude;
+      const endLat = order?.customerLatitude;
+      const endLng = order?.customerLongitude;
+
+      if (!startLat || !startLng || !endLat || !endLng) {
+        console.log('📡 [OrderDetails] OSRM route skipped: missing coordinates');
+        return;
+      }
+
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
+        console.log('📡 [OrderDetails] Fetching route from OSRM:', url);
+        const res = await fetch(url);
+        const data = await res.json();
+        if (active && data.routes && data.routes.length > 0) {
+          const coords = data.routes[0].geometry.coordinates.map(c => ({
+            latitude: c[1],
+            longitude: c[0]
+          }));
+          console.log('📡 [OrderDetails] Route coordinates fetched successfully:', coords.length);
+          setRouteCoords(coords);
+        } else {
+          console.warn('📡 [OrderDetails] OSRM returned empty routes');
+        }
+      } catch (err) {
+        console.warn('[OrderDetails] Failed to fetch precise route:', err);
+      }
+    };
+
+    fetchRoute();
+    return () => {
+      active = false;
+    };
+  }, [
+    liveCourierCoords?.latitude,
+    liveCourierCoords?.longitude,
+    order?.restaurantLatitude,
+    order?.restaurantLongitude,
+    order?.customerLatitude,
+    order?.customerLongitude
+  ]);
+
+  // 1. SignalR Subscription for Real-time Courier tracking
+  useEffect(() => {
+    const orderIdNum = parseInt(id, 10);
+    if (isNaN(orderIdNum)) return;
+
+    let connection = null;
+    let isMounted = true;
+
+    const startSignalR = async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        if (!isMounted) return;
+
+        connection = new HubConnectionBuilder()
+          .withUrl("https://api.andi.delivery/trackingHub", {
+            accessTokenFactory: () => token
+          })
+          .withAutomaticReconnect()
+          .build();
+
+        // Custom timeout values to tolerate temporary network pauses
+        connection.serverTimeoutInMilliseconds = 60000;
+        connection.keepAliveIntervalInMilliseconds = 15000;
+
+        connection.on("ReceiveLocation", (data) => {
+          console.log('📡 [SignalR User] ReceiveLocation:', data);
+          if (data && data.lat !== undefined && data.lng !== undefined) {
+            setLiveCourierCoords({
+              latitude: Number(data.lat),
+              longitude: Number(data.lng),
+            });
+            setHasRealSignalRCoords(true);
+          }
+        });
+
+        connection.onclose((error) => {
+          console.log('🔌 [SignalR User] Connection closed:', error);
+        });
+
+        connection.onreconnecting((error) => {
+          console.warn('🔌 [SignalR User] Connection lost. Reconnecting...', error);
+        });
+
+        connection.onreconnected((connectionId) => {
+          console.log('🔌 [SignalR User] Reconnected successfully. Re-joining group for order:', orderIdNum);
+          if (isMounted) {
+            connection.invoke("JoinOrderGroup", orderIdNum)
+              .then(() => console.log(`🔌 [SignalR User] Re-joined order group: order_${orderIdNum}`))
+              .catch(err => {
+                if (isMounted) console.error('🔌 [SignalR User] Re-join group failed:', err);
+              });
+          }
+        });
+
+        await connection.start();
+        if (!isMounted) {
+          connection.stop();
+          return;
+        }
+        console.log('🔌 [SignalR User] Connected successfully');
+
+        await connection.invoke("JoinOrderGroup", orderIdNum);
+        console.log(`🔌 [SignalR User] Joined order group: order_${orderIdNum}`);
+      } catch (err) {
+        if (isMounted) {
+          console.error('❌ [SignalR User] Connection error:', err);
+        } else {
+          console.log('🔌 [SignalR User] Connection attempt aborted/stopped on unmount');
+        }
+      }
+    };
+
+    startSignalR();
+
+    return () => {
+      isMounted = false;
+      if (connection) {
+        connection.stop()
+          .then(() => console.log('🔌 [SignalR User] Connection stopped'))
+          .catch(err => console.warn('🔌 [SignalR User] Error stopping connection:', err));
+      }
+    };
+  }, [id]);
+
+  // 2. Fallback / Simulation logic for courier location on map
+  useEffect(() => {
+    if (!order) return;
+    const restLat = order.restaurantLatitude;
+    const restLng = order.restaurantLongitude;
+    const custLat = order.customerLatitude;
+    const custLng = order.customerLongitude;
+
+    // If we have received real coords from SignalR, do not overwrite them with simulation/fallback
+    if (hasRealSignalRCoords) return;
+
+    // Use initial REST API courier coordinates if they exist
+    if (order.courierLatitude > 0 && order.courierLongitude > 0) {
+      setLiveCourierCoords({
+        latitude: order.courierLatitude,
+        longitude: order.courierLongitude,
+      });
+      return;
+    }
+
+    // Otherwise, simulate movement when status is delivering (step 4)
+    if (currentStep === 4 && restLat && custLat) {
+      let fraction = 0;
+      const interval = setInterval(() => {
+        fraction = (fraction + 0.02) % 1.0;
+        const currentLat = restLat + (custLat - restLat) * fraction;
+        const currentLng = restLng + (custLng - restLng) * fraction;
+        setLiveCourierCoords({
+          latitude: currentLat,
+          longitude: currentLng,
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    } else if (restLat) {
+      setLiveCourierCoords({
+        latitude: restLat,
+        longitude: restLng,
+      });
+    }
+  }, [
+    order?.courierLatitude, 
+    order?.courierLongitude, 
+    currentStep, 
+    order?.restaurantLatitude, 
+    order?.customerLatitude,
+    hasRealSignalRCoords
+  ]);
+
 
   useFocusEffect(
     React.useCallback(() => {
@@ -163,17 +408,47 @@ export default function OrderDetailsScreen() {
       </SafeAreaView>
     );
   }
-
-  const activeStatus = order.statusDelivery ?? order.status ?? 'created';
-  const currentStep = statusToStep(activeStatus);
   const statusDef = STATUS_CONFIG[currentStep] || STATUS_CONFIG[0];
 
-  const courierName = order.courierName || (locale === 'en' ? 'Searching...' : 'Шукаємо кур\'єра...');
-  const courierRating = order.courierRating;
-  const courierPhone = order.courierPhone;
-  const courierPhoto = order.courierPhoto;
-
   const [isConfirming, setIsConfirming] = useState(false);
+
+  const restaurantMarker = useMemo(() => {
+    if (!order?.restaurantLatitude || !order?.restaurantLongitude) return null;
+    return (
+      <Marker
+        coordinate={{
+          latitude: order.restaurantLatitude,
+          longitude: order.restaurantLongitude,
+        }}
+        title={locale === 'en' ? 'Restaurant' : 'Ресторан'}
+      >
+        <View style={styles.mapPin}>
+          <Ionicons name="restaurant" size={14} color="white" />
+        </View>
+      </Marker>
+    );
+  }, [order?.restaurantLatitude, order?.restaurantLongitude, locale]);
+
+  const customerMarker = useMemo(() => {
+    if (!order?.customerLatitude || !order?.customerLongitude) return null;
+    return (
+      <Marker
+        coordinate={{
+          latitude: order.customerLatitude,
+          longitude: order.customerLongitude,
+        }}
+        title={locale === 'en' ? 'Your Address' : 'Ваша адреса'}
+      >
+        <View style={[styles.mapPin, { backgroundColor: '#3498db' }]}>
+          <Ionicons name="home" size={14} color="white" />
+        </View>
+      </Marker>
+    );
+  }, [order?.customerLatitude, order?.customerLongitude, locale]);
+
+  const renderItem = useCallback(({ item }) => (
+    <OrderItem item={item} theme={theme} />
+  ), [theme]);
 
   const handleSupportPress = () => {
     Alert.alert(
@@ -309,6 +584,53 @@ export default function OrderDetailsScreen() {
               </View>
             )}
 
+            {order.restaurantLatitude && order.customerLatitude && (
+              <View style={[styles.mapContainer, { borderColor: theme.border }]}>
+                <MapView
+                  ref={mapRef}
+                  style={styles.map}
+                  provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                  initialRegion={{
+                    latitude: (order.restaurantLatitude + order.customerLatitude) / 2,
+                    longitude: (order.restaurantLongitude + order.customerLongitude) / 2,
+                    latitudeDelta: Math.max(Math.abs(order.restaurantLatitude - order.customerLatitude) * 2, 0.015),
+                    longitudeDelta: Math.max(Math.abs(order.restaurantLongitude - order.customerLongitude) * 2, 0.015),
+                  }}
+                  scrollEnabled={true}
+                  zoomEnabled={true}
+                >
+                  {/* Restaurant Marker */}
+                  {restaurantMarker}
+
+                  {/* Customer Marker */}
+                  {customerMarker}
+
+                  {/* Courier Marker */}
+                  {currentStep >= 1 && currentStep < 5 && liveCourierCoords && (
+                    <Marker
+                      coordinate={liveCourierCoords}
+                      title={locale === 'en' ? 'Courier' : 'Кур\'єр'}
+                    >
+                      <View style={[styles.mapPin, { backgroundColor: '#f1c40f', borderWidth: 2, borderColor: 'white' }]}>
+                        <Ionicons name="bicycle" size={16} color="black" />
+                      </View>
+                    </Marker>
+                  )}
+
+                  {/* Route Line */}
+                  <Polyline
+                    coordinates={routeCoords.length > 0 ? routeCoords : [
+                      { latitude: liveCourierCoords?.latitude || order.restaurantLatitude, longitude: liveCourierCoords?.longitude || order.restaurantLongitude },
+                      { latitude: order.customerLatitude, longitude: order.customerLongitude },
+                    ]}
+                    strokeColor={MAGENTA}
+                    strokeWidth={3}
+                    lineDashPattern={routeCoords.length > 0 ? undefined : [5, 5]}
+                  />
+                </MapView>
+              </View>
+            )}
+
             {/* Distance to client banner when delivering */}
             {currentStep === 4 && order.navigationStats?.toClientDistance && (
               <View style={[styles.distanceBanner, { backgroundColor: '#3498db12', borderColor: '#3498db30' }]}>
@@ -348,21 +670,7 @@ export default function OrderDetailsScreen() {
           </View>
         }
 
-        renderItem={({ item }) => (
-          <View style={[styles.itemRowWrapper, { backgroundColor: theme.background }]}>
-            <View style={[styles.itemQtyBadge, { backgroundColor: theme.input }]}>
-              <Text style={[styles.itemQtyText, { color: MAGENTA }]}>{item.quantity}x</Text>
-            </View>
-            <Text style={[styles.itemNameText, { color: theme.text }]} numberOfLines={2}>
-              {item.productName || item.name || 'Товар'}
-            </Text>
-            <Text style={[styles.itemPriceText, { color: theme.text }]}>
-              {item.totalLineAmount !== undefined && item.totalLineAmount !== null 
-                ? safeNumber(item.totalLineAmount) 
-                : (safeNumber(item.price) * safeNumber(item.quantity, 1))} ₴
-            </Text>
-          </View>
-        )}
+        renderItem={renderItem}
 
         ListFooterComponent={
           <View style={styles.summaryWrap}>
@@ -508,5 +816,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', borderRadius: 20, 
     borderWidth: StyleSheet.hairlineWidth, 
     padding: 16, marginBottom: 16 
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 2 }
+    })
+  },
+  map: {
+    flex: 1,
+  },
+  mapPin: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: MAGENTA,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
 });

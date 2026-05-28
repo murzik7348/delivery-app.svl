@@ -51,6 +51,9 @@ export default function LocationPickerScreen() {
   const isDraggingMap = useRef(false);
   const MAX_DOWN = 320; // Position for collapsed state
 
+  const activeScale = useRef(new Animated.Value(1)).current;
+  const touchStartTime = useRef(0);
+
   useEffect(() => {
     const listenerId = panY.addListener(({ value }) => {
       lastPanY.current = value;
@@ -65,8 +68,10 @@ export default function LocationPickerScreen() {
          return Math.abs(gestureState.dy) > 5;
       },
       onPanResponderGrant: () => {
+        touchStartTime.current = Date.now();
         panY.setOffset(lastPanY.current);
         panY.setValue(0);
+        Animated.spring(activeScale, { toValue: 1.35, friction: 8, tension: 60, useNativeDriver: true }).start();
       },
       onPanResponderMove: Animated.event(
         [null, { dy: panY }],
@@ -74,22 +79,35 @@ export default function LocationPickerScreen() {
       ),
       onPanResponderRelease: (_, gestureState) => {
         panY.flattenOffset();
-        if (gestureState.vy > 0.5 || gestureState.dy > 100) {
-          Animated.spring(panY, {
-            toValue: MAX_DOWN,
-            friction: 8,
-            tension: 40,
-            useNativeDriver: true,
-          }).start();
+        Animated.spring(activeScale, { toValue: 1, friction: 8, tension: 60, useNativeDriver: true }).start();
+
+        const duration = Date.now() - touchStartTime.current;
+        const distance = Math.abs(gestureState.dy);
+
+        if (duration < 250 && distance < 7) {
+          toggleSheet();
         } else {
-          Animated.spring(panY, {
-            toValue: 0,
-            friction: 8,
-            tension: 40,
-            useNativeDriver: true,
-          }).start();
+          if (gestureState.vy > 0.5 || gestureState.dy > 100) {
+            Animated.spring(panY, {
+              toValue: MAX_DOWN,
+              friction: 8,
+              tension: 40,
+              useNativeDriver: true,
+            }).start();
+          } else {
+            Animated.spring(panY, {
+              toValue: 0,
+              friction: 8,
+              tension: 40,
+              useNativeDriver: true,
+            }).start();
+          }
         }
       },
+      onPanResponderTerminate: () => {
+        panY.flattenOffset();
+        Animated.spring(activeScale, { toValue: 1, friction: 8, tension: 60, useNativeDriver: true }).start();
+      }
     })
   ).current;
 
@@ -372,14 +390,19 @@ export default function LocationPickerScreen() {
         ]}
       >
         <View {...panResponder.panHandlers} style={styles.dragHeader}>
-          <TouchableOpacity 
-            style={styles.pillContainer} 
-            onPress={toggleSheet} 
-            activeOpacity={0.7}
-            hitSlop={{ top: 15, bottom: 15, left: 50, right: 50 }}
-          >
-            <View style={styles.pill} />
-          </TouchableOpacity>
+          <View style={styles.pillContainer}>
+            <Animated.View 
+              style={[
+                styles.pill,
+                {
+                  transform: [
+                    { scaleX: activeScale },
+                    { scaleY: activeScale }
+                  ]
+                }
+              ]} 
+            />
+          </View>
 
           {/* STREET ROW */}
           <View style={styles.addressRow}>
@@ -605,14 +628,15 @@ const styles = StyleSheet.create({
   pillContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    marginBottom: 8,
+    height: 48,
+    marginHorizontal: -20,
+    backgroundColor: 'transparent',
   },
   pill: {
-    width: 44,
+    width: 48,
     height: 5,
-    borderRadius: 3,
-    backgroundColor: '#E0E0E0',
+    borderRadius: 2.5,
+    backgroundColor: '#C6C6CC',
   },
 
   addressRow: {

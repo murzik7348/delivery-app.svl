@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl } from 'react-native';
+import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Alert } from 'react-native';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../../constants/Colors';
 import { t } from '../../constants/translations';
-import { addToCart, removeFromCart } from '../../store/cartSlice';
+import { addToCart, removeFromCart, decrementItem } from '../../store/cartSlice';
 import { toggleFavorite, toggleFavoriteProduct } from '../../store/favoritesSlice';
 import { fetchCatalog, fetchRestaurantProducts } from '../../store/catalogSlice';
 import ProductSheet from '../../components/ProductSheet';
@@ -244,7 +244,16 @@ export default function RestaurantScreen() {
               isFavProd={isFavProd}
               onSelect={setSelectedProduct}
               onAddToCart={(p) => dispatch(addToCart(p))}
-              onRemoveFromCart={(id) => dispatch(removeFromCart(id))}
+              onRemoveFromCart={(productId) => {
+                const itemInCart = cartItems.find(i => i.product_id === productId);
+                if (itemInCart) {
+                  if (itemInCart.quantity > 1) {
+                    dispatch(decrementItem(itemInCart.cartKey));
+                  } else {
+                    dispatch(removeFromCart(productId));
+                  }
+                }
+              }}
               onToggleFav={(id) => dispatch(toggleFavoriteProduct(id))}
             />
           );

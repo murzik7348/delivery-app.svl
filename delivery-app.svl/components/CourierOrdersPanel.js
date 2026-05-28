@@ -1,53 +1,114 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, RefreshControl, Switch, Platform } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import {
+    View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
+    ScrollView, RefreshControl, Platform, Animated
+} from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
+import * as Location from 'expo-location';
 import Colors from '../constants/Colors';
 import CourierOrderSheet from './CourierOrderSheet';
 import { fetchCourierOrders, updateOnlineStatusThunk } from '../store/courierSlice';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { courierUpdateLocation } from '../src/api';
-import * as Location from 'expo-location';
+
+function StatusBadge({ status, locale, theme }) {
+  let color = '#8e44ad';
+  let text = locale === 'en' ? 'New' : 'Новий';
+  let icon = 'receipt';
+
+  const s = String(status ?? 'created').toLowerCase();
+  
+  if (s === '6' || s === 'canceled' || s === 'cancelled') {
+    color = '#e74c3c';
+    text = locale === 'en' ? 'Canceled' : 'Скасовано';
+    icon = 'close-circle';
+  } else if (s === '5' || s === 'delivered' || s === 'completed') {
+    color = '#2ecc71';
+    text = locale === 'en' ? 'Delivered' : 'Доставлено';
+    icon = 'home';
+  } else if (s === '4' || s === 'delivering' || s === 'picked_up') {
+    color = '#3498db';
+    text = locale === 'en' ? 'Delivering' : 'Хутко мчить';
+    icon = 'bicycle';
+  } else if (s === '3' || s === 'ready_for_pickup' || s === 'ready') {
+    color = '#f39c12';
+    text = locale === 'en' ? 'Ready' : 'Готово до забору';
+    icon = 'cube';
+  } else if (s === '2' || s === 'preparing') {
+    color = '#f39c12';
+    text = locale === 'en' ? 'Cooking' : 'Готується';
+    icon = 'flame';
+  } else if (s === '1' || s === 'accepted') {
+    color = '#2ecc71';
+    text = locale === 'en' ? 'Confirmed' : 'Підтверджено';
+    icon = 'checkmark-circle';
+  }
+
+  return (
+    <View style={[styles.statusBadge, { backgroundColor: color + '20', borderColor: color + '30' }]}>
+      <Ionicons name={icon} size={14} color={color} style={{ marginRight: 4 }} />
+      <Text style={{ color, fontWeight: '800', fontSize: 13, textTransform: 'uppercase' }}>{text}</Text>
+    </View>
+  );
+}
 
 export default function CourierOrdersPanel() {
     const colorScheme = useColorScheme();
-    const theme = Colors[colorScheme ?? 'light'];
-    const isDark = colorScheme === 'dark';
-    const locale = useSelector((state) => state.language?.locale ?? 'uk');
-    const dispatch = useDispatch();
-    const router = useRouter();
+    const theme       = Colors[colorScheme ?? 'light'];
+    const isDark      = colorScheme === 'dark';
+    const locale      = useSelector((s) => s.language?.locale ?? 'uk');
+    const dispatch    = useDispatch();
+    const router      = useRouter();
 
-    const { 
-        availableOrders = [], 
-        activeOrders = [], 
-        completedOrders = [], 
-        isLoading = false, 
-        isOnline = false 
-    } = useSelector((state) => state.courier || {});
-    const user = useSelector((state) => state.auth.user);
-    
+    const {
+        availableOrders = [], activeOrders = [], completedOrders = [],
+        isLoading = false, isOnline = false,
+    } = useSelector((s) => s.courier || {});
+    const user   = useSelector((s) => s.auth.user);
+    const userId = user?.userId || user?.id;
+
     const [selectedOrder, setSelectedOrder] = useState(null);
-    const [sheetVisible, setSheetVisible] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
-    const [lastSync, setLastSync] = useState(new Date().toLocaleTimeString());
-    const [activeTab, setActiveTab] = useState('available'); // 'active', 'available', 'history'
+    const [sheetVisible,  setSheetVisible]  = useState(false);
+    const [refreshing,    setRefreshing]    = useState(false);
+    const [lastSync,      setLastSync]      = useState(new Date().toLocaleTimeString());
+    const [activeTab,     setActiveTab]     = useState('available');
 
-    // Automatically switch to active tab if there are active orders and we just loaded
+    const autoSwitched  = useRef(false);
+    const locationSub   = useRef(null);
+    const pulseAnim     = useRef(new Animated.Value(1)).current;
+
+    // Pulsing green dot when online
     useEffect(() => {
-        if (activeOrders.length > 0 && activeTab === 'available' && !isLoading) {
+        if (isOnline) {
+            const loop = Animated.loop(Animated.sequence([
+                Animated.timing(pulseAnim, { toValue: 1.8, duration: 900, useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 1,   duration: 900, useNativeDriver: true }),
+            ]));
+            loop.start();
+            return () => loop.stop();
+        }
+        pulseAnim.setValue(1);
+    }, [isOnline]);
+
+    // Auto-switch tab when active orders arrive
+    useEffect(() => {
+        if (activeOrders.length > 0 && activeTab === 'available' && !isLoading && !autoSwitched.current) {
             setActiveTab('active');
+            autoSwitched.current = true;
         }
     }, [activeOrders.length, isLoading]);
 
-    // Online status is synchronized with the backend.
-    const toggleOnlineStatus = () => {
+    const toggleOnline = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
         dispatch(updateOnlineStatusThunk(!isOnline));
     };
 
-    const openOrderDetails = (order) => {
+    const openDetails = (order) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
         setSelectedOrder(order);
         setSheetVisible(true);
     };
@@ -59,380 +120,405 @@ export default function CourierOrdersPanel() {
         setRefreshing(false);
     }, [dispatch]);
 
+    // Poll every 15 s
     useEffect(() => {
         dispatch(fetchCourierOrders());
-        const interval = setInterval(() => {
+        const iv = setInterval(() => {
             dispatch(fetchCourierOrders());
             setLastSync(new Date().toLocaleTimeString());
         }, 15000);
-        return () => clearInterval(interval);
+        return () => clearInterval(iv);
     }, [dispatch]);
 
+    // GPS tracking
     useEffect(() => {
-        let locationSubscription = null;
+        let intervalId = null;
 
-        const startLocationTracking = async () => {
-            if (isOnline) {
-                try {
-                    const { status } = await Location.requestForegroundPermissionsAsync();
-                    if (status !== 'granted') {
-                        dispatch(updateOnlineStatusThunk(false));
-                        return;
+        const startTracking = async () => {
+            try {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== 'granted') {
+                    if (isOnline) dispatch(updateOnlineStatusThunk(false));
+                    return;
+                }
+                if (isOnline) {
+                    // Send immediately once
+                    try {
+                        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                        if (loc?.coords) {
+                            await courierUpdateLocation(loc.coords.latitude, loc.coords.longitude);
+                        }
+                    } catch (err) {
+                        console.warn('[Courier GPS] Initial fetch failed:', err);
                     }
 
-                    locationSubscription = await Location.watchPositionAsync(
-                        {
-                            accuracy: Location.Accuracy.Balanced,
-                            timeInterval: 15000,
-                            distanceInterval: 10,
-                        },
-                        async (location) => {
-                            const { latitude, longitude } = location.coords;
-                            try {
-                                await courierUpdateLocation(latitude, longitude);
-                                console.log(`GPS Synced: ${latitude}, ${longitude}`);
-                            } catch (e) {
-                                console.log('Location update stub error:', e.message);
+                    // Setup periodic update every 15 seconds
+                    intervalId = setInterval(async () => {
+                        try {
+                            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                            if (loc?.coords) {
+                                await courierUpdateLocation(loc.coords.latitude, loc.coords.longitude);
                             }
+                        } catch (err) {
+                            console.warn('[Courier GPS] Periodic update failed:', err);
                         }
-                    );
-                } catch (error) {
-                    console.warn('Error tracking location:', error);
+                    }, 15000);
                 }
-            } else {
-                if (locationSubscription) {
-                    locationSubscription.remove();
-                    locationSubscription = null;
-                }
+            } catch (err) {
+                console.error('[Courier GPS] Tracking error:', err);
             }
         };
 
-        startLocationTracking();
+        startTracking();
 
         return () => {
-            if (locationSubscription) {
-                locationSubscription.remove();
+            if (intervalId) {
+                clearInterval(intervalId);
             }
         };
-    }, [isOnline]);
+    }, [isOnline, dispatch]);
 
-    const renderOrderCard = (item, type) => {
-        const isActive = type === 'active';
+    const todayEarnings = completedOrders.reduce((sum, o) => sum + (Number(o.earnings) || 0), 0);
+
+    const TABS = [
+        { id: 'active',    label: locale === 'en' ? 'Active'    : 'Активні',  icon: 'flash',        count: activeOrders.length    },
+        { id: 'available', label: locale === 'en' ? 'Available' : 'Доступні', icon: 'grid-outline', count: availableOrders.length },
+        { id: 'history',   label: locale === 'en' ? 'History'   : 'Історія',  icon: 'time-outline', count: completedOrders.length },
+    ];
+
+    const renderCard = (item, type) => {
+        const isMine = Number(item.courierId) === Number(userId);
         const isHistory = type === 'history';
-        const currentUserId = user?.userId || user?.id;
-        const isMine = Number(item.courierId) === Number(currentUserId);
-        const isBookedByOther = !isActive && !isHistory && item.isBooked && !isMine;
+        const sNum = item.deliveryStatus ?? Number(item.statusDelivery ?? item.status ?? 0);
+        const activeStatus = String(item.statusDelivery ?? item.status ?? 'created').toLowerCase();
+
+        let color = '#8e44ad';
+        let iconName = 'receipt';
+        if (sNum === 6 || activeStatus === 'canceled' || activeStatus === 'cancelled') {
+            color = '#e74c3c';
+            iconName = 'close-circle';
+        } else if (sNum === 5 || activeStatus === 'delivered' || activeStatus === 'completed') {
+            color = '#2ecc71';
+            iconName = 'home';
+        } else if (sNum === 4 || activeStatus === 'delivering' || activeStatus === 'picked_up') {
+            color = '#3498db';
+            iconName = 'bicycle';
+        } else if (sNum === 3 || activeStatus === 'ready_for_pickup' || activeStatus === 'ready') {
+            color = '#f39c12';
+            iconName = 'cube';
+        } else if (sNum === 2 || activeStatus === 'preparing') {
+            color = '#f39c12';
+            iconName = 'flame';
+        } else if (sNum === 1 || activeStatus === 'accepted') {
+            color = '#2ecc71';
+            iconName = 'checkmark-circle';
+        }
 
         return (
             <TouchableOpacity
                 key={item.id}
-                activeOpacity={0.8}
                 style={[
-                    styles.cardWrapper,
-                    isActive && styles.activeCardWrapper,
+                    styles.card,
+                    { backgroundColor: theme.card, borderColor: theme.border },
+                    !isMine && !isHistory && type !== 'available' && styles.cardDimmed,
                 ]}
-                onPress={() => openOrderDetails(item)}
+                activeOpacity={0.8}
+                onPress={() => openDetails(item)}
             >
-                <BlurView 
-                    intensity={isDark ? 30 : 60} 
-                    tint={isDark ? 'dark' : 'light'} 
-                    style={[
-                        styles.card,
-                        { 
-                            borderColor: isActive ? '#e334e3' : (isBookedByOther ? '#e74c3c' : (isHistory ? theme.border : theme.subtleBorder)),
-                            borderWidth: (isActive || isBookedByOther) ? 1.5 : StyleSheet.hairlineWidth,
-                            opacity: isBookedByOther ? 0.7 : 1
-                        }
-                    ]}
-                >
-                    <View style={styles.cardHeader}>
+                <View style={styles.cardHeader}>
                     <View style={styles.row}>
-                        <View style={[styles.iconBox, { backgroundColor: isActive ? '#e334e3' : (isHistory ? '#f0f0f0' : theme.input) }]}>
-                            <Ionicons
-                                name={isHistory ? "checkmark-circle" : "bicycle"}
-                                size={22}
-                                color={isActive ? "white" : (isHistory ? "#2ecc71" : "#e334e3")}
-                            />
+                        <View style={[styles.iconBox, { backgroundColor: color + '15' }]}>
+                            <Ionicons name={iconName} size={20} color={color} />
                         </View>
                         <View style={{ marginLeft: 12, flex: 1 }}>
-                            <View style={styles.rowBetween}>
-                                <View style={styles.row}>
-                                    <Text style={[styles.orderIdLabel, { color: theme.textSecondary }]}>{formatOrderNumber(item.id)}</Text>
-                                    {isMine && !isHistory && !isActive && (
-                                        <View style={[styles.myLabel, { marginLeft: 8 }]}>
-                                            <Text style={styles.myLabelText}>{locale === 'en' ? 'MY' : 'МОЄ'}</Text>
-                                        </View>
-                                    )}
-                                </View>
-                                <Text style={[styles.earnings, { color: '#e334e3' }]}>{item.totalPrice} ₴</Text>
-                            </View>
                             <Text style={[styles.orderTitle, { color: theme.text }]} numberOfLines={1}>
                                 {item.restaurantName}
                             </Text>
-                            <View style={[styles.row, { marginTop: 4 }]}>
-                                <Ionicons name="location-outline" size={14} color={isActive ? '#e334e3' : theme.textSecondary} />
-                                <Text style={[styles.addressText, { color: theme.textSecondary, fontWeight: isActive ? '600' : '400' }]} numberOfLines={1}>
-                                    {(isActive || isMine || isHistory) ? item.address : (locale === 'en' ? 'Address hidden (Book first)' : 'Адреса прихована (Забронюйте)')}
-                                </Text>
-                            </View>
+                            <Text style={styles.date}>
+                                #{formatOrderNumber(item.id)}
+                            </Text>
                         </View>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={[styles.price, { color: theme.text }]}>
+                            {item.earnings || 0} ₴
+                        </Text>
+                        <Text style={{ fontSize: 11, color: 'gray', fontWeight: '600', marginTop: 2 }}>
+                            {locale === 'en' ? 'Earnings' : 'Заробіток'}
+                        </Text>
                     </View>
                 </View>
 
-                {!isHistory && (
-                    <>
-                        <View style={styles.divider} />
-                        <View style={styles.cardFooter}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                <View style={[styles.statusBadge, { backgroundColor: item.status === 'delivering' ? '#e334e320' : (item.status === 'ready_for_pickup' ? '#2ecc7120' : '#3498db20') }]}>
-                                    <Text style={{ color: item.status === 'delivering' ? '#e334e3' : (item.status === 'ready_for_pickup' ? '#2ecc71' : '#3498db'), fontWeight: 'bold', fontSize: 12 }}>
-                                        {item.status === 'delivering'
-                                            ? (locale === 'en' ? 'In Delivery' : 'Доставляється')
-                                            : (item.status === 'ready_for_pickup'
-                                                ? (locale === 'en' ? 'Ready' : 'Готово')
-                                                : (item.status === 'preparing'
-                                                    ? (locale === 'en' ? 'Preparing' : 'Готується')
-                                                    : (item.status === 'accepted'
-                                                        ? (locale === 'en' ? 'Confirmed' : 'Підтверджено')
-                                                        : (locale === 'en' ? 'New' : 'Нове'))))}
-                                    </Text>
-                                </View>
-                                
-                                {isBookedByOther ? (
-                                    <View style={[styles.statusBadge, { backgroundColor: '#e74c3c25', marginLeft: 8, borderWidth: 1, borderColor: '#e74c3c' }]}>
-                                        <Ionicons name="lock-closed" size={12} color="#e74c3c" style={{ marginRight: 4 }} />
-                                        <Text style={{ color: '#e74c3c', fontWeight: '900', fontSize: 11, textTransform: 'uppercase' }}>
-                                            {locale === 'en' ? 'Booked' : 'Заброньовано'}
-                                        </Text>
-                                    </View>
-                                ) : (!isActive && !isHistory) && (
-                                    <View style={[styles.statusBadge, { backgroundColor: '#2ecc7115', marginLeft: 8, borderWidth: 1, borderColor: '#2ecc7140' }]}>
-                                        <Ionicons name="lock-open-outline" size={10} color="#2ecc71" style={{ marginRight: 4 }} />
-                                        <Text style={{ color: '#2ecc71', fontWeight: 'bold', fontSize: 11, textTransform: 'uppercase' }}>
-                                            {locale === 'en' ? 'Free' : 'Вільне'}
-                                        </Text>
-                                    </View>
-                                )}
-                            </View>
-                            <View style={styles.detailsBtn}>
-                                <Text style={styles.detailsText}>{locale === 'en' ? 'Details' : 'Деталі'}</Text>
-                                <Ionicons name="chevron-forward" size={16} color="#e334e3" />
-                            </View>
+                <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} />
+
+                {/* Route Info */}
+                <View style={styles.routeContainer}>
+                    <View style={styles.routeRow}>
+                        <Ionicons name="location-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
+                        <Text style={[styles.routeText, { color: theme.textSecondary }]} numberOfLines={1}>
+                            {(type === 'active' || isMine || isHistory)
+                                ? (item.address || (locale === 'en' ? 'No address' : 'Адреса відсутня'))
+                                : (locale === 'en' ? 'Address hidden' : 'Адреса прихована')}
+                        </Text>
+                    </View>
+                    {item.totalPrice && (
+                        <View style={[styles.routeRow, { marginTop: 6 }]}>
+                            <Ionicons name="wallet-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
+                            <Text style={[styles.routeText, { color: theme.textSecondary }]}>
+                                {locale === 'en' ? 'Order total' : 'Сума замовлення'}: {item.totalPrice} ₴
+                            </Text>
                         </View>
-                    </>
-                )}
-                </BlurView>
+                    )}
+                </View>
+
+                <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]} />
+
+                <View style={styles.cardFooter}>
+                    <StatusBadge status={item.status} locale={locale} theme={theme} />
+                    <View style={styles.detailsBtn}>
+                        <Text style={styles.detailsText}>
+                            {locale === 'en' ? 'Details' : 'Деталі'}
+                        </Text>
+                        <Ionicons name="chevron-forward" size={16} color="#e334e3" />
+                    </View>
+                </View>
             </TouchableOpacity>
         );
     };
 
-    const renderEmptyState = (icon, title, subtitle) => (
-        <View style={styles.emptyStateWrapper}>
-            <BlurView intensity={isDark ? 30 : 50} tint={isDark ? 'dark' : 'light'} style={[styles.emptyStateCard, { borderColor: 'rgba(255,255,255,0.1)' }]}>
-                <View style={styles.emptyIconCircle}>
-                    <Ionicons name={icon} size={48} color="#e334e3" style={{ opacity: 0.6 }} />
-                </View>
-                <Text style={[styles.emptyTitle, { color: theme.text }]}>{title}</Text>
-                <Text style={styles.emptySubtitle}>{subtitle}</Text>
-                <TouchableOpacity style={styles.emptyBtn} onPress={onRefresh}>
-                    <Ionicons name="refresh" size={16} color="#e334e3" />
-                    <Text style={styles.emptyBtnText}>{locale === 'en' ? 'Refresh' : 'Оновити'}</Text>
+    const renderEmpty = (icon, title, sub, action) => (
+        <View style={styles.emptyWrap}>
+            <View style={[styles.emptyIconWrap, { backgroundColor: `${theme.primary}12` }]}>
+                <Ionicons name={icon} size={36} color={theme.primary} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>{title}</Text>
+            <Text style={[styles.emptySub,   { color: theme.textSecondary }]}>{sub}</Text>
+            {action ? (
+                <TouchableOpacity
+                    style={[styles.emptyBtn, { backgroundColor: theme.primary }]}
+                    onPress={action.fn}
+                    activeOpacity={0.85}
+                >
+                    <Ionicons name={action.icon} size={15} color="#fff" style={{ marginRight: 7 }} />
+                    <Text style={styles.emptyBtnText}>{action.label}</Text>
                 </TouchableOpacity>
-            </BlurView>
-        </View>
-    );
-
-    const renderOfflineState = () => (
-        <View style={styles.emptyStateWrapper}>
-            <BlurView intensity={isDark ? 30 : 50} tint={isDark ? 'dark' : 'light'} style={[styles.emptyStateCard, { borderColor: 'rgba(255,255,255,0.1)' }]}>
-                <View style={[styles.emptyIconCircle, { backgroundColor: '#f0f0f0' }]}>
-                    <Ionicons name="power-outline" size={48} color="gray" style={{ opacity: 0.6 }} />
-                </View>
-                <Text style={[styles.emptyTitle, { color: theme.text }]}>
-                    {locale === 'en' ? 'You are offline' : 'Ви офлайн'}
-                </Text>
-                <Text style={styles.emptySubtitle}>
-                    {locale === 'en'
-                        ? 'Turn on your status to start receiving delivery orders.'
-                        : 'Увімкніть статус "На зміні", щоб бачити замовлення та почати заробляти.'}
-                </Text>
-                <TouchableOpacity style={[styles.emptyBtn, { backgroundColor: '#e334e3' }]} onPress={toggleOnlineStatus}>
-                    <Ionicons name="power" size={16} color="white" />
-                    <Text style={[styles.emptyBtnText, { color: 'white' }]}>
-                        {locale === 'en' ? 'Go Online' : 'Вийти на зміну'}
+            ) : (
+                <TouchableOpacity
+                    style={[styles.emptyBtnOutline, { borderColor: theme.primary }]}
+                    onPress={onRefresh}
+                    activeOpacity={0.85}
+                >
+                    <Ionicons name="refresh" size={15} color={theme.primary} style={{ marginRight: 7 }} />
+                    <Text style={[styles.emptyBtnText, { color: theme.primary }]}>
+                        {locale === 'en' ? 'Refresh' : 'Оновити'}
                     </Text>
                 </TouchableOpacity>
-            </BlurView>
+            )}
         </View>
     );
-
-    const tabs = [
-        { id: 'active', label: locale === 'en' ? 'Active' : 'Активні', count: activeOrders.length },
-        { id: 'available', label: locale === 'en' ? 'Available' : 'Доступні', count: availableOrders.length },
-        { id: 'history', label: locale === 'en' ? 'History' : 'Історія', count: (completedOrders || []).length },
-    ];
 
     return (
-        <View style={styles.mainContainer}>
-            {/* Header / Status Section */}
-            <View style={styles.syncHeaderWrapper}>
-                <BlurView intensity={isDark ? 30 : 60} tint={isDark ? 'dark' : 'light'} style={[styles.syncHeaderBlur, { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.separator }]}>
-                    <TouchableOpacity 
-                        activeOpacity={0.8}
-                        onPress={toggleOnlineStatus}
-                        style={[
-                            styles.syncHeader, 
-                            {   
-                                backgroundColor: isOnline ? '#2ecc7115' : 'transparent',
-                                borderColor: isOnline ? '#2ecc7140' : theme.separator,
-                                borderWidth: StyleSheet.hairlineWidth,
-                            }
-                        ]}
-                    >
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <View style={[
-                                styles.statusDot, 
-                                { 
-                                    backgroundColor: isOnline ? '#2ecc71' : '#95a5a6',
-                                    shadowColor: isOnline ? '#2ecc71' : 'transparent',
-                                    shadowOpacity: 0.8,
-                                    shadowRadius: 10,
-                                }
+        <View style={styles.root}>
+            {/* Online status row */}
+            <TouchableOpacity
+                style={[styles.onlineCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                onPress={toggleOnline}
+                activeOpacity={0.85}
+            >
+                <View style={styles.onlineLeft}>
+                    <View style={styles.dotWrap}>
+                        {isOnline && (
+                            <Animated.View style={[
+                                styles.dotRing,
+                                { backgroundColor: '#2ECC7130', transform: [{ scale: pulseAnim }] }
                             ]} />
-                            <View style={{ marginLeft: 12 }}>
-                                <Text style={[
-                                    styles.syncText, 
-                                    { color: isOnline ? '#2ecc71' : theme.textSecondary }
-                                ]}>
-                                    {isOnline 
-                                        ? (locale === 'en' ? 'Online' : 'На зміні') 
-                                        : (locale === 'en' ? 'Offline' : 'Офлайн')}
-                                </Text>
-                                <Text style={{ color: theme.textSecondary, fontSize: 11, marginTop: 2 }}>
-                                    {locale === 'en' ? 'Last synced:' : 'Оновлено:'} {lastSync}
-                                </Text>
-                            </View>
-                        </View>
-                        <Ionicons 
-                            name={isOnline ? "radio-button-on" : "radio-button-off"} 
-                            size={28} 
-                            color={isOnline ? "#2ecc71" : "#95a5a6"} 
-                        />
-                    </TouchableOpacity>
-                </BlurView>
-            </View>
+                        )}
+                        <View style={[styles.dot, { backgroundColor: isOnline ? '#2ECC71' : theme.tabIconDefault }]} />
+                    </View>
 
-            {/* Quick Stats Dashboard */}
-            <View style={styles.statsGrid}>
-                <BlurView intensity={isDark ? 20 : 40} tint={isDark ? 'dark' : 'light'} style={styles.statItem}>
-                    <Ionicons name="wallet-outline" size={20} color="#e334e3" />
-                    <Text style={[styles.statValue, { color: theme.text }]}>
-                        {(completedOrders || []).reduce((sum, o) => sum + (Number(o.earnings) || 0), 0)} ₴
+                    <View style={{ marginLeft: 12 }}>
+                        <Text style={[styles.onlineLabel, { color: isOnline ? '#2ECC71' : theme.textSecondary }]}>
+                            {isOnline
+                                ? (locale === 'en' ? 'Online' : 'Онлайн')
+                                : (locale === 'en' ? 'Offline' : 'Офлайн')}
+                        </Text>
+                        <Text style={[styles.onlineSync, { color: theme.textSecondary }]}>
+                            {locale === 'en' ? `Updated ${lastSync}` : `Оновлено: ${lastSync}`}
+                        </Text>
+                    </View>
+                </View>
+
+                <View style={[
+                    styles.onlineToggle,
+                    { backgroundColor: isOnline ? '#2ECC7120' : theme.input }
+                ]}>
+                    <Ionicons
+                        name={isOnline ? 'power' : 'power-outline'}
+                        size={17}
+                        color={isOnline ? '#2ECC71' : theme.textSecondary}
+                    />
+                    <Text style={[
+                        styles.onlineToggleText,
+                        { color: isOnline ? '#2ECC71' : theme.textSecondary }
+                    ]}>
+                        {isOnline
+                            ? (locale === 'en' ? 'Go Offline' : 'Вимкнути')
+                            : (locale === 'en' ? 'Go Online'  : 'Вийти на зміну')}
                     </Text>
-                    <Text style={styles.statLabel}>{locale === 'en' ? 'Earnings' : 'Дохід'}</Text>
-                </BlurView>
-                <BlurView intensity={isDark ? 20 : 40} tint={isDark ? 'dark' : 'light'} style={styles.statItem}>
-                    <Ionicons name="checkmark-done" size={20} color="#2ecc71" />
-                    <Text style={[styles.statValue, { color: theme.text }]}>{(completedOrders || []).length}</Text>
-                    <Text style={styles.statLabel}>{locale === 'en' ? 'Done' : 'Завершено'}</Text>
-                </BlurView>
-                <BlurView intensity={isDark ? 20 : 40} tint={isDark ? 'dark' : 'light'} style={styles.statItem}>
-                    <Ionicons name="time-outline" size={20} color="#3498db" />
-                    <Text style={[styles.statValue, { color: theme.text }]}>{activeOrders.length}</Text>
-                    <Text style={styles.statLabel}>{locale === 'en' ? 'Active' : 'Активні'}</Text>
-                </BlurView>
+                </View>
+            </TouchableOpacity>
+
+            {/* Stats */}
+            <View style={styles.statsRow}>
+                <View style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                    <Ionicons name="wallet-outline" size={16} color={theme.primary} />
+                    <Text style={[styles.statVal, { color: theme.text }]}>{todayEarnings} ₴</Text>
+                    <Text style={[styles.statLab, { color: theme.textSecondary }]}>
+                        {locale === 'en' ? 'Earnings' : 'Заробіток'}
+                    </Text>
+                </View>
+                <View style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                    <Ionicons name="checkmark-done" size={16} color="#2ECC71" />
+                    <Text style={[styles.statVal, { color: theme.text }]}>{completedOrders.length}</Text>
+                    <Text style={[styles.statLab, { color: theme.textSecondary }]}>
+                        {locale === 'en' ? 'Done' : 'Виконано'}
+                    </Text>
+                </View>
+                <View style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                    <Ionicons name="flash" size={16} color="#F39C12" />
+                    <Text style={[styles.statVal, { color: theme.text }]}>{activeOrders.length}</Text>
+                    <Text style={[styles.statLab, { color: theme.textSecondary }]}>
+                        {locale === 'en' ? 'Active' : 'Активні'}
+                    </Text>
+                </View>
             </View>
 
-            {/* Custom Segmented Control Tabs */}
-            <View style={styles.tabContainerWrapper}>
-                <BlurView intensity={isDark ? 30 : 60} tint={isDark ? 'dark' : 'light'} style={styles.tabContainer}>
-                {tabs.map((tab) => {
-                    const isActiveTab = activeTab === tab.id;
+            {/* Tabs */}
+            <View style={[styles.tabRow, { backgroundColor: theme.input }]}>
+                {TABS.map((tab) => {
+                    const active = activeTab === tab.id;
                     return (
                         <TouchableOpacity
                             key={tab.id}
                             style={[
-                                styles.tabButton,
-                                isActiveTab && { backgroundColor: theme.card, shadowColor: '#000', elevation: 2 }
+                                styles.tab,
+                                active && [styles.tabActive, { backgroundColor: theme.card, shadowColor: '#000' }],
                             ]}
-                            onPress={() => setActiveTab(tab.id)}
+                            onPress={() => {
+                                Haptics.selectionAsync().catch(() => null);
+                                setActiveTab(tab.id);
+                            }}
+                            activeOpacity={0.75}
                         >
+                            <Ionicons
+                                name={tab.icon}
+                                size={13}
+                                color={active ? theme.primary : theme.textSecondary}
+                            />
                             <Text style={[
                                 styles.tabText,
-                                { color: isActiveTab ? theme.text : theme.textSecondary, fontWeight: isActiveTab ? 'bold' : '500' }
+                                { color: active ? theme.primary : theme.textSecondary },
+                                active && styles.tabTextActive,
                             ]}>
                                 {tab.label}
                             </Text>
                             {tab.count > 0 && (
-                                <View style={[styles.badge, isActiveTab && styles.activeBadge]}>
-                                    <Text style={[styles.badgeText, isActiveTab && styles.activeBadgeText]}>{tab.count}</Text>
+                                <View style={[styles.tabBadge, {
+                                    backgroundColor: active ? `${theme.primary}20` : theme.separator,
+                                }]}>
+                                    <Text style={[styles.tabBadgeText, {
+                                        color: active ? theme.primary : theme.textSecondary,
+                                    }]}>
+                                        {tab.count}
+                                    </Text>
                                 </View>
                             )}
                         </TouchableOpacity>
                     );
                 })}
-                </BlurView>
             </View>
 
-            {/* Content Area */}
+            {/* List */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 100 }}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e334e3" />}
+                contentContainerStyle={styles.list}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={theme.primary}
+                        colors={[theme.primary]}
+                    />
+                }
             >
                 {isLoading && !refreshing && activeOrders.length === 0 && availableOrders.length === 0 ? (
-                    <ActivityIndicator color="#e334e3" style={{ marginTop: 40 }} size="large" />
+                    <ActivityIndicator color={theme.primary} size="large" style={{ marginTop: 40 }} />
                 ) : (
-                    <View style={styles.contentSection}>
+                    <>
                         {activeTab === 'active' && (
                             activeOrders.length > 0
-                                ? activeOrders.map(order => renderOrderCard(order, 'active'))
-                                : renderEmptyState(
+                                ? activeOrders.map(o => renderCard(o, 'active'))
+                                : renderEmpty(
                                     'bicycle-outline',
-                                    locale === 'en' ? 'No Active Tasks' : 'Немає активних завдань',
-                                    locale === 'en' ? 'You have not accepted any orders yet.' : 'Ви ще не прийняли жодного замовлення.'
+                                    locale === 'en' ? 'No active orders' : 'Немає активних замовлень',
+                                    locale === 'en'
+                                        ? 'Accept an order from the Available tab.'
+                                        : 'Прийміть замовлення з вкладки "Доступні".'
                                 )
                         )}
 
                         {activeTab === 'available' && (
-                            !isOnline 
-                                ? renderOfflineState()
+                            !isOnline
+                                ? renderEmpty(
+                                    'power-outline',
+                                    locale === 'en' ? 'You\'re offline' : 'Ви офлайн',
+                                    locale === 'en'
+                                        ? 'Go online to see available orders.'
+                                        : 'Увімкніть онлайн, щоб бачити замовлення.',
+                                    { label: locale === 'en' ? 'Go Online' : 'Вийти на зміну', icon: 'power', fn: toggleOnline }
+                                )
                                 : availableOrders.length > 0
-                                    ? availableOrders.map(order => renderOrderCard(order, 'available'))
-                                    : renderEmptyState(
+                                    ? availableOrders.map(o => renderCard(o, 'available'))
+                                    : renderEmpty(
                                         'search-outline',
-                                        locale === 'en' ? 'No orders in the pool' : 'У пулі немає замовлень',
-                                        locale === 'en' ? 'Wait for new orders to appear in your area.' : 'Зачекайте на появу нових замовлень у вашому районі.'
+                                        locale === 'en' ? 'No orders nearby' : 'Немає замовлень поблизу',
+                                        locale === 'en'
+                                            ? 'Waiting for new orders in your area...'
+                                            : 'Очікування нових замовлень у вашому районі...'
                                     )
                         )}
 
                         {activeTab === 'history' && (
                             completedOrders.length > 0 ? (
                                 <>
-                                    {completedOrders.slice(0, 10).map(order => renderOrderCard(order, 'history'))}
-                                    <TouchableOpacity style={styles.viewEarningsBtn} onPress={() => router.push('/courier-earnings')}>
-                                        <Ionicons name="wallet" size={20} color="white" style={{ marginRight: 8 }} />
-                                        <Text style={styles.viewEarningsBtnText}>
-                                            {locale === 'en' ? 'View Full History & Earnings' : 'Уся історія та заробіток'}
+                                    {completedOrders.slice(0, 10).map(o => renderCard(o, 'history'))}
+                                    <TouchableOpacity
+                                        style={[styles.statsBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+                                        onPress={() => router.push('/courier-earnings')}
+                                        activeOpacity={0.85}
+                                    >
+                                        <Ionicons name="stats-chart" size={15} color={theme.primary} />
+                                        <Text style={[styles.statsBtnText, { color: theme.primary }]}>
+                                            {locale === 'en' ? 'Full statistics' : 'Повна статистика'}
                                         </Text>
+                                        <Ionicons name="chevron-forward" size={15} color={theme.primary} style={{ marginLeft: 'auto' }} />
                                     </TouchableOpacity>
                                 </>
-                            ) : renderEmptyState(
+                            ) : renderEmpty(
                                 'time-outline',
-                                locale === 'en' ? 'No History Yet' : 'Історія порожня',
-                                locale === 'en' ? 'Completed orders will appear here.' : 'Завершені замовлення з\'являться тут.'
+                                locale === 'en' ? 'No history yet' : 'Історія порожня',
+                                locale === 'en'
+                                    ? 'Completed deliveries appear here.'
+                                    : 'Виконані замовлення відображатимуться тут.'
                             )
                         )}
-                    </View>
+                    </>
                 )}
             </ScrollView>
 
             <CourierOrderSheet
                 visible={sheetVisible}
-                onClose={() => {
-                    setSheetVisible(false);
-                    setSelectedOrder(null);
-                }}
+                onClose={() => { setSheetVisible(false); setSelectedOrder(null); }}
                 order={selectedOrder}
             />
         </View>
@@ -440,268 +526,109 @@ export default function CourierOrdersPanel() {
 }
 
 const styles = StyleSheet.create({
-    mainContainer: {
-        flex: 1,
-    },
-    syncHeaderWrapper: {
-        marginBottom: 12,
-        borderRadius: 20,
-        overflow: 'hidden',
-    },
-    syncHeaderBlur: {
-        borderRadius: 20,
-    },
-    syncHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 14,
-        borderRadius: 20,
-    },
-    syncText: {
-        fontSize: 17,
-        fontWeight: 'bold',
-        marginLeft: 10,
-    },
-    statusDot: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        shadowOpacity: 0.8, 
-        shadowRadius: 6, 
-        shadowOffset: { width: 0, height: 0 }
-    },
-    statsGrid: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 20,
-        gap: 10,
-    },
-    statItem: {
-        flex: 1,
-        padding: 12,
-        borderRadius: 18,
-        alignItems: 'center',
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.15)',
-        overflow: 'hidden',
-    },
-    statValue: {
-        fontSize: 16,
-        fontWeight: '800',
-        marginVertical: 4,
-    },
-    statLabel: {
-        fontSize: 10,
-        color: '#8e8e93',
-        textTransform: 'uppercase',
-        fontWeight: 'bold',
-    },
-    row: {
-        flexDirection: 'row',
-        alignItems: 'center'
-    },
-    tabContainerWrapper: {
-        marginBottom: 16,
-        borderRadius: 18,
-        overflow: 'hidden',
-    },
-    tabContainer: {
-        flexDirection: 'row',
-        padding: 4,
-    },
-    tabButton: {
-        flex: 1,
-        flexDirection: 'row',
-        paddingVertical: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 14,
-    },
-    tabText: {
-        fontSize: 14,
-    },
-    badge: {
-        backgroundColor: 'rgba(0,0,0,0.1)',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 10,
-        marginLeft: 6,
-    },
-    activeBadge: {
-        backgroundColor: '#e334e3',
-    },
-    badgeText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: 'gray',
-    },
-    activeBadgeText: {
-        color: 'white',
-    },
-    contentSection: {
-        paddingBottom: 20,
-    },
-    cardWrapper: {
-        marginBottom: 14,
-        borderRadius: 24,
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 15, shadowOffset: { width: 0, height: 6 } },
-            android: { elevation: 3 },
-        }),
-    },
-    activeCardWrapper: {
-        ...Platform.select({
-            ios: { shadowColor: '#e334e3', shadowOpacity: 0.3, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
-            android: { elevation: 8 },
-        }),
-    },
-    card: {
-        borderRadius: 24,
-        padding: 16,
-        overflow: 'hidden',
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    iconBox: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    rowBetween: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    orderIdLabel: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        opacity: 0.6,
-        textTransform: 'uppercase',
-    },
-    orderTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginVertical: 4,
-    },
-    addressText: {
-        fontSize: 13,
-        marginLeft: 4,
-        flex: 1
-    },
-    earnings: {
-        fontSize: 18,
-        fontWeight: '900'
-    },
-    divider: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: 'rgba(0,0,0,0.05)',
-        marginVertical: 16
-    },
-    cardFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-    },
-    statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    detailsBtn: {
-        flexDirection: 'row',
-        alignItems: 'center'
-    },
-    detailsText: {
-        color: '#e334e3',
-        fontWeight: '700',
-        marginRight: 4,
-        fontSize: 14
-    },
-    myLabel: {
-        backgroundColor: '#e334e3',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 6,
-    },
-    myLabelText: {
-        color: 'white',
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
-    viewEarningsBtn: {
-        backgroundColor: '#e334e3',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        borderRadius: 16,
-        marginTop: 10,
-        shadowColor: '#e334e3',
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 4
-    },
-    viewEarningsBtnText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    emptyStateWrapper: {
-        marginTop: 20,
-        borderRadius: 28,
-        overflow: 'hidden',
-    },
-    emptyStateCard: {
-        borderRadius: 28,
-        borderWidth: 1,
-        alignItems: 'center',
-        paddingVertical: 40,
-        paddingHorizontal: 20,
-        borderStyle: 'dashed',
-    },
-    emptyIconCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: '#e334e315',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    emptyTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 8,
-    },
-    emptySubtitle: {
-        color: 'gray',
-        fontSize: 14,
-        textAlign: 'center',
-        marginBottom: 24,
-        lineHeight: 20,
-    },
-    emptyBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#e334e315',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 14,
-    },
-    emptyBtnText: {
-        color: '#e334e3',
-        fontWeight: 'bold',
-        marginLeft: 8,
-        fontSize: 15,
-    }
-});
+    root: { flex: 1 },
 
+    // Online card
+    onlineCard: {
+        flexDirection: 'row', alignItems: 'center',
+        justifyContent: 'space-between',
+        borderRadius: 24, padding: 18, marginBottom: 16,
+        borderWidth: StyleSheet.hairlineWidth,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+            android: { elevation: 2 }
+        })
+    },
+    onlineLeft:  { flexDirection: 'row', alignItems: 'center' },
+    dotWrap:     { width: 18, height: 18, justifyContent: 'center', alignItems: 'center' },
+    dotRing:     { position: 'absolute', width: 18, height: 18, borderRadius: 9 },
+    dot:         { width: 10, height: 10, borderRadius: 5 },
+    onlineLabel: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2 },
+    onlineSync:  { fontSize: 11, marginTop: 2, fontWeight: '600' },
+    onlineToggle:{
+        flexDirection: 'row', alignItems: 'center',
+        borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, gap: 6,
+    },
+    onlineToggleText: { fontSize: 13, fontWeight: '700' },
+
+    // Stats
+    statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+    statCard: {
+        flex: 1, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 10,
+        alignItems: 'center', borderWidth: StyleSheet.hairlineWidth,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+            android: { elevation: 1 }
+        })
+    },
+    statVal: { fontSize: 18, fontWeight: '900', marginTop: 6, letterSpacing: -0.4 },
+    statLab: { fontSize: 11, fontWeight: '700', marginTop: 2 },
+
+    // Tabs
+    tabRow: {
+        flexDirection: 'row', borderRadius: 16,
+        padding: 4, marginBottom: 16,
+    },
+    tab: {
+        flex: 1, flexDirection: 'row', alignItems: 'center',
+        justifyContent: 'center', paddingVertical: 10,
+        borderRadius: 12, gap: 6,
+    },
+    tabActive: {
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08, shadowRadius: 4, elevation: 2,
+    },
+    tabText:       { fontSize: 12, fontWeight: '700' },
+    tabTextActive: { fontWeight: '800' },
+    tabBadge:      { borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },
+    tabBadgeText:  { fontSize: 10, fontWeight: '800' },
+
+    // List
+    list: { paddingBottom: 100 },
+
+    // Card matching orders.js exactly
+    card: { 
+        borderRadius: 24, marginBottom: 16, 
+        borderWidth: StyleSheet.hairlineWidth, 
+        padding: 18, 
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+            android: { elevation: 2 }
+        })
+    },
+    cardDimmed: { opacity: 0.5 },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    row: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 },
+    iconBox: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+    orderTitle: { fontSize: 16, fontWeight: '900' },
+    date: { fontSize: 13, color: 'gray', marginTop: 4, fontWeight: '600' },
+    price: { fontSize: 20, fontWeight: '900' },
+    divider: { height: StyleSheet.hairlineWidth, marginVertical: 12 },
+    
+    // Route Row
+    routeContainer: { paddingHorizontal: 2 },
+    routeRow: { flexDirection: 'row', alignItems: 'center' },
+    routeText: { fontSize: 13, fontWeight: '500', flex: 1 },
+
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    statusBadge: { 
+        flexDirection: 'row', alignItems: 'center', 
+        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
+        borderWidth: StyleSheet.hairlineWidth,
+    },
+    detailsBtn: { flexDirection: 'row', alignItems: 'center' },
+    detailsText: { color: '#e334e3', fontWeight: '600', marginRight: 4 },
+
+    // Empty
+    emptyWrap:    { alignItems: 'center', paddingHorizontal: 24, marginTop: 32 },
+    emptyIconWrap:{ width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 14 },
+    emptyTitle:   { fontSize: 17, fontWeight: '700', marginBottom: 7, letterSpacing: -0.3 },
+    emptySub:     { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+    emptyBtn:     { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12 },
+    emptyBtnOutline: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, borderWidth: 1.5 },
+    emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+
+    // Stats button
+    statsBtn:     { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, padding: 16, marginTop: 6, borderWidth: StyleSheet.hairlineWidth },
+    statsBtnText: { fontWeight: '600', fontSize: 14 },
+});

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import {
     Animated,
     Dimensions,
@@ -13,6 +13,7 @@ import {
     TouchableWithoutFeedback,
     View,
     Platform,
+    PanResponder,
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import Colors from '../constants/Colors';
@@ -137,9 +138,80 @@ export default function CardFormSheet({ onClose, onSave }) {
     const shake = useRef(new Animated.Value(0)).current;
     const cvvRef = useRef(null);
 
+    const translateY = useRef(new Animated.Value(SCREEN_H)).current;
+    const activeScale = useRef(new Animated.Value(1)).current;
+
     const digits = num.replace(/\s/g, '');
     const cardBrand = brand(num);
     const valid = digits.length === 16 && cvv.length >= 3;
+
+    const handleDismiss = () => {
+        Animated.timing(translateY, {
+            toValue: SCREEN_H,
+            duration: 220,
+            useNativeDriver: true,
+        }).start(() => {
+            onClose();
+        });
+    };
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: (evt, gestureState) => {
+                const { locationY } = evt.nativeEvent;
+                return locationY < 60;
+            },
+            onMoveShouldSetPanResponder: (evt, gestureState) => {
+                const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 1.5;
+                if (!isVertical) return false;
+                const { locationY } = evt.nativeEvent;
+                return locationY < 60 || gestureState.dy > 5;
+            },
+            onPanResponderGrant: () => {
+                translateY.stopAnimation();
+                Animated.spring(activeScale, { toValue: 1.3, friction: 8, useNativeDriver: true }).start();
+            },
+            onPanResponderMove: (_, gestureState) => {
+                const dy = gestureState.dy;
+                if (dy > 0) {
+                    translateY.setValue(dy);
+                } else {
+                    translateY.setValue(dy * 0.25);
+                }
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
+                if (gestureState.vy > 0.5 || gestureState.dy > SHEET_H * 0.35) {
+                    handleDismiss();
+                } else {
+                    Animated.spring(translateY, {
+                        toValue: 0,
+                        friction: 8,
+                        tension: 40,
+                        useNativeDriver: true,
+                    }).start();
+                }
+            },
+            onPanResponderTerminate: () => {
+                Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
+                Animated.spring(translateY, {
+                    toValue: 0,
+                    friction: 8,
+                    tension: 40,
+                    useNativeDriver: true,
+                }).start();
+            }
+        })
+    ).current;
+
+    useEffect(() => {
+        Animated.spring(translateY, {
+            toValue: 0,
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true,
+        }).start();
+    }, []);
 
     const doShake = () =>
         Animated.sequence([
@@ -152,7 +224,7 @@ export default function CardFormSheet({ onClose, onSave }) {
     const handleSave = () => {
         if (!valid) { doShake(); return; }
         onSave?.({ number: `•••• ${digits.slice(-4)}`, expiry: `${String(mo + 1).padStart(2, '0')}/${YEARS[yr].slice(-2)}` });
-        onClose();
+        handleDismiss();
     };
 
     const previewNum = Array.from({ length: 4 }, (_, g) =>
@@ -160,116 +232,154 @@ export default function CardFormSheet({ onClose, onSave }) {
     ).join('  ');
 
     return (
-        <Modal visible transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-            <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); onClose(); }}>
-                <View style={s.backdrop} />
-            </TouchableWithoutFeedback>
+        <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={handleDismiss}>
+            <Animated.View 
+                style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        opacity: translateY.interpolate({
+                            inputRange: [0, SCREEN_H],
+                            outputRange: [1, 0],
+                            extrapolate: 'clamp',
+                        })
+                    }
+                ]}
+            >
+                <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); handleDismiss(); }}>
+                    <View style={StyleSheet.absoluteFill} />
+                </TouchableWithoutFeedback>
+            </Animated.View>
 
-            <View style={[s.sheet, { backgroundColor: isDark ? '#141414' : '#f8f8f8', height: SHEET_H }]}>
-                <View style={s.pill} />
-
-                {/* Close */}
-                <TouchableOpacity style={[s.closeBtn, { backgroundColor: theme.card }]} onPress={onClose}>
-                    <Ionicons name="close" size={16} color={theme.text} />
-                </TouchableOpacity>
-
-                <Text style={[s.title, { color: theme.text }]}>Нова картка</Text>
-
-                {/* ── Card preview ── */}
-                <Animated.View style={[s.card, { transform: [{ translateX: shake }] }]}>
-                    <View style={s.cardGlow1} />
-                    <View style={s.cardGlow2} />
-                    {/* chip */}
-                    <View style={s.chip}><View style={s.chipInner} /></View>
-                    {/* brand */}
-                    {cardBrand ? (
-                        <Text style={s.cardBrand}>{cardBrand}</Text>
-                    ) : (
-                        <Ionicons name="card-outline" size={18} color="rgba(255,255,255,0.35)" style={s.cardBrand} />
-                    )}
-                    {/* number */}
-                    <Text style={s.cardNum}>{previewNum}</Text>
-                    {/* bottom */}
-                    <View style={s.cardFoot}>
-                        <View>
-                            <Text style={s.cardLbl}>ТЕРМІН</Text>
-                            <Text style={s.cardVal}>{String(mo + 1).padStart(2, '0')}/{YEARS[yr].slice(-2)}</Text>
-                        </View>
-                        <View>
-                            <Text style={s.cardLbl}>CVV</Text>
-                            <Text style={s.cardVal}>{'•'.repeat(cvv.length || 3)}</Text>
-                        </View>
-                    </View>
-                </Animated.View>
-
-                {/* ── Number field ── */}
-                <View style={[s.field, { backgroundColor: theme.card }, focus === 'n' && s.fieldFocused]}>
-                    <Ionicons name="card-outline" size={18} color={cardBrand ? '#e334e3' : 'gray'} />
-                    <TextInput
-                        style={[s.fieldInput, { color: theme.text }]}
-                        placeholder="Номер картки"
-                        placeholderTextColor="gray"
-                        keyboardType="number-pad"
-                        value={num}
-                        onChangeText={v => {
-                            const f = formatCard(v);
-                            setNum(f);
-                            if (f.replace(/\s/g, '').length === 16) Keyboard.dismiss();
-                        }}
-                        maxLength={19}
-                        onFocus={() => setFocus('n')}
-                        onBlur={() => setFocus(null)}
-                    />
-                    {digits.length === 16 && <Ionicons name="checkmark-circle" size={18} color="#27ae60" />}
-                </View>
-
-                {/* ── Date + CVV row ── */}
-                <View style={s.row}>
-                    {/* Drums */}
-                    <View style={s.drumWrap}>
-                        <Text style={[s.lbl, { color: 'gray' }]}>Місяць / Рік</Text>
-                        <View style={[s.drumsBox, { backgroundColor: theme.card }]}>
-                            <Drum items={UA_MONTHS} selectedIndex={mo} onSelect={setMo} width={SCREEN_W * 0.26} />
-                            <Text style={{ color: '#e334e3', fontSize: 18, fontWeight: '200' }}>/</Text>
-                            <Drum items={YEARS} selectedIndex={yr} onSelect={setYr} width={SCREEN_W * 0.16} />
-                        </View>
-                    </View>
-
-                    {/* CVV */}
-                    <View style={s.cvvWrap}>
-                        <Text style={[s.lbl, { color: 'gray' }]}>CVV</Text>
-                        <View style={[s.field, s.cvvField, { backgroundColor: theme.card }, focus === 'cvv' && s.fieldFocused]}>
-                            <TextInput
-                                ref={cvvRef}
-                                style={[s.cvvInput, { color: theme.text }]}
-                                placeholder="•••"
-                                placeholderTextColor="gray"
-                                keyboardType="number-pad"
-                                secureTextEntry
-                                value={cvv}
-                                onChangeText={v => {
-                                    const cl = v.replace(/\D/g, '').slice(0, 4);
-                                    setCvv(cl);
-                                    if (cl.length >= 3) Keyboard.dismiss();
-                                }}
-                                onFocus={() => setFocus('cvv')}
-                                onBlur={() => setFocus(null)}
-                                maxLength={4}
-                            />
-                            <Ionicons name="lock-closed" size={14} color={focus === 'cvv' ? '#e334e3' : 'gray'} />
-                        </View>
-                    </View>
-                </View>
-
-                {/* ── Save ── */}
-                <TouchableOpacity
-                    style={[s.saveBtn, !valid && { opacity: 0.45 }]}
-                    onPress={handleSave}
-                    activeOpacity={0.85}
+            <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+                <Animated.View
+                    {...panResponder.panHandlers}
+                    style={[
+                        s.sheet,
+                        {
+                            backgroundColor: isDark ? '#141414' : '#f8f8f8',
+                            height: SHEET_H,
+                            transform: [{ translateY }],
+                        }
+                    ]}
                 >
-                    <Ionicons name="lock-closed" size={16} color="white" style={{ marginRight: 8 }} />
-                    <Text style={s.saveTxt}>Зберегти картку</Text>
-                </TouchableOpacity>
+                    <View style={s.dragHandleArea}>
+                        <Animated.View 
+                            style={[
+                                s.pill,
+                                {
+                                    transform: [
+                                        { scaleX: activeScale },
+                                        { scaleY: activeScale }
+                                    ]
+                                }
+                            ]} 
+                        />
+                    </View>
+
+                    {/* Close */}
+                    <TouchableOpacity style={[s.closeBtn, { backgroundColor: theme.card }]} onPress={handleDismiss}>
+                        <Ionicons name="close" size={16} color={theme.text} />
+                    </TouchableOpacity>
+
+                    <Text style={[s.title, { color: theme.text }]}>Нова картка</Text>
+
+                    {/* ── Card preview ── */}
+                    <Animated.View style={[s.card, { transform: [{ translateX: shake }] }]}>
+                        <View style={s.cardGlow1} />
+                        <View style={s.cardGlow2} />
+                        {/* chip */}
+                        <View style={s.chip}><View style={s.chipInner} /></View>
+                        {/* brand */}
+                        {cardBrand ? (
+                            <Text style={s.cardBrand}>{cardBrand}</Text>
+                        ) : (
+                            <Ionicons name="card-outline" size={18} color="rgba(255,255,255,0.35)" style={s.cardBrand} />
+                        )}
+                        {/* number */}
+                        <Text style={s.cardNum}>{previewNum}</Text>
+                        {/* bottom */}
+                        <View style={s.cardFoot}>
+                            <View>
+                                <Text style={s.cardLbl}>ТЕРМІН</Text>
+                                <Text style={s.cardVal}>{String(mo + 1).padStart(2, '0')}/{YEARS[yr].slice(-2)}</Text>
+                            </View>
+                            <View>
+                                <Text style={s.cardLbl}>CVV</Text>
+                                <Text style={s.cardVal}>{'•'.repeat(cvv.length || 3)}</Text>
+                            </View>
+                        </View>
+                    </Animated.View>
+
+                    {/* ── Number field ── */}
+                    <View style={[s.field, { backgroundColor: theme.card }, focus === 'n' && s.fieldFocused]}>
+                        <Ionicons name="card-outline" size={18} color={cardBrand ? '#e334e3' : 'gray'} />
+                        <TextInput
+                            style={[s.fieldInput, { color: theme.text }]}
+                            placeholder="Номер картки"
+                            placeholderTextColor="gray"
+                            keyboardType="number-pad"
+                            value={num}
+                            onChangeText={v => {
+                                const f = formatCard(v);
+                                setNum(f);
+                                if (f.replace(/\s/g, '').length === 16) Keyboard.dismiss();
+                            }}
+                            maxLength={19}
+                            onFocus={() => setFocus('n')}
+                            onBlur={() => setFocus(null)}
+                        />
+                        {digits.length === 16 && <Ionicons name="checkmark-circle" size={18} color="#27ae60" />}
+                    </View>
+
+                    {/* ── Date + CVV row ── */}
+                    <View style={s.row}>
+                        {/* Drums */}
+                        <View style={s.drumWrap}>
+                            <Text style={[s.lbl, { color: 'gray' }]}>Місяць / Рік</Text>
+                            <View style={[s.drumsBox, { backgroundColor: theme.card }]}>
+                                <Drum items={UA_MONTHS} selectedIndex={mo} onSelect={setMo} width={SCREEN_W * 0.26} />
+                                <Text style={{ color: '#e334e3', fontSize: 18, fontWeight: '200' }}>/</Text>
+                                <Drum items={YEARS} selectedIndex={yr} onSelect={setYr} width={SCREEN_W * 0.16} />
+                            </View>
+                        </View>
+
+                        {/* CVV */}
+                        <View style={s.cvvWrap}>
+                            <Text style={[s.lbl, { color: 'gray' }]}>CVV</Text>
+                            <View style={[s.field, s.cvvField, { backgroundColor: theme.card }, focus === 'cvv' && s.fieldFocused]}>
+                                <TextInput
+                                    ref={cvvRef}
+                                    style={[s.cvvInput, { color: theme.text }]}
+                                    placeholder="•••"
+                                    placeholderTextColor="gray"
+                                    keyboardType="number-pad"
+                                    secureTextEntry
+                                    value={cvv}
+                                    onChangeText={v => {
+                                        const cl = v.replace(/\D/g, '').slice(0, 4);
+                                        setCvv(cl);
+                                        if (cl.length >= 3) Keyboard.dismiss();
+                                    }}
+                                    onFocus={() => setFocus('cvv')}
+                                    onBlur={() => setFocus(null)}
+                                    maxLength={4}
+                                />
+                                <Ionicons name="lock-closed" size={14} color={focus === 'cvv' ? '#e334e3' : 'gray'} />
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* ── Save ── */}
+                    <TouchableOpacity
+                        style={[s.saveBtn, !valid && { opacity: 0.45 }]}
+                        onPress={handleSave}
+                        activeOpacity={0.85}
+                    >
+                        <Ionicons name="lock-closed" size={16} color="white" style={{ marginRight: 8 }} />
+                        <Text style={s.saveTxt}>Зберегти картку</Text>
+                    </TouchableOpacity>
+                </Animated.View>
             </View>
         </Modal>
     );
@@ -282,15 +392,24 @@ const s = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.6)',
     },
     sheet: {
-        position: 'absolute', bottom: 0, left: 0, right: 0,
         borderTopLeftRadius: 28, borderTopRightRadius: 28,
         paddingHorizontal: 20, paddingBottom: 32,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(0,0,0,0.05)',
     },
+    dragHandleArea: {
+        width: '100%',
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+        marginTop: 6,
+    },
     pill: {
-        width: 38, height: 4, borderRadius: 2, backgroundColor: '#555',
-        alignSelf: 'center', marginTop: 10, marginBottom: 16,
+        width: 48,
+        height: 5,
+        borderRadius: 2.5,
+        backgroundColor: '#555',
     },
     closeBtn: {
         position: 'absolute', top: 18, right: 18,

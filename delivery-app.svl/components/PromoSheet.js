@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import {
     Animated,
     Clipboard,
@@ -14,6 +14,7 @@ import {
     TouchableWithoutFeedback,
     View,
     Platform,
+    PanResponder,
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { useDispatch, useSelector } from 'react-redux';
@@ -38,6 +39,83 @@ export default function PromoSheet({ promo, onClose }) {
         ? (cartItems.find(i => (i.product_id ?? i.id) === product.product_id)?.quantity ?? 0)
         : 0;
 
+    const translateY = useRef(new Animated.Value(SCREEN_H)).current;
+    const activeScale = useRef(new Animated.Value(1)).current;
+    const scrollOffset = useRef(0);
+
+    const handleDismiss = () => {
+        Animated.timing(translateY, {
+            toValue: SCREEN_H,
+            duration: 220,
+            useNativeDriver: true,
+        }).start(() => {
+            onClose();
+        });
+    };
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: (evt, gestureState) => {
+                const { locationY } = evt.nativeEvent;
+                return locationY < 200 || scrollOffset.current <= 0;
+            },
+            onMoveShouldSetPanResponder: (evt, gestureState) => {
+                const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 1.5;
+                if (!isVertical) return false;
+
+                const { locationY } = evt.nativeEvent;
+                const isTouchInHeader = locationY < 200;
+                const isPullingDown = gestureState.dy > 2;
+                const isAtTop = scrollOffset.current <= 0;
+
+                return isTouchInHeader || (isPullingDown && isAtTop);
+            },
+            onPanResponderGrant: () => {
+                translateY.stopAnimation();
+                Animated.spring(activeScale, { toValue: 1.3, friction: 8, useNativeDriver: true }).start();
+            },
+            onPanResponderMove: (_, gestureState) => {
+                const dy = gestureState.dy;
+                if (dy > 0) {
+                    translateY.setValue(dy);
+                } else {
+                    translateY.setValue(dy * 0.2);
+                }
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
+                if (gestureState.vy > 0.5 || gestureState.dy > SCREEN_H * 0.3) {
+                    handleDismiss();
+                } else {
+                    Animated.spring(translateY, {
+                        toValue: 0,
+                        friction: 8,
+                        tension: 40,
+                        useNativeDriver: true,
+                    }).start();
+                }
+            },
+            onPanResponderTerminate: () => {
+                Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
+                Animated.spring(translateY, {
+                    toValue: 0,
+                    friction: 8,
+                    tension: 40,
+                    useNativeDriver: true,
+                }).start();
+            }
+        })
+    ).current;
+
+    useEffect(() => {
+        Animated.spring(translateY, {
+            toValue: 0,
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true,
+        }).start();
+    }, []);
+
     const handleCopyCode = () => {
         Clipboard.setString(promo.promoCode);
         setCopied(true);
@@ -50,7 +128,7 @@ export default function PromoSheet({ promo, onClose }) {
     };
 
     const handleGoToStore = () => {
-        onClose();
+        handleDismiss();
         router.push(promo.storeId ? `/restaurant/${promo.storeId}` : '/search');
     };
 
@@ -82,118 +160,164 @@ export default function PromoSheet({ promo, onClose }) {
     if (!promo) return null;
 
     return (
-        <Modal visible transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-            <TouchableWithoutFeedback onPress={onClose}>
-                <View style={s.backdrop} />
-            </TouchableWithoutFeedback>
+        <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={handleDismiss}>
+            <Animated.View 
+                style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        opacity: translateY.interpolate({
+                            inputRange: [0, SCREEN_H],
+                            outputRange: [1, 0],
+                            extrapolate: 'clamp',
+                        })
+                    }
+                ]}
+            >
+                <TouchableWithoutFeedback onPress={handleDismiss}>
+                    <View style={StyleSheet.absoluteFill} />
+                </TouchableWithoutFeedback>
+            </Animated.View>
 
-            <View style={[s.sheet, { backgroundColor: isDark ? '#141414' : '#f8f8f8' }]}>
-                {/* Hero */}
-                <View style={s.heroWrap}>
-                    <Image source={{ uri: promo.image }} style={s.hero} />
-                    <View style={s.heroOverlay} />
-                    <View style={[s.tag, { backgroundColor: promo.tagColor ?? '#e334e3' }]}>
-                        <Text style={s.tagText}>{promo.tag}</Text>
+            <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+                <Animated.View
+                    {...panResponder.panHandlers}
+                    style={[
+                        s.sheet,
+                        {
+                            backgroundColor: isDark ? '#141414' : '#f8f8f8',
+                            transform: [{ translateY }],
+                        }
+                    ]}
+                >
+                    <View style={s.dragHandleArea}>
+                        <Animated.View 
+                            style={[
+                                s.pill,
+                                {
+                                    transform: [
+                                        { scaleX: activeScale },
+                                        { scaleY: activeScale }
+                                    ]
+                                }
+                            ]} 
+                        />
                     </View>
-                    <TouchableOpacity style={s.closeBtn} onPress={onClose}>
-                        <Ionicons name="close" size={18} color="white" />
-                    </TouchableOpacity>
-                    <View style={s.heroTitle}>
-                        <Text style={s.heroTitleText}>{promo.title}</Text>
+
+                    {/* Hero */}
+                    <View style={s.heroWrap}>
+                        <Image source={{ uri: promo.image }} style={s.hero} />
+                        <View style={s.heroOverlay} />
+                        <View style={[s.tag, { backgroundColor: promo.tagColor ?? '#e334e3' }]}>
+                            <Text style={s.tagText}>{promo.tag}</Text>
+                        </View>
+                        <TouchableOpacity style={s.closeBtn} onPress={handleDismiss}>
+                            <Ionicons name="close" size={18} color="white" />
+                        </TouchableOpacity>
+                        <View style={s.heroTitle}>
+                            <Text style={s.heroTitleText}>{promo.title}</Text>
+                        </View>
                     </View>
-                </View>
 
-                <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
-                    <Text style={[s.desc, { color: theme.text }]}>{promo.description}</Text>
+                    <ScrollView 
+                        contentContainerStyle={s.body} 
+                        showsVerticalScrollIndicator={false}
+                        onScroll={(e) => {
+                            scrollOffset.current = e.nativeEvent.contentOffset.y;
+                        }}
+                        scrollEventThrottle={16}
+                    >
+                        <Text style={[s.desc, { color: theme.text }]}>{promo.description}</Text>
 
-                    {/* ── Картка товару ── */}
-                    {product && (
-                        <View style={[s.productCard, { backgroundColor: theme.card }]}>
-                            <Image source={{ uri: product.image }} style={s.productImg} />
-                            <View style={s.productInfo}>
-                                <Text style={[s.productName, { color: theme.text }]}>{product.name}</Text>
-                                <Text style={[s.productDesc, { color: 'gray' }]} numberOfLines={1}>
-                                    {product.description}
-                                </Text>
-                                <Text style={[s.productPrice, { color: promo.tagColor ?? '#e334e3' }]}>
-                                    {product.price} грн
-                                </Text>
+                        {/* ── Картка товару ── */}
+                        {product && (
+                            <View style={[s.productCard, { backgroundColor: theme.card }]}>
+                                <Image source={{ uri: product.image }} style={s.productImg} />
+                                <View style={s.productInfo}>
+                                    <Text style={[s.productName, { color: theme.text }]}>{product.name}</Text>
+                                    <Text style={[s.productDesc, { color: 'gray' }]} numberOfLines={1}>
+                                        {product.description}
+                                    </Text>
+                                    <Text style={[s.productPrice, { color: promo.tagColor ?? '#e334e3' }]}>
+                                        {product.price} грн
+                                    </Text>
+                                </View>
+                                {/* Кнопки кошика */}
+                                <Animated.View style={{ transform: [{ scale: cartAnim }] }}>
+                                    {cartQty === 0 ? (
+                                        <TouchableOpacity
+                                            style={[s.addBtn, { backgroundColor: promo.tagColor ?? '#e334e3' }]}
+                                            onPress={handleAdd}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Ionicons name="add" size={20} color="white" />
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <View style={s.counter}>
+                                            <TouchableOpacity
+                                                style={[s.counterBtn, { backgroundColor: theme.input }]}
+                                                onPress={handleRemove}
+                                            >
+                                                <Ionicons name="remove" size={16} color={theme.text} />
+                                            </TouchableOpacity>
+                                            <Text style={[s.counterQty, { color: theme.text }]}>{cartQty}</Text>
+                                            <TouchableOpacity
+                                                style={[s.counterBtn, { backgroundColor: promo.tagColor ?? '#e334e3' }]}
+                                                onPress={handleAdd}
+                                            >
+                                                <Ionicons name="add" size={16} color="white" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                </Animated.View>
                             </View>
-                            {/* Кнопки кошика */}
-                            <Animated.View style={{ transform: [{ scale: cartAnim }] }}>
-                                {cartQty === 0 ? (
+                        )}
+
+                        {/* ── Промокод ── */}
+                        {promo.promoCode && (
+                            <View style={s.codeSection}>
+                                <Text style={[s.codeLbl, { color: 'gray' }]}>ПРОМОКОД</Text>
+                                <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                                     <TouchableOpacity
-                                        style={[s.addBtn, { backgroundColor: promo.tagColor ?? '#e334e3' }]}
-                                        onPress={handleAdd}
+                                        style={[s.codeBox, {
+                                            backgroundColor: isDark ? '#1e1e1e' : '#fff',
+                                            borderColor: copied ? '#27ae60' : (promo.tagColor ?? '#e334e3'),
+                                        }]}
+                                        onPress={handleCopyCode}
                                         activeOpacity={0.8}
                                     >
-                                        <Ionicons name="add" size={20} color="white" />
+                                        <Text style={[s.codeText, { color: promo.tagColor ?? '#e334e3' }]}>
+                                            {promo.promoCode}
+                                        </Text>
+                                        <View style={[s.copyBtn, { backgroundColor: copied ? '#27ae60' : (promo.tagColor ?? '#e334e3') }]}>
+                                            <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={16} color="white" />
+                                            <Text style={s.copyBtnText}>{copied ? 'Скопійовано!' : 'Копіювати'}</Text>
+                                        </View>
                                     </TouchableOpacity>
-                                ) : (
-                                    <View style={s.counter}>
-                                        <TouchableOpacity
-                                            style={[s.counterBtn, { backgroundColor: theme.input }]}
-                                            onPress={handleRemove}
-                                        >
-                                            <Ionicons name="remove" size={16} color={theme.text} />
-                                        </TouchableOpacity>
-                                        <Text style={[s.counterQty, { color: theme.text }]}>{cartQty}</Text>
-                                        <TouchableOpacity
-                                            style={[s.counterBtn, { backgroundColor: promo.tagColor ?? '#e334e3' }]}
-                                            onPress={handleAdd}
-                                        >
-                                            <Ionicons name="add" size={16} color="white" />
-                                        </TouchableOpacity>
-                                    </View>
-                                )}
-                            </Animated.View>
-                        </View>
-                    )}
+                                </Animated.View>
+                            </View>
+                        )}
 
-                    {/* ── Промокод ── */}
-                    {promo.promoCode && (
-                        <View style={s.codeSection}>
-                            <Text style={[s.codeLbl, { color: 'gray' }]}>ПРОМОКОД</Text>
-                            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-                                <TouchableOpacity
-                                    style={[s.codeBox, {
-                                        backgroundColor: isDark ? '#1e1e1e' : '#fff',
-                                        borderColor: copied ? '#27ae60' : (promo.tagColor ?? '#e334e3'),
-                                    }]}
-                                    onPress={handleCopyCode}
-                                    activeOpacity={0.8}
-                                >
-                                    <Text style={[s.codeText, { color: promo.tagColor ?? '#e334e3' }]}>
-                                        {promo.promoCode}
-                                    </Text>
-                                    <View style={[s.copyBtn, { backgroundColor: copied ? '#27ae60' : (promo.tagColor ?? '#e334e3') }]}>
-                                        <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={16} color="white" />
-                                        <Text style={s.copyBtnText}>{copied ? 'Скопійовано!' : 'Копіювати'}</Text>
-                                    </View>
-                                </TouchableOpacity>
-                            </Animated.View>
-                        </View>
-                    )}
+                        {/* ── Умови ── */}
+                        {promo.terms && (
+                            <View style={[s.termsBox, { backgroundColor: isDark ? '#1e1e1e' : '#f0f0f5' }]}>
+                                <Ionicons name="information-circle-outline" size={16} color="gray" style={{ marginRight: 6 }} />
+                                <Text style={[s.termsText, { color: 'gray' }]}>{promo.terms}</Text>
+                            </View>
+                        )}
 
-                    {/* ── Умови ── */}
-                    {promo.terms && (
-                        <View style={[s.termsBox, { backgroundColor: isDark ? '#1e1e1e' : '#f0f0f5' }]}>
-                            <Ionicons name="information-circle-outline" size={16} color="gray" style={{ marginRight: 6 }} />
-                            <Text style={[s.termsText, { color: 'gray' }]}>{promo.terms}</Text>
-                        </View>
-                    )}
-
-                    {/* ── CTA ── */}
-                    <TouchableOpacity
-                        style={[s.ctaBtn, { backgroundColor: promo.tagColor ?? '#e334e3' }]}
-                        onPress={handleGoToStore}
-                    >
-                        <Ionicons name="storefront-outline" size={18} color="white" style={{ marginRight: 8 }} />
-                        <Text style={s.ctaBtnText}>
-                            {promo.storeId ? `Відкрити ${promo.storeName ?? 'ресторан'}` : 'Всі заклади'}
-                        </Text>
-                    </TouchableOpacity>
-                </ScrollView>
+                        {/* ── CTA ── */}
+                        <TouchableOpacity
+                            style={[s.ctaBtn, { backgroundColor: promo.tagColor ?? '#e334e3' }]}
+                            onPress={handleGoToStore}
+                        >
+                            <Ionicons name="storefront-outline" size={18} color="white" style={{ marginRight: 8 }} />
+                            <Text style={s.ctaBtnText}>
+                                {promo.storeId ? `Відкрити ${promo.storeName ?? 'ресторан'}` : 'Всі заклади'}
+                            </Text>
+                        </TouchableOpacity>
+                    </ScrollView>
+                </Animated.View>
             </View>
         </Modal>
     );
@@ -205,10 +329,26 @@ const s = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.6)',
     },
     sheet: {
-        position: 'absolute', bottom: 0, left: 0, right: 0,
         borderTopLeftRadius: 28, borderTopRightRadius: 28,
         overflow: 'hidden',
         maxHeight: SCREEN_H * 0.9,
+    },
+    dragHandleArea: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+        zIndex: 10,
+    },
+    pill: {
+        width: 48,
+        height: 5,
+        borderRadius: 2.5,
+        backgroundColor: 'rgba(255,255,255,0.7)',
     },
 
     heroWrap: { position: 'relative', height: 200 },

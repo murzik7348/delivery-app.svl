@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 
 const tintColorLight = '#e334e3';
 const tintColorDark = '#e334e3';
@@ -43,6 +43,46 @@ const Colors = {
     warning: '#F39C12',
     danger: '#E74C3C',
     info: '#3498DB',
+  },
+};
+
+export const Shadows = {
+  soft: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.22,
+      shadowRadius: 16,
+    },
+    android: {
+      elevation: 8,
+    },
+  }),
+  primary: Platform.select({
+    ios: {
+      shadowColor: '#e334e3',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.22,
+      shadowRadius: 12,
+    },
+    android: {
+      elevation: 6,
+    },
+  }),
+};
+
+export const Glass = {
+  light: {
+    background: 'rgba(255, 255, 255, 0.75)',
+    border: 'rgba(255, 255, 255, 0.5)',
+    tint: 'light',
+    intensity: 65,
+  },
+  dark: {
+    background: 'rgba(28, 28, 30, 0.75)',
+    border: 'rgba(255, 255, 255, 0.08)',
+    tint: 'dark',
+    intensity: 75,
   },
 };
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,6 +6,9 @@ import {
     Modal,
     TouchableOpacity,
     Platform,
+    Dimensions,
+    Animated,
+    PanResponder,
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +18,9 @@ import Colors from '../constants/Colors';
 import { setDeliveryType } from '../store/cartSlice';
 import { setCurrentLocation } from '../store/locationSlice';
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.55;
+
 export default function AddressBottomSheet({ visible, onClose }) {
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme ?? 'light'];
@@ -22,23 +28,121 @@ export default function AddressBottomSheet({ visible, onClose }) {
     const dispatch = useDispatch();
     const savedAddresses = useSelector((s) => s.auth?.addresses || []);
 
+    const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+    const activeScale = useRef(new Animated.Value(1)).current;
+
+    const handleDismiss = () => {
+        Animated.timing(translateY, {
+            toValue: SCREEN_HEIGHT,
+            duration: 220,
+            useNativeDriver: true,
+        }).start(() => {
+            onClose();
+        });
+    };
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
+            onPanResponderGrant: () => {
+                translateY.stopAnimation();
+                Animated.spring(activeScale, { toValue: 1.3, friction: 8, useNativeDriver: true }).start();
+            },
+            onPanResponderMove: (_, gestureState) => {
+                const dy = gestureState.dy;
+                if (dy > 0) {
+                    translateY.setValue(dy);
+                } else {
+                    translateY.setValue(dy * 0.25);
+                }
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
+                if (gestureState.vy > 0.5 || gestureState.dy > SHEET_HEIGHT * 0.35) {
+                    handleDismiss();
+                } else {
+                    Animated.spring(translateY, {
+                        toValue: 0,
+                        friction: 8,
+                        tension: 40,
+                        useNativeDriver: true,
+                    }).start();
+                }
+            },
+            onPanResponderTerminate: () => {
+                Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
+                Animated.spring(translateY, {
+                    toValue: 0,
+                    friction: 8,
+                    tension: 40,
+                    useNativeDriver: true,
+                }).start();
+            }
+        })
+    ).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.spring(translateY, {
+                toValue: 0,
+                friction: 8,
+                tension: 40,
+                useNativeDriver: true,
+            }).start();
+        } else {
+            translateY.setValue(SCREEN_HEIGHT);
+        }
+    }, [visible]);
+
     return (
         <Modal
-            animationType="slide"
+            animationType="none"
             transparent
             visible={visible}
-            onRequestClose={onClose}
+            onRequestClose={handleDismiss}
         >
-            <TouchableOpacity
-                style={styles.backdrop}
-                activeOpacity={1}
-                onPress={onClose}
+            <Animated.View 
+                style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                        backgroundColor: 'rgba(0,0,0,0.4)',
+                        opacity: translateY.interpolate({
+                            inputRange: [0, SCREEN_HEIGHT],
+                            outputRange: [1, 0],
+                            extrapolate: 'clamp',
+                        })
+                    }
+                ]}
             >
-                <TouchableOpacity
-                    activeOpacity={1}
-                    style={[styles.sheet, { backgroundColor: theme.card }]}
+                <TouchableOpacity activeOpacity={1} onPress={handleDismiss} style={StyleSheet.absoluteFill} />
+            </Animated.View>
+
+            <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+                <Animated.View
+                    {...panResponder.panHandlers}
+                    style={[
+                        styles.sheet, 
+                        { 
+                            backgroundColor: theme.card,
+                            transform: [{ translateY }]
+                        }
+                    ]}
                 >
-                    <View style={styles.pill} />
+                    {/* Хендл-зона */}
+                    <View style={styles.dragHandleArea}>
+                        <Animated.View 
+                            style={[
+                                styles.pill,
+                                {
+                                    transform: [
+                                        { scaleX: activeScale },
+                                        { scaleY: activeScale }
+                                    ]
+                                }
+                            ]} 
+                        />
+                    </View>
                     <Text style={[styles.title, { color: theme.text }]}>Адреса доставки</Text>
 
                     {savedAddresses && savedAddresses.length > 0 ? (
@@ -54,7 +158,7 @@ export default function AddressBottomSheet({ visible, onClose }) {
                                         longitude: addr.longitude,
                                         addressName: addr.address,
                                     }));
-                                    onClose();
+                                    handleDismiss();
                                 }}
                             >
                                 <Ionicons name="location-outline" size={20} color="#e334e3" />
@@ -72,15 +176,15 @@ export default function AddressBottomSheet({ visible, onClose }) {
                     <TouchableOpacity
                         style={styles.addBtnAction}
                         onPress={() => {
-                            onClose();
+                            handleDismiss();
                             router.push('/location-picker');
                         }}
                     >
                         <Ionicons name="add-circle" size={22} color="white" />
                         <Text style={[styles.addBtnText, { color: 'white' }]}>Додати адресу</Text>
                     </TouchableOpacity>
-                </TouchableOpacity>
-            </TouchableOpacity>
+                </Animated.View>
+            </View>
         </Modal>
     );
 }
@@ -96,7 +200,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 28,
         paddingHorizontal: 20,
         paddingBottom: 40,
-        paddingTop: 12,
+        paddingTop: 0,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(0,0,0,0.05)',
         ...Platform.select({
@@ -105,12 +209,18 @@ const styles = StyleSheet.create({
         })
     },
     pill: {
-        width: 44,
+        width: 48,
         height: 5,
         backgroundColor: '#C6C6CC',
-        borderRadius: 3,
-        alignSelf: 'center',
-        marginBottom: 16,
+        borderRadius: 2.5,
+    },
+    dragHandleArea: {
+        width: '100%',
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+        marginTop: 6,
     },
     title: {
         fontSize: 20,

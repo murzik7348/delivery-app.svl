@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import {
     Animated,
     Dimensions,
@@ -11,11 +11,12 @@ import {
     TouchableWithoutFeedback,
     View,
     Platform,
+    PanResponder,
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
-import { addToCart, removeFromCart } from '../store/cartSlice';
+import { addToCart, removeFromCart, decrementItem } from '../store/cartSlice';
 import { toggleFavoriteProduct } from '../store/favoritesSlice';
 
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -53,7 +54,15 @@ export default function ProductSheet({ product, onClose }) {
     };
 
     const handleRemove = () => {
-        dispatch(removeFromCart(product.product_id ?? product.id));
+        const prodId = product.product_id ?? product.id;
+        const itemInCart = cartItems.find(i => (i.product_id ?? i.id) === prodId);
+        if (itemInCart) {
+            if (itemInCart.quantity > 1) {
+                dispatch(decrementItem(itemInCart.cartKey));
+            } else {
+                dispatch(removeFromCart(prodId));
+            }
+        }
     };
 
     const handleHeart = () => {
@@ -64,26 +73,129 @@ export default function ProductSheet({ product, onClose }) {
         ]).start();
     };
 
+    const translateY = useRef(new Animated.Value(SCREEN_H)).current;
+    const activeScale = useRef(new Animated.Value(1)).current;
+
+    const handleDismiss = () => {
+        Animated.timing(translateY, {
+            toValue: SCREEN_H,
+            duration: 240,
+            useNativeDriver: true,
+        }).start(() => {
+            onClose();
+        });
+    };
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
+            onPanResponderGrant: () => {
+                translateY.stopAnimation();
+                Animated.spring(activeScale, { toValue: 1.3, friction: 8, useNativeDriver: true }).start();
+            },
+            onPanResponderMove: (_, gestureState) => {
+                const dy = gestureState.dy;
+                if (dy > 0) {
+                    translateY.setValue(dy);
+                } else {
+                    translateY.setValue(dy * 0.25);
+                }
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
+                if (gestureState.vy > 0.5 || gestureState.dy > SHEET_H * 0.35) {
+                    handleDismiss();
+                } else {
+                    Animated.spring(translateY, {
+                        toValue: 0,
+                        friction: 8,
+                        tension: 40,
+                        useNativeDriver: true,
+                    }).start();
+                }
+            },
+            onPanResponderTerminate: () => {
+                Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
+                Animated.spring(translateY, {
+                    toValue: 0,
+                    friction: 8,
+                    tension: 40,
+                    useNativeDriver: true,
+                }).start();
+            }
+        })
+    ).current;
+
+    useEffect(() => {
+        if (product) {
+            Animated.spring(translateY, {
+                toValue: 0,
+                friction: 8,
+                tension: 40,
+                useNativeDriver: true,
+            }).start();
+        } else {
+            translateY.setValue(SCREEN_H);
+        }
+    }, [product]);
+
     if (!product) return null;
 
     return (
         <Modal
             visible
             transparent
-            animationType="slide"
+            animationType="none"
             statusBarTranslucent
-            onRequestClose={onClose}
+            onRequestClose={handleDismiss}
         >
-            <TouchableWithoutFeedback onPress={onClose}>
-                <View style={styles.backdrop} />
-            </TouchableWithoutFeedback>
+            <Animated.View 
+                style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                        backgroundColor: 'rgba(0,0,0,0.55)',
+                        opacity: translateY.interpolate({
+                            inputRange: [0, SCREEN_H],
+                            outputRange: [1, 0],
+                            extrapolate: 'clamp',
+                        })
+                    }
+                ]}
+            >
+                <TouchableWithoutFeedback onPress={handleDismiss}>
+                    <View style={StyleSheet.absoluteFillObject} />
+                </TouchableWithoutFeedback>
+            </Animated.View>
 
-            <View style={[styles.sheet, { backgroundColor: theme.card, height: SHEET_H }]}>
-                {/* Drag pill */}
-                <View style={styles.pill} />
+            <Animated.View 
+                {...panResponder.panHandlers}
+                style={[
+                    styles.sheet, 
+                    { 
+                        backgroundColor: theme.card, 
+                        height: SHEET_H,
+                        transform: [{ translateY }]
+                    }
+                ]}
+            >
+                {/* Хендл-зона */}
+                <View style={styles.dragHandleArea}>
+                    <Animated.View 
+                        style={[
+                            styles.pill,
+                            {
+                                transform: [
+                                    { scaleX: activeScale },
+                                    { scaleY: activeScale }
+                                ]
+                            }
+                        ]} 
+                    />
+                </View>
 
                 {/* Кнопка закрити */}
-                <TouchableOpacity style={[styles.closeBtn, { backgroundColor: theme.input }]} onPress={onClose}>
+                <TouchableOpacity style={[styles.closeBtn, { backgroundColor: theme.input }]} onPress={handleDismiss}>
                     <Ionicons name="close" size={18} color={theme.text} />
                 </TouchableOpacity>
 
@@ -146,7 +258,7 @@ export default function ProductSheet({ product, onClose }) {
                         )}
                     </View>
                 </View>
-            </View>
+            </Animated.View>
         </Modal>
     );
 }
@@ -171,12 +283,17 @@ const styles = StyleSheet.create({
         })
     },
     pill: {
-        width: 44, height: 4,
-        borderRadius: 2,
+        width: 48, height: 5,
+        borderRadius: 2.5,
         backgroundColor: '#ccc',
-        alignSelf: 'center',
-        marginTop: 10,
-        marginBottom: 6,
+    },
+    dragHandleArea: {
+        width: '100%',
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+        marginTop: 6,
     },
     closeBtn: {
         position: 'absolute',

@@ -1,31 +1,60 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { getStore } from './storeRef';
 
 // ─── Change this to your real backend URL ───────────────────────────────────
 export const BASE_URL = 'https://api.andi.delivery';
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const TOKEN_KEY = '@delivery_app_token';
-export const REFRESH_TOKEN_KEY = '@delivery_app_refresh_token';
+export const TOKEN_KEY = 'delivery_app_token';
+export const REFRESH_TOKEN_KEY = 'delivery_app_refresh_token';
+
+const isWeb = Platform.OS === 'web';
 
 /** Persist the JWT after a successful login / verify */
 export const saveToken = async (token, refreshToken) => {
-    await AsyncStorage.setItem(TOKEN_KEY, token);
-    if (refreshToken) {
-        await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    if (isWeb) {
+        await AsyncStorage.setItem(TOKEN_KEY, token);
+        if (refreshToken) {
+            await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+        }
+    } else {
+        await SecureStore.setItemAsync(TOKEN_KEY, token);
+        if (refreshToken) {
+            await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+        }
     }
 };
 
 /** Clear the JWT on logout */
 export const removeToken = async () => {
-    await AsyncStorage.removeItem(TOKEN_KEY);
-    await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+    if (isWeb) {
+        await AsyncStorage.removeItem(TOKEN_KEY);
+        await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+    } else {
+        await SecureStore.deleteItemAsync(TOKEN_KEY);
+        await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+    }
 };
 
 /** Read the JWT (used inside the interceptor) */
-export const getToken = () => AsyncStorage.getItem(TOKEN_KEY);
-export const getRefreshToken = () => AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+export const getToken = async () => {
+    if (isWeb) {
+        return AsyncStorage.getItem(TOKEN_KEY);
+    } else {
+        return SecureStore.getItemAsync(TOKEN_KEY);
+    }
+};
+
+export const getRefreshToken = async () => {
+    if (isWeb) {
+        return AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+    } else {
+        return SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+    }
+};
 
 /** Resolve a relative image path from the backend to a full URL */
 export const resolveImageUrl = (path) => {
@@ -84,10 +113,31 @@ const processQueue = (error, token = null) => {
 
 client.interceptors.response.use(
     (response) => {
+        // Reset offline status on any successful API call
+        const store = getStore();
+        if (store) {
+            const { setOffline } = require('../../store/uiSlice');
+            store.dispatch(setOffline(false));
+        }
         return response.data;
     },
     async (error) => {
         const originalRequest = error.config;
+
+        // Auto-retry for GET requests on transient network or 5xx server issues
+        const isGetRequest = originalRequest && originalRequest.method?.toLowerCase() === 'get';
+        const isNetworkOr5xxError = !error.response || (error.response.status >= 500 && error.response.status <= 504);
+
+        if (isGetRequest && isNetworkOr5xxError) {
+            const MAX_RETRIES = 3;
+            const retryCount = originalRequest._retryCount || 0;
+            if (retryCount < MAX_RETRIES) {
+                originalRequest._retryCount = retryCount + 1;
+                console.log(`⚠️ [Network] Retrying GET request (${originalRequest._retryCount}/${MAX_RETRIES}) to ${originalRequest.url} in 1.5s...`);
+                await new Promise((resolve) => setTimeout(resolve, 1500));
+                return client(originalRequest);
+            }
+        }
 
         // Auto-logout/Refresh logic
         if (error.response?.status === 401 && !originalRequest._retry && !originalRequest?._skipLogout) {
@@ -191,8 +241,22 @@ client.interceptors.response.use(
             apiError.data = error.response.data;
             return Promise.reject(apiError);
         }
-        if (error.request) {
+        if (error.request || !error.response) {
             console.error('[Axios Request Error]', error.message, error.config?.url);
+            
+            // Dispatch offline status & dynamic island error notice
+            const store = getStore();
+            if (store) {
+                const { showDynamicIsland, setOffline } = require('../../store/uiSlice');
+                store.dispatch(setOffline(true));
+                store.dispatch(showDynamicIsland({
+                    type: 'error',
+                    title: 'Помилка з\'єднання',
+                    message: 'Перевірте інтернет та спробуйте ще раз.',
+                    icon: 'wifi-outline',
+                }));
+            }
+
             return Promise.reject(
                 new Error(`No connection to server. Check your internet. (${error.message})`),
             );

@@ -23,3 +23,10 @@ export const setDefaultAddress = (id) => client.put(`/address/${id}/default`);
  * @param {number} id - Address ID
  */
 export const deleteAddress = (id) => client.delete(`/address/${id}`);
+
+/**
+ * Get delivery address by delivery ID (requires admin or authorized user/courier).
+ * @param {number} id - Delivery ID
+ */
+export const getDeliveryAddress = (id) => client.get(`/admin/delivery/${id}/address`);
+

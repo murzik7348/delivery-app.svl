@@ -20,6 +20,7 @@ export {
     getAddresses,
     setDefaultAddress,
     deleteAddress,
+    getDeliveryAddress,
 } from './address';
 
 // ── Category ─────────────────────────────────────────────────────────────────

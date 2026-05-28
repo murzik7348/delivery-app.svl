@@ -10,6 +10,7 @@ import {
   View,
   RefreshControl,
   Platform,
+  Animated,
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,6 +49,17 @@ export default function FavoritesScreen() {
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeTab, setActiveTab] = useState('stores');
+  const [tabAnim] = useState(new Animated.Value(activeTab === 'stores' ? 0 : 1));
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    Animated.spring(tabAnim, {
+      toValue: tab === 'stores' ? 0 : 1,
+      useNativeDriver: false,
+      bounciness: 4,
+      speed: 12,
+    }).start();
+  };
 
   const favoriteStores = stores.filter(s => favoriteIds.includes(s.store_id));
   const favoriteProducts = products.filter(p => favoriteProductIds.includes(p.product_id));
@@ -65,9 +77,21 @@ export default function FavoritesScreen() {
 
       {/* Tabs */}
       <View style={[styles.tabRow, { backgroundColor: theme.card }]}>
+        <Animated.View
+          style={[
+            styles.animatedTabIndicator,
+            {
+              left: tabAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['1%', '50%'],
+              }),
+            },
+          ]}
+        />
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'stores' && styles.tabActive]}
-          onPress={() => setActiveTab('stores')}
+          style={styles.tab}
+          onPress={() => handleTabChange('stores')}
+          activeOpacity={0.9}
         >
           <Ionicons
             name="storefront-outline"
@@ -81,8 +105,9 @@ export default function FavoritesScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'products' && styles.tabActive]}
-          onPress={() => setActiveTab('products')}
+          style={styles.tab}
+          onPress={() => handleTabChange('products')}
+          activeOpacity={0.9}
         >
           <Ionicons
             name="restaurant-outline"
@@ -199,14 +224,27 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.3 },
 
   tabRow: {
+    flexDirection: 'row',
+    position: 'relative',
     borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 12,
-    borderRadius: 16,
     padding: 4,
-    gap: 4,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(0,0,0,0.05)',
+  },
+  animatedTabIndicator: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    width: '49%',
+    backgroundColor: '#e334e3',
+    borderRadius: 12,
+    shadowColor: '#e334e3',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   tab: {
     flex: 1,
@@ -215,11 +253,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
     borderRadius: 12,
+    zIndex: 2,
   },
-  tabActive: {
-    backgroundColor: '#e334e3',
-  },
-  tabText: { fontSize: 14, fontWeight: '600', color: 'gray' },
+  tabText: { fontSize: 14, fontWeight: '700', color: 'gray' },
   tabTextActive: { color: 'white' },
 
   emptyState: {

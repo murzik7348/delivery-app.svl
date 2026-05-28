@@ -1,124 +1,104 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import {
+    View, Text, StyleSheet, TouchableOpacity
+} from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { BlurView } from 'expo-blur';
 import Colors from '../constants/Colors';
 import CourierOrdersPanel from '../components/CourierOrdersPanel';
 import BackButton from '../components/BackButton';
 
-const { width } = Dimensions.get('window');
-
 export default function CourierDeliveryScreen() {
-    const router = useRouter();
+    const router      = useRouter();
     const colorScheme = useColorScheme();
-    const theme = Colors[colorScheme ?? 'light'];
-    const isDark = colorScheme === 'dark';
-    const locale = useSelector((state) => state.language?.locale ?? 'uk');
-    const { user, isAuthenticated } = useSelector((state) => state.auth);
+    const theme       = Colors[colorScheme ?? 'light'];
+    const locale      = useSelector((s) => s.language?.locale ?? 'uk');
+    const { user, isAuthenticated } = useSelector((s) => s.auth);
 
-    // Guard: Role Check
     const userRole = user?.role?.toLowerCase();
-    const isCourier = userRole === 'courier' || userRole === 'курєр' || Number(user?.role) === 1;
+    const isCourier =
+        userRole === 'courier' || userRole === 'курєр' || Number(user?.role) === 1;
 
     if (!isAuthenticated || !isCourier) {
         return (
-            <View style={[styles.container, { backgroundColor: isDark ? '#0a0a0a' : '#f8f9fa' }]}>
-                {/* Background Decoration */}
-                <View style={[styles.circle, { top: -100, right: -50, backgroundColor: '#e334e320' }]} />
-                <View style={[styles.circle, { bottom: -50, left: -50, backgroundColor: '#34e3e320', width: 250, height: 250 }]} />
-                
-                <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <BlurView intensity={isDark ? 30 : 60} tint={isDark ? 'dark' : 'light'} style={styles.errorCard}>
-                        <Ionicons name="lock-closed" size={60} color="#e74c3c" style={{ marginBottom: 20 }} />
-                        <Text style={{ color: theme.text, fontSize: 22, fontWeight: '800', marginBottom: 10, textAlign: 'center' }}>
-                            {locale === 'en' ? 'Access Denied' : 'Доступ заборонено'}
+            <View style={[s.container, { backgroundColor: theme.background }]}>
+                <SafeAreaView style={s.centered}>
+                    <View style={[s.accessCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                        <View style={[s.iconCircle, { backgroundColor: `${theme.primary}15` }]}>
+                            <Ionicons name="shield-outline" size={34} color={theme.primary} />
+                        </View>
+                        <Text style={[s.accessTitle, { color: theme.text }]}>
+                            {locale === 'en' ? 'Access Restricted' : 'Доступ обмежено'}
                         </Text>
-                        <Text style={{ color: theme.textSecondary, fontSize: 14, marginBottom: 20, textAlign: 'center' }}>
-                            {locale === 'en' ? 'Only couriers can view this page.' : 'Ця сторінка доступна лише кур\'єрам.'}
+                        <Text style={[s.accessSub, { color: theme.textSecondary }]}>
+                            {locale === 'en'
+                                ? 'Only verified couriers can access this panel.'
+                                : 'Лише авторизовані кур\'єри мають доступ до цієї панелі.'}
                         </Text>
                         <TouchableOpacity
-                            style={styles.primaryBtn}
-                            activeOpacity={0.8}
+                            style={[s.btn, { backgroundColor: theme.primary }]}
                             onPress={() => router.replace('/')}
+                            activeOpacity={0.85}
                         >
-                            <Text style={styles.btnText}>{locale === 'en' ? 'Go to Home' : 'На головну'}</Text>
+                            <Text style={s.btnText}>
+                                {locale === 'en' ? 'Back to Home' : 'На головну'}
+                            </Text>
                         </TouchableOpacity>
-                    </BlurView>
+                    </View>
                 </SafeAreaView>
             </View>
         );
     }
 
     return (
-        <View style={[styles.container, { backgroundColor: isDark ? '#0a0a0a' : '#f8f9fa' }]}>
-            {/* Background Decoration */}
-            <View style={[styles.circle, { top: -100, right: -50, backgroundColor: '#e334e320' }]} />
-            <View style={[styles.circle, { bottom: -50, left: -50, backgroundColor: '#34e3e320', width: 250, height: 250 }]} />
+        <SafeAreaView edges={['top']} style={[s.container, { backgroundColor: theme.background }]}>
+            {/* Шапка */}
+            <View style={s.header}>
+                <BackButton color={theme.text} />
+                <Text style={[s.headerTitle, { color: theme.text }]}>
+                    {locale === 'en' ? 'Courier Panel' : 'Панель кур\'єра'}
+                </Text>
+                <View style={{ width: 44 }} />
+            </View>
 
-            <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-                <View style={styles.header}>
-                    <BackButton color={theme.text} />
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>
-                        {locale === 'en' ? 'Courier Panel' : 'Панель кур\'єра'}
-                    </Text>
-                    <View style={{ width: 44 }} />
-                </View>
-
-                <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
-                    <CourierOrdersPanel />
-                </ScrollView>
-            </SafeAreaView>
-        </View>
+            <View style={s.body}>
+                <CourierOrdersPanel />
+            </View>
+        </SafeAreaView>
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, overflow: 'hidden' },
-    circle: {
-        position: 'absolute',
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        zIndex: -1,
-    },
-    header: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        paddingHorizontal: 16, 
-        paddingVertical: 12,
-        zIndex: 10,
-    },
-    headerTitle: { fontSize: 22, fontWeight: '800' },
-    errorCard: {
-        width: width * 0.85,
-        padding: 30,
-        borderRadius: 30,
+const s = StyleSheet.create({
+    container: { flex: 1 },
+    centered:   { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        overflow: 'hidden'
+        padding: 20,
     },
-    primaryBtn: {
-        backgroundColor: '#e334e3',
-        paddingVertical: 16,
-        paddingHorizontal: 30,
-        borderRadius: 20,
-        width: '100%',
-        alignItems: 'center',
-        shadowColor: '#e334e3',
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 8 },
-        elevation: 8,
+    headerTitle: { fontSize: 20, fontWeight: 'bold' },
+    body: { flex: 1, paddingHorizontal: 16 },
+
+    accessCard: {
+        width: '100%', borderRadius: 24,
+        padding: 28, alignItems: 'center',
+        borderWidth: StyleSheet.hairlineWidth,
     },
-    btnText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 16,
-    }
+    iconCircle: {
+        width: 68, height: 68, borderRadius: 34,
+        justifyContent: 'center', alignItems: 'center',
+        marginBottom: 18,
+    },
+    accessTitle: { fontSize: 20, fontWeight: '800', marginBottom: 8, letterSpacing: -0.3 },
+    accessSub:   { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24, fontWeight: '500' },
+    btn: {
+        alignSelf: 'stretch', height: 50, borderRadius: 14,
+        justifyContent: 'center', alignItems: 'center',
+    },
+    btnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

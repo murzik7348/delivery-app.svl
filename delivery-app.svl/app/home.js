@@ -5,7 +5,6 @@ import {
   Animated,
   Image,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,9 +20,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import PromoSheet from '../components/PromoSheet';
-import BackButton from '../components/BackButton';
 import { fetchCatalog, selectAllCategories, selectAllStores, selectAllPromotions } from '../store/catalogSlice';
 import { resolveImageUrl } from '../src/api/client';
+import { Skeleton, StoreListSkeleton } from '../components/Skeleton';
 
 const StoreCardItem = ({ store, theme, router }) => {
   const [scaleAnim] = useState(new Animated.Value(1));
@@ -82,10 +81,11 @@ export default function HomeScreen() {
   const { user } = useSelector((state) => state.auth);
   const locale = useSelector((s) => s.language?.locale ?? 'uk');
   const { currentLocation } = useSelector((s) => s.location);
-  // Use real categories from Redux (populated by fetchCatalog thunk)
+  
   const categories = useSelector(selectAllCategories);
   const stores = useSelector(selectAllStores);
   const promotions = useSelector(selectAllPromotions);
+  const isLoading = useSelector((state) => state.catalog.isLoading);
 
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedPromo, setSelectedPromo] = useState(null);
@@ -105,10 +105,8 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    // Fetch real catalog data from API
     dispatch(fetchCatalog());
 
-    // Existing pulse animation
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.2, duration: 900, useNativeDriver: true }),
@@ -127,8 +125,6 @@ export default function HomeScreen() {
   const filteredStores = stores.filter(store => {
     if (!selectedCategory) return true;
     const isStoreCategoryShop = selectedCategory === 'Магазини';
-    // For now we map everything fetched from API as "Ресторан" tag by default in CatalogService
-    // To support separating them into the category folders we just check if it matches tags
     const tag = isStoreCategoryShop ? 'Магазин' : selectedCategory;
     return store.tags?.includes(tag);
   });
@@ -137,25 +133,28 @@ export default function HomeScreen() {
     setSelectedCategory(prev => prev === catName ? null : catName);
   };
 
-  return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
+  const headerHeight = (Platform.OS === 'ios' ? 160 : 150) + insets.top;
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={{ paddingBottom: 140 + insets.bottom }}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            tintColor="#e334e3" 
-            colors={["#e334e3"]}
-          />
+  return (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+
+      {/* ── Липкий Скляний Заголовок (Frosted Glass Header) ── */}
+      <View style={[
+        styles.stickyHeader,
+        {
+          paddingTop: insets.top + 6,
+          borderBottomColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
         }
-      >
-        {/* ── Шапка ── */}
+      ]}>
+        {Platform.OS === 'ios' ? (
+          <BlurView intensity={85} tint={colorScheme === 'dark' ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: colorScheme === 'dark' ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]} />
+        )}
+        
+        {/* Шапка */}
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-            <BackButton />
             <TouchableOpacity
               style={styles.addressArea}
               activeOpacity={0.75}
@@ -193,7 +192,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── Пошуковий рядок ── */}
+        {/* Пошуковий рядок */}
         <Animated.View style={[styles.searchWrapper, { transform: [{ scale: searchScale }] }]}>
           <TouchableOpacity
             style={[styles.searchBar, { backgroundColor: theme.input, shadowColor: '#e334e3' }]}
@@ -211,34 +210,60 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         </Animated.View>
+      </View>
 
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ 
+          paddingTop: headerHeight,
+          paddingBottom: 140 + insets.bottom
+        }}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor="#e334e3" 
+            colors={["#e334e3"]}
+          />
+        }
+      >
         {/* Горячі пропозиції */}
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'hotDeals')}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.promoScroll}>
-          {promotions && promotions.map((promo) => (
-            <TouchableOpacity
-              key={promo.id}
-              style={styles.promoCard}
-              activeOpacity={0.9}
-              onPress={() => setSelectedPromo(promo)}
-            >
-              <Image source={{ uri: promo.image }} style={styles.promoImage} />
-              {/* Темний градієнт знизу */}
-              <View style={styles.promoOverlay}>
-                <Text style={styles.promoTitle} numberOfLines={2}>{promo.title}</Text>
-                <TouchableOpacity style={styles.promoBtn} onPress={() => setSelectedPromo(promo)}>
-                  <Text style={styles.promoBtnText}>{t(locale, 'moreDetails')}</Text>
-                </TouchableOpacity>
+        {isLoading ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.promoScroll}>
+            {[1, 2].map((i) => (
+              <View key={i} style={[styles.promoCard, { marginRight: 14 }]}>
+                <Skeleton width={280} height={165} borderRadius={18} />
               </View>
-              {/* Кольоровий тег знижки */}
-              {promo.tag && (
-                <View style={[styles.promoTag, { backgroundColor: promo.tagColor ?? '#e334e3' }]}>
-                  <Text style={styles.promoTagText}>{promo.tag}</Text>
+            ))}
+          </ScrollView>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.promoScroll}>
+            {promotions && promotions.map((promo) => (
+              <TouchableOpacity
+                key={promo.id}
+                style={styles.promoCard}
+                activeOpacity={0.9}
+                onPress={() => setSelectedPromo(promo)}
+              >
+                <Image source={{ uri: promo.image }} style={styles.promoImage} />
+                {/* Темний градієнт знижу */}
+                <View style={styles.promoOverlay}>
+                  <Text style={styles.promoTitle} numberOfLines={2}>{promo.title}</Text>
+                  <TouchableOpacity style={styles.promoBtn} onPress={() => setSelectedPromo(promo)}>
+                    <Text style={styles.promoBtnText}>{t(locale, 'moreDetails')}</Text>
+                  </TouchableOpacity>
                 </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+                {/* Кольоровий тег знижки */}
+                {promo.tag && (
+                  <View style={[styles.promoTag, { backgroundColor: promo.tagColor ?? '#e334e3' }]}>
+                    <Text style={styles.promoTagText}>{promo.tag}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
 
 
         {/* Категорії */}
@@ -251,49 +276,62 @@ export default function HomeScreen() {
           )}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, paddingLeft: 20 }}>
-          {categories && categories.map((cat, index) => {
-            const isSelected = selectedCategory === cat.name;
-            return (
-              <TouchableOpacity
-                key={`cat-${cat.id || cat.category_id || index}`}
-                style={styles.catItem}
-                onPress={() => handleCategoryPress(cat.name)}
-              >
-                <View style={[
-                  styles.catCircle,
-                  {
-                    backgroundColor: isSelected ? '#e334e3' : theme.card,
-                    borderWidth: isSelected ? 2 : 0,
-                    borderColor: '#e334e3',
-                  }
-                ]}>
-                  {cat.image ? (
-                    <Image 
-                      source={{ uri: cat.image }} 
-                      style={{ width: 35, height: 35, tintColor: isSelected ? 'white' : null }} 
-                    />
-                  ) : (
-                    <Text style={{ fontSize: 28 }}>{cat.sticker || '🍽️'}</Text>
-                  )}
-                </View>
-                <Text style={[
-                  styles.catText,
-                  { color: isSelected ? '#e334e3' : theme.textSecondary, fontWeight: isSelected ? 'bold' : '500' }
-                ]}>
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        {isLoading ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, paddingLeft: 20 }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <View key={i} style={styles.catItem}>
+                <Skeleton width={68} height={68} borderRadius={34} />
+                <Skeleton width={50} height={12} borderRadius={4} style={{ marginTop: 8 }} />
+              </View>
+            ))}
+          </ScrollView>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, paddingLeft: 20 }}>
+            {categories && categories.map((cat, index) => {
+              const isSelected = selectedCategory === cat.name;
+              return (
+                <TouchableOpacity
+                  key={`cat-${cat.id || cat.category_id || index}`}
+                  style={styles.catItem}
+                  onPress={() => handleCategoryPress(cat.name)}
+                >
+                  <View style={[
+                    styles.catCircle,
+                    {
+                      backgroundColor: isSelected ? '#e334e3' : theme.card,
+                      borderWidth: isSelected ? 2 : 0,
+                      borderColor: '#e334e3',
+                    }
+                  ]}>
+                    {cat.image ? (
+                      <Image 
+                        source={{ uri: cat.image }} 
+                        style={{ width: 35, height: 35, tintColor: isSelected ? 'white' : null }} 
+                      />
+                    ) : (
+                      <Text style={{ fontSize: 28 }}>{cat.sticker || '🍽️'}</Text>
+                    )}
+                  </View>
+                  <Text style={[
+                    styles.catText,
+                    { color: isSelected ? '#e334e3' : theme.textSecondary, fontWeight: isSelected ? 'bold' : '500' }
+                  ]}>
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
 
         {/* Список закладів */}
         <Text style={[styles.sectionTitle, { color: theme.text }]}>
           {selectedCategory ? `${t(locale, 'storesIn')} ${selectedCategory}` : t(locale, 'allStores')}
         </Text>
 
-        {
+        {isLoading ? (
+          <StoreListSkeleton />
+        ) : (
           filteredStores.length > 0 ? (
             filteredStores.map((store, index) => (
               <StoreCardItem 
@@ -309,7 +347,7 @@ export default function HomeScreen() {
               <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'nothingFound')}</Text>
             </View>
           )
-        }
+        )}
 
       </ScrollView >
 
@@ -318,14 +356,24 @@ export default function HomeScreen() {
           promo={selectedPromo}
           onClose={() => setSelectedPromo(null)}
         />
-      )
-      }
-    </SafeAreaView >
+      )}
+    </View >
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
+  stickyHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    borderBottomWidth: 1,
+    paddingBottom: 12,
+    overflow: 'hidden',
+  },
 
   header: {
     flexDirection: 'row',

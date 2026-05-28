@@ -10,4 +10,12 @@ buildServer.json
 # Agent and IDE specific directories
 .agents
 .gemini
+.agent/
+
+# System files
+.DS_Store
+**/.DS_Store
+
+# Local testing helpers
+geolocations/
 

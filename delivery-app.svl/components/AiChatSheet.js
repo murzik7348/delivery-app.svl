@@ -13,7 +13,8 @@ import {
     FlatList,
     Keyboard,
     Image,
-    ScrollView
+    ScrollView,
+    PanResponder
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,11 +43,79 @@ export default function AiChatSheet() {
     const products = useSelector(state => state.catalog.products);
 
     const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+    const activeScale = useRef(new Animated.Value(1)).current;
+    const scrollOffset = useRef(0);
     const flatListRef = useRef(null);
     const [isMounted, setIsMounted] = useState(false);
 
     const [inputText, setInputText] = useState('');
     const [selectedProduct, setSelectedProduct] = useState(null);
+
+    const handleDismiss = () => {
+        Animated.timing(slideAnim, {
+            toValue: SCREEN_HEIGHT,
+            duration: 220,
+            useNativeDriver: true,
+        }).start(() => {
+            dispatch(toggleAiChat(false));
+            setIsMounted(false);
+        });
+        Keyboard.dismiss();
+    };
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: (evt, gestureState) => {
+                const { locationY } = evt.nativeEvent;
+                return locationY < 80 || scrollOffset.current <= 0;
+            },
+            onMoveShouldSetPanResponder: (evt, gestureState) => {
+                const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 1.5;
+                if (!isVertical) return false;
+
+                const { locationY } = evt.nativeEvent;
+                const isTouchInHeader = locationY < 80;
+                const isPullingDown = gestureState.dy > 2;
+                const isAtTop = scrollOffset.current <= 0;
+
+                return isTouchInHeader || (isPullingDown && isAtTop);
+            },
+            onPanResponderGrant: () => {
+                slideAnim.stopAnimation();
+                Animated.spring(activeScale, { toValue: 1.3, friction: 8, useNativeDriver: true }).start();
+            },
+            onPanResponderMove: (_, gestureState) => {
+                const dy = gestureState.dy;
+                if (dy > 0) {
+                    slideAnim.setValue(dy);
+                } else {
+                    slideAnim.setValue(dy * 0.2);
+                }
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
+                if (gestureState.vy > 0.5 || gestureState.dy > SCREEN_HEIGHT * 0.3) {
+                    handleDismiss();
+                } else {
+                    Animated.spring(slideAnim, {
+                        toValue: 0,
+                        friction: 8,
+                        tension: 40,
+                        useNativeDriver: true,
+                    }).start();
+                }
+            },
+            onPanResponderTerminate: () => {
+                Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
+                Animated.spring(slideAnim, {
+                    toValue: 0,
+                    friction: 8,
+                    tension: 40,
+                    useNativeDriver: true,
+                }).start();
+            }
+        })
+    ).current;
 
     useEffect(() => {
         if (isOpen) {
@@ -63,7 +132,6 @@ export default function AiChatSheet() {
                 duration: 250,
                 useNativeDriver: true,
             }).start(() => {
-                // Only unmount AFTER animation finishes — prevents touch blocking
                 setIsMounted(false);
             });
             Keyboard.dismiss();
@@ -183,21 +251,57 @@ export default function AiChatSheet() {
     if (!isMounted) return null;
 
     return (
-        <Modal transparent visible animationType="none">
+        <Modal transparent visible animationType="none" onRequestClose={handleDismiss}>
+            <Animated.View 
+                style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                        backgroundColor: 'rgba(0,0,0,0.4)',
+                        opacity: slideAnim.interpolate({
+                            inputRange: [0, SCREEN_HEIGHT],
+                            outputRange: [1, 0],
+                            extrapolate: 'clamp',
+                        })
+                    }
+                ]}
+            >
+                <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={handleDismiss} />
+            </Animated.View>
+
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={styles.backdrop}
             >
-                <TouchableOpacity style={styles.touchableBackground} activeOpacity={1} onPress={() => dispatch(toggleAiChat(false))} />
-
-                <Animated.View style={[styles.sheet, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', transform: [{ translateY: slideAnim }] }]}>
+                <Animated.View
+                    {...panResponder.panHandlers}
+                    style={[
+                        styles.sheet, 
+                        { 
+                            backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', 
+                            transform: [{ translateY: slideAnim }] 
+                        }
+                    ]}
+                >
+                    <View style={styles.dragHandleArea}>
+                        <Animated.View 
+                            style={[
+                                styles.pill,
+                                {
+                                    transform: [
+                                        { scaleX: activeScale },
+                                        { scaleY: activeScale }
+                                    ]
+                                }
+                            ]} 
+                        />
+                    </View>
 
                     <View style={styles.header}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                             <Ionicons name="sparkles" size={20} color="#e334e3" />
                             <Text style={[styles.title, { color: isDark ? 'white' : 'black' }]}>AI Помічник</Text>
                         </View>
-                        <TouchableOpacity onPress={() => dispatch(toggleAiChat(false))} style={styles.closeBtn}>
+                        <TouchableOpacity onPress={handleDismiss} style={styles.closeBtn}>
                             <Ionicons name="close-circle" size={28} color="gray" />
                         </TouchableOpacity>
                     </View>
@@ -211,6 +315,10 @@ export default function AiChatSheet() {
                         showsVerticalScrollIndicator={false}
                         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
                         onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                        onScroll={(e) => {
+                            scrollOffset.current = e.nativeEvent.contentOffset.y;
+                        }}
+                        scrollEventThrottle={16}
                     />
 
                     {isTyping && (
@@ -254,8 +362,21 @@ export default function AiChatSheet() {
 const styles = StyleSheet.create({
     backdrop: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
         justifyContent: 'flex-end',
+    },
+    dragHandleArea: {
+        width: '100%',
+        height: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+        marginTop: 6,
+    },
+    pill: {
+        width: 48,
+        height: 5,
+        borderRadius: 2.5,
+        backgroundColor: '#C6C6CC',
     },
     touchableBackground: {
         flex: 1,

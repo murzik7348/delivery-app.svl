@@ -1502,6 +1502,37 @@
         }
       }
     },
+    "/courier/deliveries/location": {
+      "post": {
+        "tags": [
+          "Courier"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/deliveries": {
       "post": {
         "tags": [
@@ -2628,6 +2659,37 @@
           }
         }
       }
+    },
+    "/registration": {
+      "post": {
+        "tags": [
+          "Website"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2685,6 +2747,40 @@
         "additionalProperties": false
       },
       "AddressDeliveryIdResponse": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "house": {
+            "type": "string",
+            "nullable": true
+          },
+          "apartment": {
+            "type": "string",
+            "nullable": true
+          },
+          "entrance": {
+            "type": "string",
+            "nullable": true
+          },
+          "floor": {
+            "type": "string",
+            "nullable": true
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AddressUserIdByAdminResponse": {
         "type": "object",
         "properties": {
           "latitude": {
@@ -2815,11 +2911,12 @@
         "type": "object",
         "properties": {
           "name": {
+            "maxLength": 20,
             "minLength": 1,
             "type": "string"
           },
           "password": {
-            "minLength": 1,
+            "minLength": 8,
             "type": "string"
           },
           "confirmPassword": {
@@ -2978,6 +3075,9 @@
               "$ref": "#/components/schemas/DeliveryUserItem"
             },
             "nullable": true
+          },
+          "address": {
+            "$ref": "#/components/schemas/AddressUserIdByAdminResponse"
           }
         },
         "additionalProperties": false
@@ -3104,6 +3204,14 @@
             "type": "integer",
             "format": "int32"
           },
+          "restaurantLat": {
+            "type": "number",
+            "format": "double"
+          },
+          "restaurantLng": {
+            "type": "number",
+            "format": "double"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -3149,6 +3257,25 @@
           },
           "signature": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LocationDto": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number",
+            "format": "double"
+          },
+          "lng": {
+            "type": "number",
+            "format": "double"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },
@@ -3269,6 +3396,45 @@
           },
           "description": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegistrationRequest": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone_number": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "about": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
             "nullable": true
           }
         },

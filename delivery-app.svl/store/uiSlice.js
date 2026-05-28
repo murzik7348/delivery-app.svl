@@ -4,6 +4,14 @@ const initialState = {
     // UI state for common components
     isLoading: false,
     theme: null, // 'light' or 'dark' (null defaults to system)
+    dynamicIsland: {
+        visible: false,
+        title: '',
+        message: '',
+        icon: 'checkmark-circle', // Назва іконки з Ionicons
+        type: 'success', // 'success', 'error', 'info'
+    },
+    isOffline: false,
 };
 
 const uiSlice = createSlice({
@@ -16,8 +24,23 @@ const uiSlice = createSlice({
         setTheme: (state, action) => {
             state.theme = action.payload;
         },
+        showDynamicIsland: (state, action) => {
+            state.dynamicIsland = {
+                visible: true,
+                title: action.payload.title || '',
+                message: action.payload.message || '',
+                icon: action.payload.icon || 'checkmark-circle',
+                type: action.payload.type || 'success',
+            };
+        },
+        hideDynamicIsland: (state) => {
+            state.dynamicIsland.visible = false;
+        },
+        setOffline: (state, action) => {
+            state.isOffline = action.payload;
+        },
     },
 });
 
-export const { setLoading, setTheme } = uiSlice.actions;
+export const { setLoading, setTheme, showDynamicIsland, hideDynamicIsland, setOffline } = uiSlice.actions;
 export default uiSlice.reducer;

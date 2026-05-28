@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { hideDynamicIsland } from '../store/uiSlice';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
@@ -38,13 +39,17 @@ function LiveDot({ color = '#27ae60' }) {
 export default function DynamicIsland() {
     const dispatch = useDispatch();
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     
     // Dynamic Island notification state
-    const island = useSelector((state) => state.ui.dynamicIsland);
-    const { visible, title, message, icon, type } = island;
+    const island = useSelector((state) => state.ui?.dynamicIsland) || {};
+    const { visible = false, title = '', message = '', icon = 'checkmark-circle', type = 'success' } = island;
 
     // Active order tracking (for persistent pill)
-    // Check both courier app side and client app side
+    const { user } = useSelector((state) => state.auth);
+    const userRole = user?.role?.toLowerCase();
+    const isUserCourier = userRole === 'courier' || userRole === 'курєр' || Number(user?.role) === 1;
+
     const courierActiveOrders = useSelector((state) => state.courier?.activeOrders || []);
     const clientOrders = useSelector((state) => state.orders?.orders || []);
     
@@ -87,7 +92,7 @@ export default function DynamicIsland() {
 
     const islandWidth = animValue.interpolate({ 
         inputRange: [0, 1], 
-        outputRange: [isPillMode ? 220 : 120, width * 0.94] 
+        outputRange: [isPillMode ? 240 : 120, width * 0.94] 
     });
     const islandHeight = animValue.interpolate({ 
         inputRange: [0, 1], 
@@ -108,7 +113,15 @@ export default function DynamicIsland() {
 
     return (
         <View style={[styles.wrapper, { top: topOffset }]} pointerEvents="box-none">
-            <Animated.View style={[styles.container, { width: islandWidth, height: islandHeight }]}>
+            <Animated.View style={[
+                styles.container, 
+                { 
+                    width: islandWidth, 
+                    height: islandHeight,
+                    borderColor: isUserCourier && isPillMode ? 'rgba(226, 43, 198, 0.6)' : 'rgba(255,255,255,0.15)',
+                    borderWidth: isUserCourier && isPillMode ? 1.2 : 0.8
+                }
+            ]}>
                 {/* 1. NOTIFICATION CONTENT (Visible when expanded) */}
                 {visible && (
                     <Animated.View style={[styles.content, { opacity: contentOpacity }]}>
@@ -130,15 +143,24 @@ export default function DynamicIsland() {
                         style={styles.pillContent}
                         activeOpacity={0.8}
                         onPress={() => {
-                            const phone = activeOrder.courierPhone || activeOrder.courier?.phone;
-                            if (phone) {
+                            if (isUserCourier) {
                                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                Linking.openURL(`tel:${phone.replace(/[^+\d]/g, '')}`);
+                                router.push('/courier');
+                            } else {
+                                const phone = activeOrder.courierPhone || activeOrder.courier?.phone;
+                                if (phone) {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    Linking.openURL(`tel:${phone.replace(/[^+\d]/g, '')}`);
+                                }
                             }
                         }}
                     >
                         {/* Status Icon or Photo */}
-                        {(activeOrder.courierPhoto || activeOrder.courier?.photo) ? (
+                        {isUserCourier ? (
+                            <View style={[styles.avatar, { backgroundColor: '#e334e320', borderColor: '#e334e3' }]}>
+                                <Ionicons name={statusToStep(activeOrder.status) === 4 ? "navigate" : "restaurant"} size={14} color="#e334e3" />
+                            </View>
+                        ) : (activeOrder.courierPhoto || activeOrder.courier?.photo) ? (
                             <Image source={{ uri: activeOrder.courierPhoto || activeOrder.courier?.photo }} style={styles.avatar} />
                         ) : (
                             <View style={[styles.avatar, { backgroundColor: '#3498db' }]}>
@@ -149,17 +171,42 @@ export default function DynamicIsland() {
                         <View style={{ marginLeft: 8, flex: 1 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <Text style={styles.pillTitle} numberOfLines={1}>
-                                    {statusToStep(activeOrder.status) === 4 ? 'Кур\'єр їде' : 'Готується'}
+                                    {isUserCourier ? (
+                                        statusToStep(activeOrder.status) === 4 ? 'Доставка клієнту' :
+                                        statusToStep(activeOrder.status) === 3 ? 'Заберіть з ресторану' :
+                                        'Замовлення готується'
+                                    ) : (
+                                        statusToStep(activeOrder.status) === 4 ? 'Кур\'єр їде' : 'Готується'
+                                    )}
                                 </Text>
-                                <View style={{ marginLeft: 4 }}><LiveDot color="#27ae60" /></View>
+                                <View style={{ marginLeft: 4 }}><LiveDot color={isUserCourier ? '#e334e3' : '#27ae60'} /></View>
                             </View>
                             <Text style={styles.pillSub} numberOfLines={1}>
-                                {activeOrder.navigationStats?.toClientDistance || 'Замовлення в роботі'}
+                                {isUserCourier ? (
+                                    statusToStep(activeOrder.status) === 4 ? activeOrder.address : activeOrder.restaurantName
+                                ) : (
+                                    activeOrder.navigationStats?.toClientDistance || 'Замовлення в роботі'
+                                )}
                             </Text>
                         </View>
                         
-                        {(activeOrder.courierPhone || activeOrder.courier?.phone) && (
-                             <Ionicons name="call" size={16} color="#27ae60" style={{ marginRight: 4 }} />
+                        {isUserCourier ? (
+                            activeOrder.customerPhone && (
+                                <TouchableOpacity 
+                                    onPress={(e) => {
+                                        e.stopPropagation();
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                        Linking.openURL(`tel:${activeOrder.customerPhone.replace(/[^+\d]/g, '')}`);
+                                    }}
+                                    style={styles.callIconWrapper}
+                                >
+                                     <Ionicons name="call" size={15} color="#e334e3" />
+                                </TouchableOpacity>
+                            )
+                        ) : (
+                            (activeOrder.courierPhone || activeOrder.courier?.phone) && (
+                                 <Ionicons name="call" size={16} color="#27ae60" style={{ marginRight: 4 }} />
+                            )
                         )}
                     </TouchableOpacity>
                 )}

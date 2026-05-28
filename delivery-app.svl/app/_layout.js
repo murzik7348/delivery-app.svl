@@ -13,6 +13,8 @@ import { fetchAddresses, fetchMe } from '../store/authSlice';
 import { fetchOrders } from '../store/ordersSlice';
 import { updatePushToken } from '../src/api';
 import BottomBar from '../components/BottomBar';
+import DynamicIsland from '../components/DynamicIsland';
+import OfflineBanner from '../components/OfflineBanner';
 // import AiAssistantFAB from '../components/AiAssistantFAB';
 // import AiChatSheet from '../components/AiChatSheet';
 
@@ -100,6 +102,9 @@ export default function RootLayout() {
             </Stack>
 
             {showBottomBar && <BottomBar />}
+            
+            {/* <DynamicIsland /> */}
+            <OfflineBanner />
             
             {/* <AiAssistantFAB /> */}
             {/* <AiChatSheet /> */}
