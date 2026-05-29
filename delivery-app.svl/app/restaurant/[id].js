@@ -8,7 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../../constants/Colors';
 import { t } from '../../constants/translations';
-import { addToCart, removeFromCart, decrementItem } from '../../store/cartSlice';
+import { tryAddToCart, removeFromCart, decrementItem, formatPrice } from '../../store/cartSlice';
 import { toggleFavorite, toggleFavoriteProduct } from '../../store/favoritesSlice';
 import { fetchCatalog, fetchRestaurantProducts } from '../../store/catalogSlice';
 import ProductSheet from '../../components/ProductSheet';
@@ -45,7 +45,7 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
           {/* Glassmorphism Price Badge */}
           <View style={styles.priceBadgeOverlay}>
             <BlurView intensity={70} tint="dark" style={styles.priceBadgeBlur}>
-              <Text style={styles.priceBadgeTextBlur}>{product.price} ₴</Text>
+              <Text style={styles.priceBadgeTextBlur}>{formatPrice(product.price)} ₴</Text>
             </BlurView>
           </View>
         </View>
@@ -243,7 +243,7 @@ export default function RestaurantScreen() {
               qty={qty}
               isFavProd={isFavProd}
               onSelect={setSelectedProduct}
-              onAddToCart={(p) => dispatch(addToCart(p))}
+              onAddToCart={(p) => dispatch(tryAddToCart(p))}
               onRemoveFromCart={(productId) => {
                 const itemInCart = cartItems.find(i => i.product_id === productId);
                 if (itemInCart) {
@@ -265,7 +265,7 @@ export default function RestaurantScreen() {
       {totalAmount > 0 && (
         <View style={styles.floatingCartContainer}>
           <TouchableOpacity style={styles.viewCartBtn} onPress={() => router.push('/cart')}>
-            <Text style={styles.viewCartText}>{locale === 'en' ? 'To cart:' : 'У кошик:'} {totalAmount} {locale === 'en' ? 'UAH' : 'грн'}</Text>
+            <Text style={styles.viewCartText}>{locale === 'en' ? 'To cart:' : 'У кошик:'} {formatPrice(totalAmount)} {locale === 'en' ? 'UAH' : 'грн'}</Text>
           </TouchableOpacity>
         </View>
       )}

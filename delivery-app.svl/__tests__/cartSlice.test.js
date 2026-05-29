@@ -1,3 +1,9 @@
+jest.mock('react-native', () => ({
+  Alert: {
+    alert: jest.fn(),
+  },
+}));
+
 import reducer, {
     addToCart,
     removeItem,
@@ -9,6 +15,7 @@ import reducer, {
     setDeliveryType,
     makeCartKey,
     selectCartSummary,
+    tryAddToCart,
     MIN_ORDER_AMOUNT,
     FREE_DELIVERY_THRESHOLD,
     BASE_DELIVERY_FEE,
@@ -216,5 +223,43 @@ describe('selectCartSummary selector', () => {
         expect(summary.originalTotal).toBe(200 + BASE_DELIVERY_FEE);
         expect(summary.discountAmount).toBe(50);
         expect(summary.total).toBe(200 + BASE_DELIVERY_FEE - 50);
+    });
+});
+
+describe('tryAddToCart thunk', () => {
+    test('adds product if cart is empty', () => {
+        const dispatch = jest.fn();
+        const getState = () => ({ cart: { items: [] } });
+        const product = { product_id: 'p1', store_id: 1, name: 'Burger', price: 100 };
+        
+        const result = tryAddToCart(product)(dispatch, getState);
+        expect(result).toBe(true);
+        expect(dispatch).toHaveBeenCalledWith(addToCart(product));
+    });
+
+    test('adds product if store_id matches', () => {
+        const dispatch = jest.fn();
+        const getState = () => ({ cart: { items: [{ product_id: 'p1', store_id: 1, name: 'Burger', price: 100 }] } });
+        const product = { product_id: 'p2', store_id: 1, name: 'Fries', price: 50 };
+        
+        const result = tryAddToCart(product)(dispatch, getState);
+        expect(result).toBe(true);
+        expect(dispatch).toHaveBeenCalledWith(addToCart(product));
+    });
+
+    test('shows alert and returns false if store_id differs', () => {
+        const dispatch = jest.fn();
+        const getState = () => ({
+            cart: {
+                items: [{ product_id: 'p1', store_id: 1, name: 'Burger', price: 100 }]
+            }
+        });
+        const product = { product_id: 'p2', store_id: 2, name: 'Sushi', price: 150 };
+        
+        const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+        const result = tryAddToCart(product)(dispatch, getState);
+        expect(result).toBe(false);
+        expect(dispatch).not.toHaveBeenCalledWith(addToCart(product));
+        consoleSpy.mockRestore();
     });
 });

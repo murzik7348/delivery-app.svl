@@ -29,7 +29,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import {
-  addToCart,
+  tryAddToCart,
   clearCart,
   decrementItem,
   removeItem,
@@ -39,6 +39,7 @@ import {
   setOrderNote,
   FREE_DELIVERY_THRESHOLD,
   MIN_ORDER_AMOUNT,
+  formatPrice,
 } from '../store/cartSlice';
 import AddressBottomSheet from '../components/AddressBottomSheet';
 import PromoSheet from '../components/PromoSheet';
@@ -90,8 +91,8 @@ function DeliveryProgressBar({ progress, amountToFreeDelivery, locale, theme }) 
         {isFree
           ? (locale === 'en' ? '🎉 Free delivery unlocked!' : '🎉 Безкоштовна доставка!')
           : (locale === 'en'
-            ? `${amountToFreeDelivery.toFixed(0)} ₴ more for free delivery`
-            : `Ще ${amountToFreeDelivery.toFixed(0)} ₴ до безкоштовної доставки`)}
+            ? `${formatPrice(amountToFreeDelivery)} ₴ more for free delivery`
+            : `Ще ${formatPrice(amountToFreeDelivery)} ₴ до безкоштовної доставки`)}
       </Text>
       <View style={[progressStyles.track, { backgroundColor: theme.input }]}>
         <Animated.View
@@ -392,7 +393,7 @@ export default function CartScreen() {
             </Text>
             {/* Feature 2: modifier chips */}
             <ModifierChips modifiers={item.modifiers} />
-            <Text style={styles.itemPrice}>{unitPrice.toFixed(0)} ₴</Text>
+            <Text style={styles.itemPrice}>{formatPrice(unitPrice)} ₴</Text>
           </View>
         </TouchableOpacity>
 
@@ -428,14 +429,14 @@ export default function CartScreen() {
         <Text style={[styles.recName, { color: theme.text }]} numberOfLines={1}>
           {item.name}
         </Text>
-        <Text style={styles.recPrice}>{safeNum(item.price).toFixed(0)} ₴</Text>
+        <Text style={styles.recPrice}>{formatPrice(safeNum(item.price))} ₴</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.recAddBtn}
         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          dispatch(addToCart({ ...item }));
+          dispatch(tryAddToCart({ ...item }));
         }}
       >
         <Ionicons name="add" size={20} color="white" />
@@ -592,11 +593,11 @@ export default function CartScreen() {
                 <View style={styles.totalPriceGroup}>
                   {discountAmount > 0 && (
                     <Text style={styles.totalStrike}>
-                      {originalTotal.toFixed(0)} ₴
+                      {formatPrice(originalTotal)} ₴
                     </Text>
                   )}
                   <Text style={[styles.totalValue, { color: theme.text }]}>
-                    {totalAmount.toFixed(0)} ₴
+                    {formatPrice(totalAmount)} ₴
                   </Text>
                 </View>
               </View>
@@ -635,14 +636,14 @@ export default function CartScreen() {
                 {/* Feature 3: strike-through when promo applied */}
                 {discountAmount > 0 ? (
                   <View style={styles.priceValueGroup}>
-                    <Text style={styles.priceStrike}>{subtotal.toFixed(0)} ₴</Text>
+                    <Text style={styles.priceStrike}>{formatPrice(subtotal)} ₴</Text>
                     <Text style={[styles.priceValue, { color: theme.text }]}>
-                      {(subtotal - discountAmount).toFixed(0)} ₴
+                      {formatPrice(subtotal - discountAmount)} ₴
                     </Text>
                   </View>
                 ) : (
                   <Text style={[styles.priceValue, { color: theme.text }]}>
-                    {subtotal.toFixed(0)} ₴
+                    {formatPrice(subtotal)} ₴
                   </Text>
                 )}
               </View>
@@ -655,7 +656,7 @@ export default function CartScreen() {
                   <Text style={[styles.priceValue, { color: theme.text }]}>
                     {deliveryFee === 0
                       ? locale === 'en' ? 'Free' : 'Безкоштовно'
-                      : `${deliveryFee.toFixed(0)} ₴`}
+                      : `${formatPrice(deliveryFee)} ₴`}
                   </Text>
                 </View>
               )}
@@ -666,7 +667,7 @@ export default function CartScreen() {
                     {t(locale, 'discount')} ({appliedPromo.code})
                   </Text>
                   <Text style={[styles.priceValue, { color: NEON }]}>
-                    −{discountAmount.toFixed(0)} ₴
+                    −{formatPrice(discountAmount)} ₴
                   </Text>
                 </View>
               )}
@@ -810,7 +811,7 @@ export default function CartScreen() {
                       {viewProduct.name}
                     </Text>
                     <Text style={styles.productSheetPrice}>
-                      {safeNum(viewProduct.price).toFixed(0)} ₴
+                      {formatPrice(safeNum(viewProduct.price))} ₴
                     </Text>
                   </View>
                   <Text style={[styles.productSheetDesc, { color: theme.textSecondary ?? 'gray' }]}>
@@ -827,7 +828,7 @@ export default function CartScreen() {
                     <TouchableOpacity
                       style={styles.productSheetBtn}
                       onPress={() => {
-                        dispatch(addToCart({ ...viewProduct }));
+                        dispatch(tryAddToCart({ ...viewProduct }));
                         setViewProduct(null);
                       }}
                     >

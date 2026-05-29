@@ -18,6 +18,7 @@ import {
     fetchCourierOrders,
 } from '../store/courierSlice';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
+import { formatPrice } from '../store/cartSlice';
 import SwipeButton from './SwipeButton';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 
@@ -580,11 +581,11 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                         {/* Stats row */}
                         <View style={s.statsRow}>
                             <View style={[s.statChip, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                                <Text style={[s.statChipVal, { color: theme.primary }]}>{liveOrder.earnings || 0} ₴</Text>
+                                <Text style={[s.statChipVal, { color: theme.primary }]}>{formatPrice(liveOrder.earnings || 0)} ₴</Text>
                                 <Text style={[s.statChipLab, { color: theme.textSecondary }]}>{locale === 'en' ? 'Earnings' : 'Заробіток'}</Text>
                             </View>
                             <View style={[s.statChip, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                                <Text style={[s.statChipVal, { color: theme.text }]}>{liveOrder.totalPrice || 0} ₴</Text>
+                                <Text style={[s.statChipVal, { color: theme.text }]}>{formatPrice(liveOrder.totalPrice || 0)} ₴</Text>
                                 <Text style={[s.statChipLab, { color: theme.textSecondary }]}>{locale === 'en' ? 'Total' : 'Сума'}</Text>
                             </View>
                             {liveOrder.weight ? (

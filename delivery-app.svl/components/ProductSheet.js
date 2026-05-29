@@ -16,7 +16,7 @@ import {
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
-import { addToCart, removeFromCart, decrementItem } from '../store/cartSlice';
+import { tryAddToCart, removeFromCart, decrementItem, formatPrice } from '../store/cartSlice';
 import { toggleFavoriteProduct } from '../store/favoritesSlice';
 
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -49,8 +49,10 @@ export default function ProductSheet({ product, onClose }) {
     };
 
     const handleAdd = () => {
-        dispatch(addToCart({ ...product }));
-        flashAdd();
+        const success = dispatch(tryAddToCart({ ...product }));
+        if (success) {
+            flashAdd();
+        }
     };
 
     const handleRemove = () => {
@@ -230,7 +232,7 @@ export default function ProductSheet({ product, onClose }) {
 
                     {/* Ціна + Controls */}
                     <View style={styles.footer}>
-                        <Text style={styles.price}>{product.price} ₴</Text>
+                        <Text style={styles.price}>{formatPrice(product.price)} ₴</Text>
 
                         {qty === 0 ? (
                             <Animated.View style={{ transform: [{ scale: btnScale }] }}>

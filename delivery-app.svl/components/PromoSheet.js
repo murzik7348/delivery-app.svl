@@ -19,7 +19,7 @@ import {
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
-import { addToCart, applyDiscount, removeFromCart, updateQuantity } from '../store/cartSlice';
+import { tryAddToCart, applyDiscount, removeFromCart, updateQuantity } from '../store/cartSlice';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -133,20 +133,22 @@ export default function PromoSheet({ promo, onClose }) {
     };
 
     const handleAdd = () => {
-        dispatch(addToCart(product));
-        // Якщо акція має 'buy2half' — автоматично активуємо знижку
-        if (promo.discountType === 'buy2half') {
-            dispatch(applyDiscount({
-                type: 'buy2half',
-                productId: promo.discountProductId,
-                percent: promo.discountPercent,
-            }));
+        const success = dispatch(tryAddToCart(product));
+        if (success) {
+            // Якщо акція має 'buy2half' — автоматично активуємо знижку
+            if (promo.discountType === 'buy2half') {
+                dispatch(applyDiscount({
+                    type: 'buy2half',
+                    productId: promo.discountProductId,
+                    percent: promo.discountPercent,
+                }));
+            }
+            Animated.sequence([
+                Animated.timing(cartAnim, { toValue: 0.85, duration: 80, useNativeDriver: true }),
+                Animated.timing(cartAnim, { toValue: 1.1, duration: 100, useNativeDriver: true }),
+                Animated.timing(cartAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
+            ]).start();
         }
-        Animated.sequence([
-            Animated.timing(cartAnim, { toValue: 0.85, duration: 80, useNativeDriver: true }),
-            Animated.timing(cartAnim, { toValue: 1.1, duration: 100, useNativeDriver: true }),
-            Animated.timing(cartAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
-        ]).start();
     };
 
     const handleRemove = () => {

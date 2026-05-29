@@ -16,6 +16,7 @@ import Colors from '../constants/Colors';
 import { formatUkraineDate } from '../utils/dateUtils';
 import { t } from '../constants/translations';
 import { fetchOrderDetails, confirmOrder } from '../store/ordersSlice';
+import { formatPrice } from '../store/cartSlice';
 import * as Haptics from 'expo-haptics';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { safeBack } from '../utils/navigation';
@@ -71,9 +72,11 @@ const OrderItem = React.memo(({ item, theme }) => (
       {item.productName || item.name || 'Товар'}
     </Text>
     <Text style={[styles.itemPriceText, { color: theme.text }]}>
-      {item.totalLineAmount !== undefined && item.totalLineAmount !== null 
-        ? safeNumber(item.totalLineAmount) 
-        : (safeNumber(item.price) * safeNumber(item.quantity, 1))} ₴
+      {formatPrice(
+        item.totalLineAmount !== undefined && item.totalLineAmount !== null 
+          ? safeNumber(item.totalLineAmount) 
+          : (safeNumber(item.price) * safeNumber(item.quantity, 1))
+      )} ₴
     </Text>
   </View>
 ));
@@ -693,7 +696,7 @@ export default function OrderDetailsScreen() {
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabelTotal}>{t(locale, 'amount')}</Text>
                 <Text style={styles.summaryTotalVal}>
-                  {safeNumber(order.totalPrice ?? order.total)} ₴
+                  {formatPrice(safeNumber(order.totalPrice ?? order.total))} ₴
                 </Text>
               </View>
             </View>

@@ -17,6 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useSelector } from 'react-redux';
+import { formatPrice } from '../store/cartSlice';
 import Colors, { Shadows } from '../constants/Colors';
 import useCatalogFilter from '../hooks/useCatalogFilter';
 import { CatalogSkeleton } from '../components/Skeleton';
@@ -54,7 +55,7 @@ const BouncyProductCard = ({ item, theme, router, isDark }) => {
         <Image source={{ uri: item.image }} style={styles.cardImage} />
         <View style={styles.cardContent}>
           <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
-          <Text style={[styles.cardPrice, { color: theme.tint }]}>{item.price} грн</Text>
+          <Text style={[styles.cardPrice, { color: theme.tint }]}>{formatPrice(item.price)} грн</Text>
           <View style={styles.addBtn}>
             <Ionicons name="add" size={20} color="white" />
           </View>
@@ -97,7 +98,7 @@ const BouncyHorizontalCard = ({ item, router, theme, isDark, tag, tagColor }) =>
         <View style={[styles.badgeTop, { backgroundColor: tagColor }]}><Text style={styles.badgeText}>{tag}</Text></View>
         <Image source={{ uri: item.image }} style={styles.horizontalImage} />
         <Text style={[styles.hCardTitle, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
-        <Text style={[styles.hCardPrice, { color: theme.tint }]}>{item.price} грн</Text>
+        <Text style={[styles.hCardPrice, { color: theme.tint }]}>{formatPrice(item.price)} грн</Text>
       </Animated.View>
     </TouchableOpacity>
   );

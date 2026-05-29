@@ -13,7 +13,7 @@ jest.mock('expo-modules-core', () => ({
     requireNativeModule: () => ({}),
 }));
 
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react-native';
 import useCheckoutFlow from '../hooks/useCheckoutFlow';
 import { Alert } from 'react-native';
 import * as reactRedux from 'react-redux';

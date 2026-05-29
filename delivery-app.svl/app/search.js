@@ -21,7 +21,7 @@ import { BlurView } from 'expo-blur';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
 import { fetchCatalog, selectAllProducts, selectAllStores } from '../store/catalogSlice';
-import { addToCart } from '../store/cartSlice';
+import { tryAddToCart, formatPrice } from '../store/cartSlice';
 import ProductSheet from '../components/ProductSheet';
 import useCatalogFilter from '../hooks/useCatalogFilter';
 import BackButton from '../components/BackButton';
@@ -78,13 +78,15 @@ export default function SearchScreen() {
     const scaleAnim = useRef(new Animated.Value(1)).current;
 
     const handleAdd = () => {
-      dispatch(addToCart({ ...item }));
-      setAdded(true);
-      Animated.sequence([
-        Animated.timing(scaleAnim, { toValue: 1.25, duration: 120, useNativeDriver: true }),
-        Animated.timing(scaleAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
-      ]).start();
-      setTimeout(() => setAdded(false), 900);
+      const success = dispatch(tryAddToCart({ ...item }));
+      if (success) {
+        setAdded(true);
+        Animated.sequence([
+          Animated.timing(scaleAnim, { toValue: 1.25, duration: 120, useNativeDriver: true }),
+          Animated.timing(scaleAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
+        ]).start();
+        setTimeout(() => setAdded(false), 900);
+      }
     };
 
     return (
@@ -98,7 +100,7 @@ export default function SearchScreen() {
           <Text style={[styles.productName, { color: theme.text }]} numberOfLines={2}>
             {item.name}
           </Text>
-          <Text style={styles.productPrice}>{item.price} ₴</Text>
+          <Text style={styles.productPrice}>{formatPrice(item.price)} ₴</Text>
         </View>
         <TouchableOpacity
           onPress={handleAdd}

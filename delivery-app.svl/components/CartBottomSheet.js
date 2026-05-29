@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { formatPrice } from '../store/cartSlice';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const CLOSED_HEIGHT = 120; 
@@ -122,7 +123,7 @@ export default function CartBottomSheet({
         
         <View style={styles.headerRow}>
           <Text style={styles.totalLabel}>До сплати:</Text>
-          <Text style={styles.totalPrice}>{safeTotal} ₴</Text>
+          <Text style={styles.totalPrice}>{formatPrice(safeTotal)} ₴</Text>
         </View>
 
         <TouchableOpacity style={styles.orderButton} onPress={onOrder} activeOpacity={0.8}>
@@ -134,20 +135,20 @@ export default function CartBottomSheet({
            
            <View style={styles.detailRow}>
              <Text style={styles.detailText}>Товари</Text>
-             <Text style={styles.detailPrice}>{safeSubtotal} ₴</Text>
+             <Text style={styles.detailPrice}>{formatPrice(safeSubtotal)} ₴</Text>
            </View>
 
            {deliveryType === 'delivery' && (
              <View style={styles.detailRow}>
                <Text style={styles.detailText}>Доставка</Text>
-               <Text style={styles.detailPrice}>{safeDelivery === 0 ? 'Безкоштовно' : `${safeDelivery} ₴`}</Text>
+               <Text style={styles.detailPrice}>{safeDelivery === 0 ? 'Безкоштовно' : `${formatPrice(safeDelivery)} ₴`}</Text>
              </View>
            )}
 
            {safeDiscount > 0 && (
              <View style={styles.detailRow}>
                <Text style={{ color: '#e334e3', fontSize: 16 }}>Знижка</Text>
-               <Text style={{ color: '#e334e3', fontSize: 16 }}>- {safeDiscount} ₴</Text>
+               <Text style={{ color: '#e334e3', fontSize: 16 }}>- {formatPrice(safeDiscount)} ₴</Text>
              </View>
            )}
 

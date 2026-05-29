@@ -19,6 +19,7 @@ import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import { toggleFavorite, toggleFavoriteProduct } from '../store/favoritesSlice';
 import { fetchCatalog } from '../store/catalogSlice';
+import { formatPrice } from '../store/cartSlice';
 import ProductSheet from '../components/ProductSheet';
 import BackButton from '../components/BackButton';
 
@@ -186,7 +187,7 @@ export default function FavoritesScreen() {
                 <Image source={{ uri: item.image }} style={styles.productImg} />
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardName, { color: theme.text }]} numberOfLines={2}>{item.name}</Text>
-                  <Text style={styles.productPrice}>{item.price} ₴</Text>
+                  <Text style={styles.productPrice}>{formatPrice(item.price)} ₴</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => dispatch(toggleFavoriteProduct(item.product_id))}

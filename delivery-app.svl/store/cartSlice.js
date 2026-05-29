@@ -1,5 +1,6 @@
 import { createSelector, createSlice } from '@reduxjs/toolkit';
 
+
 // ─── Business Rule Constants ─────────────────────────────────────────────────
 export const MIN_ORDER_AMOUNT = 200;        // UAH – minimum to enable checkout
 export const FREE_DELIVERY_THRESHOLD = 899; // UAH – subtotal that unlocks free delivery
@@ -47,15 +48,42 @@ const lineUnitPrice = (item) => {
     (sum, m) => sum + safeNum(m.price) * (m.qty ?? 1),
     0
   );
-  return base + addOns;
+  return Math.round((base + addOns) * 100) / 100;
+};
+
+/**
+ * Format price to clean decimal string, eliminating trailing floating point noise.
+ * Examples: 135.00 -> "135", 135.70 -> "135.70", 135.75 -> "135.75"
+ */
+export const formatPrice = (value) => {
+  const num = parseFloat(value);
+  if (!Number.isFinite(num)) return '0';
+  
+  // Round to 2 decimal places to clear any JS floating point errors
+  const rounded = Math.round(num * 100) / 100;
+  if (Number.isInteger(rounded)) {
+    return rounded.toString();
+  }
+  
+  const formatted = rounded.toFixed(2);
+  if (formatted.endsWith('.00')) {
+    return rounded.toFixed(0);
+  }
+  if (formatted.endsWith('0')) {
+    // Keep 2 decimals for monetary values if desired, or return 1 decimal.
+    // The user specifically mentions 135.70 UAH, so we keep 2 decimals: e.g. 135.70
+    return formatted;
+  }
+  return formatted;
 };
 
 /** Recalculate derived totals in-place (mutates Immer draft). */
 const calculateTotals = (state) => {
-  state.subtotal = state.items.reduce(
+  const rawSubtotal = state.items.reduce(
     (sum, item) => sum + lineUnitPrice(item) * (item.quantity || 1),
     0
   );
+  state.subtotal = Math.round(rawSubtotal * 100) / 100;
 
   if (state.deliveryType === 'delivery' && state.subtotal > 0) {
     state.deliveryFee = state.subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : BASE_DELIVERY_FEE;
@@ -69,13 +97,14 @@ const calculateTotals = (state) => {
       const promoItem = state.items.find((i) => resolveId(i) === promo.productId);
       if (promoItem) {
         const discountedCount = Math.floor(promoItem.quantity / 2);
-        state.discountAmount =
-          discountedCount * lineUnitPrice(promoItem) * (promo.percent / 100);
+        const rawDiscount = discountedCount * lineUnitPrice(promoItem) * (promo.percent / 100);
+        state.discountAmount = Math.round(rawDiscount * 100) / 100;
       } else {
         state.discountAmount = 0;
       }
     } else if (promo.type === 'percent') {
-      state.discountAmount = Math.round((state.subtotal * promo.discount) / 100);
+      const rawDiscount = (state.subtotal * promo.discount) / 100;
+      state.discountAmount = Math.round(rawDiscount * 100) / 100;
     } else if (promo.type === 'fixed') {
       state.discountAmount = Math.min(promo.discount, state.subtotal);
     } else {
@@ -85,10 +114,10 @@ const calculateTotals = (state) => {
     state.discountAmount = 0;
   }
 
-  state.totalAmount = Math.max(
-    0,
-    state.subtotal + state.deliveryFee - state.discountAmount
-  );
+  state.discountAmount = Math.round(state.discountAmount * 100) / 100;
+
+  const rawTotal = state.subtotal + state.deliveryFee - state.discountAmount;
+  state.totalAmount = Math.max(0, Math.round(rawTotal * 100) / 100);
 };
 
 // ─── Initial State ────────────────────────────────────────────────────────────
@@ -257,5 +286,47 @@ export const selectCartSummary = createSelector(selectCartState, (cart) => {
     freeDeliveryProgress,
   };
 });
+
+
+export const tryAddToCart = (product) => (dispatch, getState) => {
+  const { cart } = getState();
+  const existingItem = cart.items[0];
+  if (existingItem) {
+    const existingStoreId = Number(existingItem.restaurantId || existingItem.store_id);
+    const newStoreId = Number(product.restaurantId || product.store_id);
+    if (existingStoreId && newStoreId && existingStoreId !== newStoreId) {
+      let Alert;
+      try {
+        Alert = require('react-native').Alert;
+      } catch (e) {
+        Alert = {
+          alert: (title, message, buttons) => {
+            console.log(`[Alert Mock] ${title}: ${message}`);
+            const okButton = buttons && buttons.find(b => b.style !== 'cancel');
+            if (okButton && okButton.onPress) okButton.onPress();
+          }
+        };
+      }
+      Alert.alert(
+        'Різні ресторани',
+        'Ваш кошик містить товари з іншого ресторану. Очистити кошик і додати цей товар?',
+        [
+          { text: 'Скасувати', style: 'cancel' },
+          {
+            text: 'Очистити і додати',
+            style: 'destructive',
+            onPress: () => {
+              dispatch(clearCart());
+              dispatch(addToCart(product));
+            },
+          },
+        ]
+      );
+      return false;
+    }
+  }
+  dispatch(addToCart(product));
+  return true;
+};
 
 export default cartSlice.reducer;

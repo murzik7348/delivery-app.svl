@@ -14,6 +14,7 @@ import CourierOrderSheet from './CourierOrderSheet';
 import { fetchCourierOrders, updateOnlineStatusThunk } from '../store/courierSlice';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { courierUpdateLocation } from '../src/api';
+import { formatPrice } from '../store/cartSlice';
 
 function StatusBadge({ status, locale, theme }) {
   let color = '#8e44ad';
@@ -241,7 +242,7 @@ export default function CourierOrdersPanel() {
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                         <Text style={[styles.price, { color: theme.text }]}>
-                            {item.earnings || 0} ₴
+                            {formatPrice(item.earnings || 0)} ₴
                         </Text>
                         <Text style={{ fontSize: 11, color: 'gray', fontWeight: '600', marginTop: 2 }}>
                             {locale === 'en' ? 'Earnings' : 'Заробіток'}
@@ -265,7 +266,7 @@ export default function CourierOrdersPanel() {
                         <View style={[styles.routeRow, { marginTop: 6 }]}>
                             <Ionicons name="wallet-outline" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
                             <Text style={[styles.routeText, { color: theme.textSecondary }]}>
-                                {locale === 'en' ? 'Order total' : 'Сума замовлення'}: {item.totalPrice} ₴
+                                {locale === 'en' ? 'Order total' : 'Сума замовлення'}: {formatPrice(item.totalPrice)} ₴
                             </Text>
                         </View>
                     )}
@@ -372,7 +373,7 @@ export default function CourierOrdersPanel() {
             <View style={styles.statsRow}>
                 <View style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                     <Ionicons name="wallet-outline" size={16} color={theme.primary} />
-                    <Text style={[styles.statVal, { color: theme.text }]}>{todayEarnings} ₴</Text>
+                    <Text style={[styles.statVal, { color: theme.text }]}>{formatPrice(todayEarnings)} ₴</Text>
                     <Text style={[styles.statLab, { color: theme.textSecondary }]}>
                         {locale === 'en' ? 'Earnings' : 'Заробіток'}
                     </Text>

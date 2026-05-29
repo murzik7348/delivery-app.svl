@@ -10,6 +10,7 @@ import { formatUkraineDate } from '../utils/dateUtils';
 import { t } from '../constants/translations';
 import { clearOrders, fetchOrders } from '../store/ordersSlice';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
+import { formatPrice } from '../store/cartSlice';
 import BackButton from '../components/BackButton';
 
 export default function OrdersTabScreen() {
@@ -78,7 +79,7 @@ export default function OrdersTabScreen() {
               <Text style={styles.date}>{formatUkraineDate(item.createdAt || item.date)}</Text>
             </View>
           </View>
-          <Text style={[styles.price, { color: theme.text }]}>{item.totalPrice || item.total} ₴</Text>
+          <Text style={[styles.price, { color: theme.text }]}>{formatPrice(item.totalPrice || item.total)} ₴</Text>
         </View>
 
         <View style={styles.divider} />
