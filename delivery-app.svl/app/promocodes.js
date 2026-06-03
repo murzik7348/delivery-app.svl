@@ -25,7 +25,7 @@ export default function PromocodesScreen() {
   const promos = [
     { id: '1', code: 'SALE10', discount: '-10%', desc: locale === 'en' ? 'On entire order' : 'На все замовлення', color: '#FF6B6B' },
     { id: '2', code: 'BURGER50', discount: '-50₴', desc: locale === 'en' ? 'Burger discount' : 'Знижка на бургери', color: '#4ECDC4' },
-    { id: '3', code: 'FREEFOOD', discount: '🛵 0₴', desc: locale === 'en' ? 'Free delivery' : 'Безкоштовна доставка', color: '#e334e3' },
+    { id: '3', code: 'FREEFOOD', discount: '🛵 0₴', desc: locale === 'en' ? 'Free delivery' : 'Безкоштовна доставка', color: theme.primary },
   ];
 
   const handleApplyPromo = () => {
@@ -72,7 +72,7 @@ export default function PromocodesScreen() {
               autoCapitalize="characters"
             />
           </View>
-          <TouchableOpacity style={styles.applyBtn} onPress={handleApplyPromo} activeOpacity={0.8}>
+          <TouchableOpacity style={[styles.applyBtn, { backgroundColor: theme.primary }]} onPress={handleApplyPromo} activeOpacity={0.8}>
             <Text style={styles.applyBtnText}>{t(locale, 'apply')}</Text>
           </TouchableOpacity>
         </View>
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   inputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, marginRight: 10 },
   inputIcon: { marginRight: 8 },
   input: { flex: 1, fontSize: 16, paddingVertical: 0, textAlignVertical: 'center' },
-  applyBtn: { backgroundColor: '#e334e3', height: 50, paddingHorizontal: 20, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  applyBtn: { backgroundColor: '#000000', height: 50, paddingHorizontal: 20, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   applyBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
   divider: { height: 1, marginVertical: 10, marginBottom: 20 },
   ticketContainer: { flexDirection: 'row', height: 100, marginBottom: 15, borderRadius: 16, overflow: 'hidden', elevation: 3 },

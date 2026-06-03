@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.murzik7348.deliveryapp",
+      "bundleIdentifier": "com.murzik7348.K-and-M",
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": false,
       "infoPlist": {
@@ -27,7 +27,7 @@
       }
     },
     "android": {
-      "package": "com.murzik7348.deliveryapp",
+      "package": "com.murzik7348",
       "googleServicesFile": "./google-services.json",
       "config": {
         "googleMaps": {
@@ -60,16 +60,18 @@
             "usesCleartextTraffic": true
           },
           "ios": {
-            "useFrameworks": "static"
+            "useFrameworks": "static",
+            "modularHeaders": true
           }
         }
       ],
       "./plugins/withRNFirebaseStatic.js",
-      "./plugins/withNoPushNotifications.js",
       "expo-font",
       "expo-secure-store",
       "expo-web-browser",
-      "expo-location"
+      "expo-location",
+      "expo-notifications",
+      "./plugins/withNoPushNotifications"
     ],
     "extra": {
       "eas": {

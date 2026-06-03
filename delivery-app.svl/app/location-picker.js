@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import {
   Alert,
   Platform,
@@ -13,7 +14,9 @@ import {
   View,
   Animated,
   KeyboardAvoidingView,
-  PanResponder
+  PanResponder,
+  Keyboard,
+  Easing
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
@@ -26,6 +29,8 @@ import BackButton from '../components/BackButton';
 export default function LocationPickerScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
   const savedAddresses = useSelector((s) => s.auth?.addresses || []);
   const currentLocation = useSelector((s) => s.location?.currentLocation);
   const insets = useSafeAreaInsets();
@@ -45,6 +50,7 @@ export default function LocationPickerScreen() {
   const [apartmentNumber, setApartmentNumber] = useState('');
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isKeyboardActive, setIsKeyboardActive] = useState(false);
 
   const panY = useRef(new Animated.Value(320)).current; // Start collapsed
   const lastPanY = useRef(320);
@@ -54,12 +60,53 @@ export default function LocationPickerScreen() {
   const activeScale = useRef(new Animated.Value(1)).current;
   const touchStartTime = useRef(0);
 
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     const listenerId = panY.addListener(({ value }) => {
       lastPanY.current = value;
     });
     return () => panY.removeListener(listenerId);
   }, []);
+
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setIsKeyboardActive(true);
+        Animated.timing(keyboardOffset, {
+          toValue: Platform.OS === 'ios' ? (e.endCoordinates.height - insets.bottom + 6) : 0,
+          duration: Platform.OS === 'ios' ? e.duration || 250 : 200,
+          easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
+          useNativeDriver: true,
+        }).start();
+
+        // Automatically expand sheet when keyboard appears
+        Animated.spring(panY, {
+          toValue: 0,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }).start();
+      }
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      (e) => {
+        setIsKeyboardActive(false);
+        Animated.timing(keyboardOffset, {
+          toValue: 0,
+          duration: Platform.OS === 'ios' ? e.duration || 250 : 200,
+          easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
+          useNativeDriver: true,
+        }).start();
+      }
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [keyboardOffset, insets.bottom]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -305,10 +352,7 @@ export default function LocationPickerScreen() {
   const footerPaddingBottom = Math.max(insets.bottom, 16) + 8;
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.root} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={styles.root}>
       {/* MAP LAYER */}
       <MapView
         ref={mapRef}
@@ -339,13 +383,13 @@ export default function LocationPickerScreen() {
               }}
             >
               <View style={[
-                styles.mapMarker,
-                isSelected && styles.mapMarkerSelected
+                styles.mapMarker, { borderColor: theme.primary },
+                isSelected && [styles.mapMarkerSelected, { backgroundColor: theme.primary }]
               ]}>
                 <Ionicons 
                   name={addr.title?.includes('Квартира') ? 'business' : 'home'} 
                   size={isSelected ? 24 : 16} 
-                  color={isSelected ? "white" : "#e334e3"} 
+                  color={isSelected ? "white" : theme.primary} 
                 />
               </View>
             </Marker>
@@ -354,9 +398,11 @@ export default function LocationPickerScreen() {
       </MapView>
 
       {/* FIXED MARKER PIN (always shows what you are pointing at) */}
-      <View style={styles.markerFixed} pointerEvents="none">
-        <Ionicons name="location" size={40} color="#e334e3" />
-      </View>
+      {!isKeyboardActive && (
+        <View style={styles.markerFixed} pointerEvents="none">
+          <Ionicons name="location" size={40} color={theme.primary} />
+        </View>
+      )}
 
       {/* TOP BUTTONS — positioned using insets.top so they won't rely on SafeAreaView */}
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
@@ -380,11 +426,14 @@ export default function LocationPickerScreen() {
           { 
             paddingBottom: footerPaddingBottom,
             transform: [{
-              translateY: panY.interpolate({
-                inputRange: [0, MAX_DOWN, MAX_DOWN + 100],
-                outputRange: [0, MAX_DOWN, MAX_DOWN + 100],
-                extrapolate: 'clamp'
-              })
+              translateY: Animated.subtract(
+                panY.interpolate({
+                  inputRange: [0, MAX_DOWN, MAX_DOWN + 100],
+                  outputRange: [0, MAX_DOWN, MAX_DOWN + 100],
+                  extrapolate: 'clamp'
+                }),
+                keyboardOffset
+              )
             }] 
           }
         ]}
@@ -411,7 +460,7 @@ export default function LocationPickerScreen() {
                 <Ionicons
                   name="location"
                   size={18}
-                  color="#e334e3"
+                  color={theme.primary}
                   style={{ marginRight: 8 }}
                 />
                 <Text style={styles.detectedText} numberOfLines={1}>
@@ -421,7 +470,7 @@ export default function LocationPickerScreen() {
             </View>
             
             <TouchableOpacity
-              style={styles.headerConfirmBtn}
+              style={[styles.headerConfirmBtn, { backgroundColor: theme.primary }]}
               onPress={handleUseOnce}
               disabled={loading}
             >
@@ -537,7 +586,7 @@ export default function LocationPickerScreen() {
           </TouchableOpacity>
         </ScrollView>
       </Animated.View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -562,7 +611,7 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#e334e3',
+    borderColor: '#000000',
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.3,
@@ -570,7 +619,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   mapMarkerSelected: {
-    backgroundColor: '#e334e3',
+    backgroundColor: '#000000',
     borderColor: 'white',
     padding: 8,
     borderWidth: 3,
@@ -624,6 +673,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: -5 },
     shadowRadius: 10,
+    zIndex: 50,
   },
   pillContainer: {
     alignItems: 'center',
@@ -652,7 +702,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   headerConfirmBtn: {
-    backgroundColor: '#e334e3',
+    backgroundColor: '#000000',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -729,12 +779,12 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#e334e3',
+    borderColor: '#000000',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  btnOnceText: { color: '#e334e3', fontWeight: 'bold', fontSize: 16 },
+  btnOnceText: { color: '#000000', fontWeight: 'bold', fontSize: 16 },
   dragHeader: {
     backgroundColor: 'transparent',
   }

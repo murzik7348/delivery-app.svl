@@ -1,18 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { Alert, ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Platform } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
+import { setBottomBarVisible } from '../store/uiSlice';
 import { useFocusEffect } from 'expo-router';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import { fetchMe, logoutUser, removeAddress } from '../store/authSlice';
 import { clearOrders } from '../store/ordersSlice';
 import { clearCourierState } from '../store/courierSlice';
-import { deleteAddress as apiDeleteAddress, getAddresses } from '../src/api';
+import { deleteAddress as apiDeleteAddress, getAddresses, sendTestPushNotification } from '../src/api';
 import { persistor } from '../store/index';
 const getNotifications = () => {
   if (Platform.OS === 'android' && Constants.appOwnership === 'expo') return null;
@@ -43,8 +44,10 @@ export default function ProfileScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      refreshData();
-    }, [])
+      if (isAuthenticated) {
+        refreshData();
+      }
+    }, [isAuthenticated])
   );
 
   const openAddressModal = async () => {
@@ -104,18 +107,35 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const lastScrollY = useRef(0);
+  const handleScroll = (event) => {
+    const currentOffset = event.nativeEvent.contentOffset.y;
+    const isScrollingDown = currentOffset > lastScrollY.current;
+    
+    if (Math.abs(currentOffset - lastScrollY.current) > 15) {
+      if (currentOffset <= 0) {
+        dispatch(setBottomBarVisible(true));
+      } else if (isScrollingDown && currentOffset > 100) {
+        dispatch(setBottomBarVisible(false));
+      } else {
+        dispatch(setBottomBarVisible(true));
+      }
+      lastScrollY.current = currentOffset;
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <SafeAreaView style={styles.guestContent}>
-          <View style={styles.iconCircle}>
+          <View style={[styles.iconCircle, { backgroundColor: theme.primary }]}>
             <Ionicons name="person" size={60} color="white" />
           </View>
           <Text style={[styles.guestTitle, { color: theme.text }]}>{t(locale, 'welcome')}</Text>
           <Text style={[styles.guestSubtitle, { color: theme.textSecondary }]}>
             {t(locale, 'loginPrompt')}
           </Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/register')}>
+          <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: theme.primary }]} onPress={() => router.push('/register')}>
             <Text style={styles.primaryBtnText}>{t(locale, 'createAccount')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.secondaryBtn, { borderColor: theme.border }]} onPress={() => router.push('/(auth)/login')}>
@@ -140,7 +160,7 @@ export default function ProfileScreen() {
         <Text style={[styles.menuText, { color: theme.text }]}>{label}</Text>
       </View>
       <View style={styles.menuRow}>
-        {badge && <View style={styles.badge}><Text style={styles.badgeText}>{badge}</Text></View>}
+        {badge && <View style={[styles.badge, { backgroundColor: theme.primary }]}><Text style={styles.badgeText}>{badge}</Text></View>}
         <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
       </View>
     </TouchableOpacity>
@@ -153,13 +173,15 @@ export default function ProfileScreen() {
           <BackButton />
         </View>
         <ScrollView 
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={{ paddingBottom: 40 }}
           refreshControl={
             <RefreshControl
               refreshing={addressesLoading}
               onRefresh={refreshData}
-              tintColor="#e334e3"
-              colors={["#e334e3"]}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
             />
           }
         >
@@ -169,10 +191,11 @@ export default function ProfileScreen() {
             <View style={styles.avatarContainer}>
               <Image
                 source={{ uri: resolveImageUrl(user?.avatarUrl || user?.avatar) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500' }}
-                style={styles.avatar}
+                style={[styles.avatar, { borderColor: theme.primary }]}
               />
               {/* 👇 ОСЬ ТУТ КНОПКА РЕДАГУВАННЯ (ОЛІВЕЦЬ) */}
-              <TouchableOpacity style={styles.editBtn} onPress={() => router.push('/profile-edit')}>
+              <TouchableOpacity style={[styles.editBtn, { backgroundColor: theme.primary }]}
+                  activeOpacity={0.8} onPress={() => router.push('/profile-edit')}>
                 <Ionicons name="pencil" size={14} color="white" />
               </TouchableOpacity>
             </View>
@@ -208,16 +231,22 @@ export default function ProfileScreen() {
               icon="paper-plane-outline" 
               label="Test Notification" 
               onPress={async () => {
-                if (Notifications && Notifications.scheduleNotificationAsync) {
-                  await Notifications.scheduleNotificationAsync({
-                    content: {
-                      title: "🔔 Test Notification",
-                      body: "Система сповіщень працює!",
-                    },
-                    trigger: null,
-                  });
-                } else {
-                  Alert.alert("Сповіщення", "Ця функція недоступна в Expo Go для Android у цьому SDK.");
+                try {
+                  await sendTestPushNotification("🔔 Тестове сповіщення з сервера!");
+                  Alert.alert("Сповіщення", "Тестовий запит надіслано на сервер.");
+                } catch (err) {
+                  console.warn("Failed to send test push to server, scheduling local fallback:", err.message);
+                  if (Notifications && Notifications.scheduleNotificationAsync) {
+                    await Notifications.scheduleNotificationAsync({
+                      content: {
+                        title: "🔔 Test Notification",
+                        body: "Система сповіщень працює!",
+                      },
+                      trigger: null,
+                    });
+                  } else {
+                    Alert.alert("Сповіщення", "Не вдалося надіслати сповіщення.");
+                  }
                 }
               }} 
             />
@@ -247,7 +276,7 @@ export default function ProfileScreen() {
               keyExtractor={(item) => (item.addressId || item.id).toString()}
               ListEmptyComponent={
                 addressesLoading
-                  ? <ActivityIndicator color="#e334e3" style={{ marginTop: 30 }} />
+                  ? <ActivityIndicator color={theme.primary} style={{ marginTop: 30 }} />
                   : <Text style={{ textAlign: 'center', color: 'gray', marginTop: 20 }}>{t(locale, 'noAddresses')}</Text>
               }
               renderItem={({ item }) => (
@@ -286,7 +315,7 @@ export default function ProfileScreen() {
 
             {/* 👇 ТІЛЬКИ ОДНА ЧОРНА КНОПКА (рожеву видалено повністю) */}
             <TouchableOpacity
-              style={styles.pinkAddBtn}
+              style={[styles.pinkAddBtn, { backgroundColor: theme.primary }]}
               onPress={() => { setModalVisible(false); router.push('/location-picker'); }}
               activeOpacity={0.8}
             >
@@ -305,17 +334,17 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   guestContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  iconCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#e334e3', justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  iconCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
   guestTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
   guestSubtitle: { fontSize: 16, textAlign: 'center', marginBottom: 40, lineHeight: 24 },
-  primaryBtn: { width: '100%', height: 56, backgroundColor: '#e334e3', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  primaryBtn: { width: '100%', height: 56, backgroundColor: '#000000', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   primaryBtnText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
   secondaryBtn: { width: '100%', height: 56, borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   secondaryBtnText: { fontSize: 18, fontWeight: '600' },
   header: { alignItems: 'center', marginVertical: 20 },
   avatarContainer: { position: 'relative', marginBottom: 15 },
-  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: '#e334e3' },
-  editBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#e334e3', padding: 8, borderRadius: 20, borderWidth: 2, borderColor: 'white' },
+  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: '#000000' },
+  editBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#000000', padding: 8, borderRadius: 20, borderWidth: 2, borderColor: 'white' },
   name: { fontSize: 24, fontWeight: 'bold', marginBottom: 5 },
   phone: { fontSize: 16 },
   sectionTitle: { marginLeft: 16, marginBottom: 8, marginTop: 24, fontSize: 13, textTransform: 'uppercase', fontWeight: '600' },
@@ -332,12 +361,12 @@ const styles = StyleSheet.create({
   menuRow: { flexDirection: 'row', alignItems: 'center' },
   iconBox: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   menuText: { fontSize: 16, fontWeight: '500' },
-  badge: { backgroundColor: '#e334e3', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginRight: 8 },
+  badge: { backgroundColor: '#000000', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginRight: 8 },
   badgeText: { color: 'white', fontSize: 12, fontWeight: 'bold' },
   logoutBtn: { marginHorizontal: 16, marginTop: 30, padding: 16, borderRadius: 16, backgroundColor: 'rgba(255, 0, 0, 0.1)', alignItems: 'center' },
   logoutText: { color: 'red', fontSize: 16, fontWeight: 'bold' },
   version: { textAlign: 'center', marginTop: 20, fontSize: 12 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: 'transparent', justifyContent: 'flex-end' },
   modalContent: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, height: '60%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 22, fontWeight: 'bold' },
@@ -350,7 +379,7 @@ const styles = StyleSheet.create({
   addNewText: { color: 'white', fontWeight: 'bold', marginLeft: 10, fontSize: 16 },
   pinkAddBtn: {
     flexDirection: 'row',
-    backgroundColor: '#e334e3',
+    backgroundColor: '#000000',
     padding: 16,
     borderRadius: 16,
     justifyContent: 'center',

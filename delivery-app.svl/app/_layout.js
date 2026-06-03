@@ -5,7 +5,7 @@ import { store, persistor } from "../store";
 import { Platform, StatusBar, View } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { PersistGate } from 'redux-persist/integration/react';
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import usePushNotifications from '../hooks/usePushNotifications';
 // import useLiveActivitySync from '../hooks/useLiveActivitySync';
@@ -77,10 +77,28 @@ function ThemeStatusBar() {
 
 export default function RootLayout() {
   const pathname = usePathname();
-
-  // Define screens that should display the BottomBar
   const mainScreens = ['/home', '/catalog', '/favorites', '/cart', '/orders', '/profile', '/courier'];
   const showBottomBar = mainScreens.includes(pathname);
+
+  const [transitionAnimation, setTransitionAnimation] = useState('slide_from_right');
+  const prevPathname = useRef(pathname);
+
+  useEffect(() => {
+    const prevIdx = mainScreens.indexOf(prevPathname.current);
+    const newIdx = mainScreens.indexOf(pathname);
+
+    if (prevIdx !== -1 && newIdx !== -1 && prevIdx !== newIdx) {
+      if (newIdx > prevIdx) {
+        setTransitionAnimation('slide_from_right');
+      } else {
+        setTransitionAnimation('slide_from_left');
+      }
+    } else {
+      // Fallback for standard pushes/pops outside of tab bar
+      setTransitionAnimation(Platform.OS === 'ios' ? 'default' : 'slide_from_right');
+    }
+    prevPathname.current = pathname;
+  }, [pathname]);
 
   return (
     <SafeAreaProvider>
@@ -93,7 +111,7 @@ export default function RootLayout() {
               gestureEnabled: true,
               fullScreenGestureEnabled: false, // Gesture only from the left edge
               gestureResponseDistance: 50,    // Only first 50px from the left
-              animation: Platform.OS === 'ios' ? 'default' : 'slide_from_left',
+              animation: transitionAnimation,
               animationDuration: 250,         // Faster transition
             }}>
               <Stack.Screen name="index" />

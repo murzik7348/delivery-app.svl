@@ -21,6 +21,7 @@ import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import PromoSheet from '../components/PromoSheet';
 import { fetchCatalog, selectAllCategories, selectAllStores, selectAllPromotions } from '../store/catalogSlice';
+import { setBottomBarVisible } from '../store/uiSlice';
 import { resolveImageUrl } from '../src/api/client';
 import { Skeleton, StoreListSkeleton } from '../components/Skeleton';
 
@@ -133,6 +134,23 @@ export default function HomeScreen() {
     setSelectedCategory(prev => prev === catName ? null : catName);
   };
 
+  const lastScrollY = useRef(0);
+  const handleScroll = (event) => {
+    const currentOffset = event.nativeEvent.contentOffset.y;
+    const isScrollingDown = currentOffset > lastScrollY.current;
+    
+    if (Math.abs(currentOffset - lastScrollY.current) > 15) {
+      if (currentOffset <= 0) {
+        dispatch(setBottomBarVisible(true));
+      } else if (isScrollingDown && currentOffset > 100) {
+        dispatch(setBottomBarVisible(false));
+      } else {
+        dispatch(setBottomBarVisible(true));
+      }
+      lastScrollY.current = currentOffset;
+    }
+  };
+
   const headerHeight = (Platform.OS === 'ios' ? 160 : 150) + insets.top;
 
   return (
@@ -166,7 +184,7 @@ export default function HomeScreen() {
                   {currentLocation?.addressName || t(locale, 'chooseAddress')}
                 </Text>
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                  <Ionicons name="location" size={16} color="#e334e3" />
+                  <Ionicons name="location" size={16} color={theme.primary} />
                 </Animated.View>
                 <Ionicons name="chevron-down" size={14} color="gray" style={{ marginLeft: 2 }} />
               </View>
@@ -185,34 +203,36 @@ export default function HomeScreen() {
               />
             ) : (
               <View style={[styles.avatarFallback, { backgroundColor: theme.card }]}>
-                <Ionicons name="person" size={20} color="#e334e3" />
+                <Ionicons name="person" size={20} color={theme.primary} />
               </View>
             )}
-            <View style={styles.avatarRing} />
+            <View style={[styles.avatarRing, { borderColor: theme.primary }]} />
           </TouchableOpacity>
         </View>
 
         {/* Пошуковий рядок */}
         <Animated.View style={[styles.searchWrapper, { transform: [{ scale: searchScale }] }]}>
           <TouchableOpacity
-            style={[styles.searchBar, { backgroundColor: theme.input, shadowColor: '#e334e3' }]}
+            style={[styles.searchBar, { backgroundColor: theme.input, shadowColor: theme.primary }]}
             activeOpacity={1}
             onPress={handleSearchPress}
           >
-            <View style={styles.searchIconWrap}>
-              <Ionicons name="search" size={18} color="#e334e3" />
+            <View style={[styles.searchIconWrap, { backgroundColor: `${theme.primary}10` }]}>
+              <Ionicons name="search" size={18} color={theme.primary} />
             </View>
             <Text style={[styles.searchPlaceholder, { color: 'gray' }]}>
               {t(locale, 'searchPlaceholder')}
             </Text>
-            <View style={[styles.searchBadge, { backgroundColor: '#e334e322' }]}>
-              <Ionicons name="options-outline" size={16} color="#e334e3" />
+            <View style={[styles.searchBadge, { backgroundColor: `${theme.primary}22` }]}>
+              <Ionicons name="options-outline" size={16} color={theme.primary} />
             </View>
           </TouchableOpacity>
         </Animated.View>
       </View>
 
       <ScrollView 
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={{ 
           paddingTop: headerHeight,
@@ -222,8 +242,8 @@ export default function HomeScreen() {
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={onRefresh} 
-            tintColor="#e334e3" 
-            colors={["#e334e3"]}
+            tintColor={theme.primary} 
+            colors={[theme.primary]}
           />
         }
       >
@@ -256,7 +276,7 @@ export default function HomeScreen() {
                 </View>
                 {/* Кольоровий тег знижки */}
                 {promo.tag && (
-                  <View style={[styles.promoTag, { backgroundColor: promo.tagColor ?? '#e334e3' }]}>
+                  <View style={[styles.promoTag, { backgroundColor: promo.tagColor ?? theme.primary }]}>
                     <Text style={styles.promoTagText}>{promo.tag}</Text>
                   </View>
                 )}
@@ -271,7 +291,7 @@ export default function HomeScreen() {
           <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 15 }]}>{t(locale, 'categories')}</Text>
           {selectedCategory && (
             <TouchableOpacity onPress={() => setSelectedCategory(null)}>
-              <Text style={{ color: '#e334e3', fontWeight: 'bold', marginBottom: 15 }}>{t(locale, 'clear')}</Text>
+              <Text style={{ color: theme.primary, fontWeight: 'bold', marginBottom: 15 }}>{t(locale, 'clear')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -298,9 +318,9 @@ export default function HomeScreen() {
                   <View style={[
                     styles.catCircle,
                     {
-                      backgroundColor: isSelected ? '#e334e3' : theme.card,
+                      backgroundColor: isSelected ? theme.primary : theme.card,
                       borderWidth: isSelected ? 2 : 0,
-                      borderColor: '#e334e3',
+                      borderColor: '#000000',
                     }
                   ]}>
                     {cat.image ? (
@@ -314,7 +334,7 @@ export default function HomeScreen() {
                   </View>
                   <Text style={[
                     styles.catText,
-                    { color: isSelected ? '#e334e3' : theme.textSecondary, fontWeight: isSelected ? 'bold' : '500' }
+                    { color: isSelected ? theme.primary : theme.textSecondary, fontWeight: isSelected ? 'bold' : '500' }
                   ]}>
                     {cat.name}
                   </Text>
@@ -406,7 +426,7 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 23,
     borderWidth: 2,
-    borderColor: '#e334e3',
+    borderColor: '#000000',
   },
 
   searchWrapper: {
@@ -421,9 +441,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(227, 52, 227, 0.15)',
+    borderColor: 'rgba(0,0,0,0.05)',
     ...Platform.select({
-      ios: { shadowColor: '#e334e3', shadowOpacity: 0.12, shadowRadius: 18, shadowOffset: { width: 0, height: 6 } },
+      ios: { shadowColor: '#000000', shadowOpacity: 0.12, shadowRadius: 18, shadowOffset: { width: 0, height: 6 } },
       android: { elevation: 6 }
     }),
   },
@@ -431,7 +451,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#e334e310',
+    backgroundColor: 'rgba(0,0,0,0.06)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,

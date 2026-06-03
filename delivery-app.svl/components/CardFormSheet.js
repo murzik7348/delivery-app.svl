@@ -34,7 +34,9 @@ const YEARS = Array.from({ length: 12 }, (_, i) => String(CUR_YEAR + i));
 // ─── Drum ────────────────────────────────────────────────────────────────────
 function Drum({ items, selectedIndex, onSelect, width }) {
     const ref = useRef(null);
-    const isDark = useColorScheme() === 'dark';
+    const scheme = useColorScheme();
+    const theme = Colors[scheme ?? 'light'];
+    const isDark = scheme === 'dark';
     const bg = isDark ? '#1c1c1e' : '#f0f0f5';
 
     const scrollTo = (idx) =>
@@ -43,8 +45,8 @@ function Drum({ items, selectedIndex, onSelect, width }) {
     return (
         <View style={[d.wrap, { width, backgroundColor: bg }]}>
             {/* selector line */}
-            <View style={d.selectorTop} pointerEvents="none" />
-            <View style={d.selectorBot} pointerEvents="none" />
+            <View style={[d.selectorTop, { backgroundColor: theme.primary }]} pointerEvents="none" />
+            <View style={[d.selectorBot, { backgroundColor: theme.primary }]} pointerEvents="none" />
             {/* top fade */}
             <View style={[d.fade, d.fadeTop, { backgroundColor: bg + 'ee' }]} pointerEvents="none" />
             {/* bottom fade */}
@@ -78,6 +80,7 @@ function Drum({ items, selectedIndex, onSelect, width }) {
                                 d.text,
                                 { color: isDark ? '#fff' : '#000' },
                                 dist === 0 && d.textActive,
+                                dist === 0 && { color: theme.primary },
                                 dist === 1 && d.textNear,
                                 dist >= 2 && d.textFar,
                             ]}>
@@ -95,11 +98,11 @@ const d = StyleSheet.create({
     wrap: { height: ITEM_H * VISIBLE, borderRadius: 14, overflow: 'hidden' },
     selectorTop: {
         position: 'absolute', top: ITEM_H * 2, left: 12, right: 12,
-        height: 1, backgroundColor: '#e334e3', zIndex: 3,
+        height: 1, backgroundColor: '#000000', zIndex: 3,
     },
     selectorBot: {
         position: 'absolute', top: ITEM_H * 3 - 1, left: 12, right: 12,
-        height: 1, backgroundColor: '#e334e3', zIndex: 3,
+        height: 1, backgroundColor: '#000000', zIndex: 3,
     },
     fade: {
         position: 'absolute', left: 0, right: 0, height: ITEM_H * 1.4, zIndex: 2,
@@ -108,7 +111,7 @@ const d = StyleSheet.create({
     fadeBot: { bottom: 0 },
     item: { height: ITEM_H, justifyContent: 'center', alignItems: 'center' },
     text: { fontSize: 15, fontWeight: '400' },
-    textActive: { fontSize: 17, fontWeight: '700', color: '#e334e3' },
+    textActive: { fontSize: 17, fontWeight: '700', color: '#000000' },
     textNear: { opacity: 0.5 },
     textFar: { opacity: 0.2 },
 });
@@ -285,8 +288,8 @@ export default function CardFormSheet({ onClose, onSave }) {
                     <Text style={[s.title, { color: theme.text }]}>Нова картка</Text>
 
                     {/* ── Card preview ── */}
-                    <Animated.View style={[s.card, { transform: [{ translateX: shake }] }]}>
-                        <View style={s.cardGlow1} />
+                    <Animated.View style={[s.card, { shadowColor: theme.primary }, { transform: [{ translateX: shake }] }]}>
+                        <View style={[s.cardGlow1, { backgroundColor: theme.primary }]} />
                         <View style={s.cardGlow2} />
                         {/* chip */}
                         <View style={s.chip}><View style={s.chipInner} /></View>
@@ -312,8 +315,8 @@ export default function CardFormSheet({ onClose, onSave }) {
                     </Animated.View>
 
                     {/* ── Number field ── */}
-                    <View style={[s.field, { backgroundColor: theme.card }, focus === 'n' && s.fieldFocused]}>
-                        <Ionicons name="card-outline" size={18} color={cardBrand ? '#e334e3' : 'gray'} />
+                    <View style={[s.field, { backgroundColor: theme.card }, focus === 'n' && [s.fieldFocused, { borderColor: theme.primary }]]}>
+                        <Ionicons name="card-outline" size={18} color={cardBrand ? theme.primary : 'gray'} />
                         <TextInput
                             style={[s.fieldInput, { color: theme.text }]}
                             placeholder="Номер картки"
@@ -339,7 +342,7 @@ export default function CardFormSheet({ onClose, onSave }) {
                             <Text style={[s.lbl, { color: 'gray' }]}>Місяць / Рік</Text>
                             <View style={[s.drumsBox, { backgroundColor: theme.card }]}>
                                 <Drum items={UA_MONTHS} selectedIndex={mo} onSelect={setMo} width={SCREEN_W * 0.26} />
-                                <Text style={{ color: '#e334e3', fontSize: 18, fontWeight: '200' }}>/</Text>
+                                <Text style={{ color: theme.primary, fontSize: 18, fontWeight: '200' }}>/</Text>
                                 <Drum items={YEARS} selectedIndex={yr} onSelect={setYr} width={SCREEN_W * 0.16} />
                             </View>
                         </View>
@@ -347,7 +350,7 @@ export default function CardFormSheet({ onClose, onSave }) {
                         {/* CVV */}
                         <View style={s.cvvWrap}>
                             <Text style={[s.lbl, { color: 'gray' }]}>CVV</Text>
-                            <View style={[s.field, s.cvvField, { backgroundColor: theme.card }, focus === 'cvv' && s.fieldFocused]}>
+                            <View style={[s.field, s.cvvField, { backgroundColor: theme.card }, focus === 'cvv' && [s.fieldFocused, { borderColor: theme.primary }]]}>
                                 <TextInput
                                     ref={cvvRef}
                                     style={[s.cvvInput, { color: theme.text }]}
@@ -365,14 +368,14 @@ export default function CardFormSheet({ onClose, onSave }) {
                                     onBlur={() => setFocus(null)}
                                     maxLength={4}
                                 />
-                                <Ionicons name="lock-closed" size={14} color={focus === 'cvv' ? '#e334e3' : 'gray'} />
+                                <Ionicons name="lock-closed" size={14} color={focus === 'cvv' ? theme.primary : 'gray'} />
                             </View>
                         </View>
                     </View>
 
                     {/* ── Save ── */}
                     <TouchableOpacity
-                        style={[s.saveBtn, !valid && { opacity: 0.45 }]}
+                        style={[s.saveBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }, !valid && { opacity: 0.45 }]}
                         onPress={handleSave}
                         activeOpacity={0.85}
                     >
@@ -425,13 +428,13 @@ const s = StyleSheet.create({
         padding: 16, marginBottom: 16,
         overflow: 'hidden',
         ...Platform.select({
-            ios: { shadowColor: '#e334e3', shadowOpacity: 0.2, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
+            ios: { shadowColor: '#000000', shadowOpacity: 0.2, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
             android: { elevation: 8 },
         }),
     },
     cardGlow1: {
         position: 'absolute', width: 120, height: 120, borderRadius: 60,
-        backgroundColor: '#e334e3', opacity: 0.18, top: -30, left: -20,
+        backgroundColor: '#000000', opacity: 0.18, top: -30, left: -20,
     },
     cardGlow2: {
         position: 'absolute', width: 100, height: 100, borderRadius: 50,
@@ -462,7 +465,7 @@ const s = StyleSheet.create({
         height: 50, borderRadius: 13, paddingHorizontal: 14, gap: 10,
         marginBottom: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: 'transparent',
     },
-    fieldFocused: { borderColor: '#e334e3' },
+    fieldFocused: { borderColor: '#000000' },
     fieldInput: { flex: 1, fontSize: 16, letterSpacing: 2, fontWeight: '600', paddingVertical: 0, textAlignVertical: 'center' },
     lbl: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
 
@@ -491,9 +494,9 @@ const s = StyleSheet.create({
     // Save
     saveBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        backgroundColor: '#e334e3', height: 52, borderRadius: 16,
+        backgroundColor: '#000000', height: 52, borderRadius: 16,
         ...Platform.select({
-            ios: { shadowColor: '#e334e3', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } },
+            ios: { shadowColor: '#000000', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } },
             android: { elevation: 6 },
         }),
     },

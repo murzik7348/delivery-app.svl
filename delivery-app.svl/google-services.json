@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "136533216086",
-    "project_id": "kandm-delivery",
-    "storage_bucket": "kandm-delivery.firebasestorage.app"
+    "project_number": "1048120331596",
+    "project_id": "deliveryapi-4523c",
+    "storage_bucket": "deliveryapi-4523c.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:136533216086:android:02d13e62db00a405d024f7",
+        "mobilesdk_app_id": "1:1048120331596:android:0211652e63054d7cce53e9",
         "android_client_info": {
-          "package_name": "com.murzik7348.deliveryapp"
+          "package_name": "com.murzik7348"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBGnVrgrstXhpiHHw2VDxgE8zm3EDV7898"
+          "current_key": "AIzaSyDtj-oN5SXp8TsjBDzZXAwnUaZzGHCE-5c"
         }
       ],
       "services": {

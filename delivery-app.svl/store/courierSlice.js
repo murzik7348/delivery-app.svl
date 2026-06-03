@@ -7,6 +7,7 @@ import {
   courierPickupDelivery,
   courierConfirmDelivery,
   courierSetOnlineStatus,
+  getCourierShiftStatus,
 } from '../src/api';
 import OrderService from '../services/OrderService';
 
@@ -241,7 +242,8 @@ export const fetchCourierOrders = createAsyncThunk(
       // Map available orders (not mine)
       const availableMapped = availableItems
         .filter(item => (item.deliveryId || item.id))
-        .map(item => mapDeliveryToCourierOrder({ ...item, _fromMy: false }, currentUserId));
+        .map(item => mapDeliveryToCourierOrder({ ...item, _fromMy: false }, currentUserId))
+        .filter(o => o.status !== 'completed' && o.status !== 'canceled');
 
       // Map my assigned orders
       const myMapped = myAssignedOrders
@@ -328,7 +330,24 @@ export const updateOnlineStatusThunk = createAsyncThunk(
       await courierSetOnlineStatus(isOnline);
       return isOnline;
     } catch (err) {
+      const errorData = err.data || err.response?.data;
+      const code = errorData?.code || '';
+      if (code === 'ACTIVE_DELIVERY_EXISTS' || String(err.message).includes('Finish delivery first')) {
+        return rejectWithValue('ACTIVE_DELIVERY_EXISTS');
+      }
       return rejectWithValue(err.message || 'Failed to update online status');
+    }
+  }
+);
+
+export const fetchShiftStatusThunk = createAsyncThunk(
+  'courier/fetchShiftStatus',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await getCourierShiftStatus();
+      return !!response?.isActiveShift;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to fetch shift status');
     }
   }
 );
@@ -439,6 +458,12 @@ const courierSlice = createSlice({
         state.isOnline = action.payload;
       })
       .addCase(updateOnlineStatusThunk.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      .addCase(fetchShiftStatusThunk.fulfilled, (state, action) => {
+        state.isOnline = action.payload;
+      })
+      .addCase(fetchShiftStatusThunk.rejected, (state, action) => {
         state.error = action.payload;
       })
       .addCase('auth/logoutUser', () => initialState)

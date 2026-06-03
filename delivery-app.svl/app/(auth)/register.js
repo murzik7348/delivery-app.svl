@@ -206,13 +206,14 @@ export default function RegisterScreen() {
   };
 
   // Premium colors
-  const activeBg = isDark ? '#171717' : '#F14FF1';
+  const activeBg = isDark ? '#171717' : '#FFFFFF';
   const inputBg = isDark ? 'rgba(21, 10, 33, 0.8)' : 'rgba(255, 255, 255, 0.9)';
-  const primaryColor = '#E22BC6'; // Electric Pink
+  const primaryColor = isDark ? '#FFFFFF' : '#000000';
   const textColor = isDark ? '#ffffff' : '#0a0514';
   const textMuted = isDark ? '#a099aa' : '#6c627a';
   const borderLight = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(10, 5, 20, 0.06)';
   const borderActive = primaryColor;
+  const buttonContentColor = isDark ? '#000000' : '#FFFFFF';
 
   const renderNextButton = (customText = 'Далі') => {
     const valid = isStepValid();
@@ -235,11 +236,11 @@ export default function RegisterScreen() {
         disabled={!valid || isLoading}
       >
         {isLoading ? (
-          <ActivityIndicator color="white" />
+          <ActivityIndicator color={buttonContentColor} />
         ) : (
           <View style={styles.btnInner}>
-            <Text style={[styles.btnText, { color: valid ? 'white' : textMuted }]}>{customText}</Text>
-            {valid && <Ionicons name="arrow-forward" size={18} color="white" style={{ marginLeft: 6 }} />}
+            <Text style={[styles.btnText, { color: valid ? buttonContentColor : textMuted }]}>{customText}</Text>
+            {valid && <Ionicons name="arrow-forward" size={18} color={buttonContentColor} style={{ marginLeft: 6 }} />}
           </View>
         )}
       </TouchableOpacity>
@@ -474,13 +475,13 @@ export default function RegisterScreen() {
               disabled={!isButtonActive || isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="white" />
+                <ActivityIndicator color={buttonContentColor} />
               ) : (
                 <View style={styles.btnInner}>
-                  <Text style={[styles.btnText, { color: isButtonActive ? 'white' : textMuted }]}>
+                  <Text style={[styles.btnText, { color: isButtonActive ? buttonContentColor : textMuted }]}>
                     {isEmpty ? 'Пропустити' : 'Завершити реєстрацію'}
                   </Text>
-                  {isButtonActive && <Ionicons name="checkmark-circle-outline" size={18} color="white" style={{ marginLeft: 6 }} />}
+                  {isButtonActive && <Ionicons name="checkmark-circle-outline" size={18} color={buttonContentColor} style={{ marginLeft: 6 }} />}
                 </View>
               )}
             </TouchableOpacity>

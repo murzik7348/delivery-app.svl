@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   Image,
   ScrollView,
@@ -15,6 +15,7 @@ import {
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
+import { setBottomBarVisible } from '../store/uiSlice';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import { toggleFavorite, toggleFavoriteProduct } from '../store/favoritesSlice';
@@ -65,6 +66,23 @@ export default function FavoritesScreen() {
   const favoriteStores = stores.filter(s => favoriteIds.includes(s.store_id));
   const favoriteProducts = products.filter(p => favoriteProductIds.includes(p.product_id));
 
+  const lastScrollY = useRef(0);
+  const handleScroll = (event) => {
+    const currentOffset = event.nativeEvent.contentOffset.y;
+    const isScrollingDown = currentOffset > lastScrollY.current;
+    
+    if (Math.abs(currentOffset - lastScrollY.current) > 15) {
+      if (currentOffset <= 0) {
+        dispatch(setBottomBarVisible(true));
+      } else if (isScrollingDown && currentOffset > 100) {
+        dispatch(setBottomBarVisible(false));
+      } else {
+        dispatch(setBottomBarVisible(true));
+      }
+      lastScrollY.current = currentOffset;
+    }
+  };
+
   const isEmpty = activeTab === 'stores' ? favoriteStores.length === 0 : favoriteProducts.length === 0;
 
   return (
@@ -81,6 +99,7 @@ export default function FavoritesScreen() {
         <Animated.View
           style={[
             styles.animatedTabIndicator,
+            { backgroundColor: theme.primary, shadowColor: theme.primary },
             {
               left: tabAnim.interpolate({
                 inputRange: [0, 1],
@@ -139,14 +158,16 @@ export default function FavoritesScreen() {
         </View>
       ) : (
         <ScrollView 
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 + insets.bottom }} 
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#e334e3"
-              colors={["#e334e3"]}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
             />
           }
         >
@@ -173,7 +194,7 @@ export default function FavoritesScreen() {
                   onPress={() => dispatch(toggleFavorite(item.store_id))}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="heart" size={22} color="#e334e3" />
+                  <Ionicons name="heart" size={22} color={theme.primary} />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))
@@ -187,13 +208,13 @@ export default function FavoritesScreen() {
                 <Image source={{ uri: item.image }} style={styles.productImg} />
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardName, { color: theme.text }]} numberOfLines={2}>{item.name}</Text>
-                  <Text style={styles.productPrice}>{formatPrice(item.price)} ₴</Text>
+                  <Text style={[styles.productPrice, { color: theme.primary }]}>{formatPrice(item.price)} ₴</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => dispatch(toggleFavoriteProduct(item.product_id))}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="heart" size={22} color="#e334e3" />
+                  <Ionicons name="heart" size={22} color={theme.primary} />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))
@@ -239,9 +260,9 @@ const styles = StyleSheet.create({
     top: 4,
     bottom: 4,
     width: '49%',
-    backgroundColor: '#e334e3',
+    backgroundColor: '#000000',
     borderRadius: 12,
-    shadowColor: '#e334e3',
+    shadowColor: '#000000',
     shadowOpacity: 0.3,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
@@ -290,5 +311,5 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 12, color: 'gray' },
   metaDot: { color: 'gray', fontSize: 12 },
   tags: { fontSize: 12 },
-  productPrice: { color: '#e334e3', fontWeight: '800', fontSize: 15 },
+  productPrice: { color: '#000000', fontWeight: '800', fontSize: 15 },
 });

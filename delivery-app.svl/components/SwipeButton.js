@@ -8,7 +8,7 @@ const BUTTON_WIDTH = width - 40; // Assuming 20px padding on each side
 const BUTTON_HEIGHT = 60;
 const SWIPE_THRESHOLD = BUTTON_WIDTH * 0.75;
 
-export default function SwipeButton({ onSwipeSuccess, title, icon = "arrow-forward", color = "#e334e3", isDark = false, isLoading = false }) {
+export default function SwipeButton({ onSwipeSuccess, title, icon = "arrow-forward", color = "#000000", isDark = false, isLoading = false }) {
     const pan = useRef(new Animated.ValueXY()).current;
     const [swiped, setSwiped] = useState(false);
     

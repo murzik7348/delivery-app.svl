@@ -103,7 +103,7 @@ export default function DynamicIsland() {
         outputRange: [0, 0, 1] 
     });
 
-    let iconColor = '#e334e3';
+    let iconColor = theme.primary;
     if (type === 'success') iconColor = '#4cd964';
     if (type === 'error')   iconColor = '#ff3b30';
     if (type === 'info')    iconColor = '#5ac8fa';
@@ -157,8 +157,8 @@ export default function DynamicIsland() {
                     >
                         {/* Status Icon or Photo */}
                         {isUserCourier ? (
-                            <View style={[styles.avatar, { backgroundColor: '#e334e320', borderColor: '#e334e3' }]}>
-                                <Ionicons name={statusToStep(activeOrder.status) === 4 ? "navigate" : "restaurant"} size={14} color="#e334e3" />
+                            <View style={[styles.avatar, { backgroundColor: `${theme.primary}20`, borderColor: theme.primary }]}>
+                                <Ionicons name={statusToStep(activeOrder.status) === 4 ? "navigate" : "restaurant"} size={14} color={theme.primary} />
                             </View>
                         ) : (activeOrder.courierPhoto || activeOrder.courier?.photo) ? (
                             <Image source={{ uri: activeOrder.courierPhoto || activeOrder.courier?.photo }} style={styles.avatar} />
@@ -179,7 +179,7 @@ export default function DynamicIsland() {
                                         statusToStep(activeOrder.status) === 4 ? 'Кур\'єр їде' : 'Готується'
                                     )}
                                 </Text>
-                                <View style={{ marginLeft: 4 }}><LiveDot color={isUserCourier ? '#e334e3' : '#27ae60'} /></View>
+                                <View style={{ marginLeft: 4 }}><LiveDot color={isUserCourier ? theme.primary : '#27ae60'} /></View>
                             </View>
                             <Text style={styles.pillSub} numberOfLines={1}>
                                 {isUserCourier ? (
@@ -200,7 +200,7 @@ export default function DynamicIsland() {
                                     }}
                                     style={styles.callIconWrapper}
                                 >
-                                     <Ionicons name="call" size={15} color="#e334e3" />
+                                     <Ionicons name="call" size={15} color={theme.primary} />
                                 </TouchableOpacity>
                             )
                         ) : (

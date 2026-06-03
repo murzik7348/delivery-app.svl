@@ -1,21 +1,23 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
+import { setBottomBarVisible } from '../store/uiSlice';
 
 function CartBadge({ color, focused, count }) {
   const colorScheme = useColorScheme();
+  const badgeBg = colorScheme === 'dark' ? '#ffffff' : '#000000';
   return (
     <View style={styles.iconContainer}>
       <Ionicons name={focused ? 'cart' : 'cart-outline'} size={24} color={color} />
       {count > 0 && (
-        <View style={[styles.badge, { borderColor: colorScheme === 'dark' ? '#171717' : '#ffffff' }]}>
+        <View style={[styles.badge, { backgroundColor: badgeBg, borderColor: colorScheme === 'dark' ? '#171717' : '#ffffff' }]}>
           <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
         </View>
       )}
@@ -55,10 +57,14 @@ export default function BottomBar() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const dispatch = useDispatch();
+  
   const locale = useSelector(s => s.language?.locale ?? 'uk');
   const user = useSelector(state => state.auth.user);
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+
+  const isVisible = useSelector(s => s.ui.bottomBarVisible !== false);
 
   const cartItems = useSelector((s) => s.cart.items);
   const cartCount = cartItems.reduce((sum, i) => sum + (i.quantity || 1), 0);
@@ -96,21 +102,41 @@ export default function BottomBar() {
     router.replace(route);
   };
 
+  // Reset bottom bar visibility to visible when switching screens
+  useEffect(() => {
+    dispatch(setBottomBarVisible(true));
+  }, [pathname]);
+
+  // Handle dynamic height and safe area borders dynamically
+  const bottomInset = insets.bottom;
+  const paddingBottom = bottomInset > 0 ? bottomInset : 10;
+  const barHeight = 54 + paddingBottom;
+
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(translateY, {
+      toValue: isVisible ? 0 : barHeight + 10,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 11,
+    }).start();
+  }, [isVisible, barHeight]);
+
+  const solidBgColor = colorScheme === 'dark' ? '#171717' : '#ffffff';
+
   return (
-    <View style={[styles.container, { 
-      backgroundColor: 'transparent', 
+    <Animated.View style={[styles.container, { 
+      backgroundColor: solidBgColor, 
       borderTopColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
-      height: Platform.OS === 'ios' ? 85 : 65 + insets.bottom,
-      paddingBottom: Platform.OS === 'ios' ? 25 : insets.bottom + 10,
+      height: barHeight,
+      paddingBottom: paddingBottom,
+      transform: [{ translateY }],
     }]}>
-      {Platform.OS === 'ios' ? (
-        <BlurView intensity={85} tint={colorScheme === 'dark' ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: colorScheme === 'dark' ? 'rgba(23, 23, 23, 0.8)' : 'rgba(255, 255, 255, 0.85)' }]} />
-      )}
       {tabs.map((tab) => {
         const focused = pathname === tab.route;
-        const color = focused ? '#e334e3' : 'gray';
+        const primaryColor = colorScheme === 'dark' ? '#ffffff' : '#000000';
+        const color = focused ? primaryColor : 'gray';
 
         let IconComponent = <Ionicons name={focused ? tab.icon : `${tab.icon}-outline`} size={24} color={color} />;
         
@@ -130,7 +156,7 @@ export default function BottomBar() {
           </TouchableOpacity>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -172,7 +198,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -10,
-    backgroundColor: '#e334e3',
+    backgroundColor: '#000000',
     borderRadius: 9,
     minWidth: 18,
     height: 18,

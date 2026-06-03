@@ -13,9 +13,8 @@ export const authStart = (data) => client.post('/auth/start', data);
  */
 export const authVerify = async (data) => {
     const response = await client.post('/auth/verify', data);
-    // Backend returns the token directly as a string or as an object
-    const token = typeof response === 'string' ? response : response?.accessToken;
-    const refreshToken = response?.refreshToken;
+    const token = typeof response === 'string' ? response : (response?.accessToken || response?.token);
+    const refreshToken = response?.refreshToken || response?.refresh_token;
     if (token) {
         await saveToken(token, refreshToken);
     }
@@ -28,8 +27,8 @@ export const authVerify = async (data) => {
  */
 export const authSetPassword = async (data) => {
     const response = await client.post('/auth/set-password', data);
-    const token = typeof response === 'string' ? response : response?.accessToken;
-    const refreshToken = response?.refreshToken;
+    const token = typeof response === 'string' ? response : (response?.accessToken || response?.token);
+    const refreshToken = response?.refreshToken || response?.refresh_token;
     if (token) {
         await saveToken(token, refreshToken);
     }
@@ -43,8 +42,8 @@ export const authSetPassword = async (data) => {
  */
 export const authRefresh = async (data) => {
     const response = await client.post('/auth/refresh', data);
-    const token = typeof response === 'string' ? response : response?.accessToken;
-    const refreshToken = response?.refreshToken;
+    const token = typeof response === 'string' ? response : (response?.accessToken || response?.token);
+    const refreshToken = response?.refreshToken || response?.refresh_token;
     if (token) {
         await saveToken(token, refreshToken);
     }
@@ -58,8 +57,8 @@ export const authRefresh = async (data) => {
  */
 export const authLogin = async (data) => {
     const response = await client.post('/auth/login', data);
-    const token = typeof response === 'string' ? response : response?.accessToken;
-    const refreshToken = response?.refreshToken;
+    const token = typeof response === 'string' ? response : (response?.accessToken || response?.token);
+    const refreshToken = response?.refreshToken || response?.refresh_token;
     if (token) {
         await saveToken(token, refreshToken);
     }
@@ -78,21 +77,27 @@ export const getMe = (config = {}) => client.get('/auth/me', config);
 export const logout = () => removeToken();
 
 /**
- * Update the user's Push Notification token.
- * Note: If the backend does not yet support this endpoint (returns 404),
- * we catch it gracefully to avoid disruptive error logs on startup.
+  * Update the user's Push Notification token.
  * @param {string} token - Expo Push Token
  */
 export const updatePushToken = async (token) => {
     try {
-        return await client.put('/settings/push-token', { token });
+        return await client.post('/notifications/token', { token });
     } catch (err) {
         if (err.status === 404) {
-            console.warn('⚠️ [PushToken] Endpoint /settings/push-token not found on backend. Skipping sync.');
+            console.warn('⚠️ [PushToken] Endpoint /notifications/token not found on backend. Skipping sync.');
             return null;
         }
         throw err;
     }
+};
+
+/**
+ * Send a test push notification from the server.
+ * @param {string} message - Message body
+ */
+export const sendTestPushNotification = async (message) => {
+    return await client.post('/notifications/test', JSON.stringify(message));
 };
 /**
  * Upload profile photo (avatar).

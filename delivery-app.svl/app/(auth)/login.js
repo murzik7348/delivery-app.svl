@@ -161,24 +161,25 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
 
   // Premium colors derived from active theme
-  const activeBg = isDarkCover ? '#171717' : '#F14FF1';
+  const activeBg = isDarkCover ? '#171717' : '#FFFFFF';
   const inputBg = isDarkCover ? 'rgba(21, 10, 33, 0.8)' : 'rgba(255, 255, 255, 0.9)';
-  const primaryColor = '#E22BC6'; // Electric Pink
+  const primaryColor = isDarkCover ? '#FFFFFF' : '#000000';
   const textColor = isDarkCover ? '#ffffff' : '#0a0514';
   const textMuted = isDarkCover ? '#a099aa' : '#6c627a';
   const borderLight = isDarkCover ? 'rgba(255, 255, 255, 0.08)' : 'rgba(10, 5, 20, 0.06)';
   const borderActive = primaryColor;
   const overlayColor = isDarkCover ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.1)';
+  const buttonContentColor = isDarkCover ? '#000000' : '#FFFFFF';
 
   return (
     <View style={[styles.container, { backgroundColor: activeBg }]}>
       {/* Background Cover Switcher */}
-      {/* Light Theme Background: Solid Pink with Centered Logo */}
+      {/* Light Theme Background: Solid White with Centered Logo */}
       <Animated.View
         style={[
           StyleSheet.absoluteFillObject,
           {
-            backgroundColor: '#F14FF1',
+            backgroundColor: '#FFFFFF',
             justifyContent: 'center',
             alignItems: 'center',
             opacity: coverAnimation.interpolate({
@@ -421,11 +422,11 @@ export default function LoginScreen() {
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <ActivityIndicator color="white" />
+                    <ActivityIndicator color={buttonContentColor} />
                   ) : (
                     <View style={styles.buttonInner}>
-                      <Text style={styles.buttonText}>Увійти</Text>
-                      <Ionicons name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />
+                      <Text style={[styles.buttonText, { color: buttonContentColor }]}>Увійти</Text>
+                      <Ionicons name="arrow-forward" size={20} color={buttonContentColor} style={styles.buttonIcon} />
                     </View>
                   )}
                 </TouchableOpacity>

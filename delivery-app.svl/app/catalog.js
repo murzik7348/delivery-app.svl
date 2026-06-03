@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { 
   Image, 
   Modal, 
@@ -16,7 +16,8 @@ import { useColorScheme } from '../hooks/use-color-scheme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { setBottomBarVisible } from '../store/uiSlice';
 import { formatPrice } from '../store/cartSlice';
 import Colors, { Shadows } from '../constants/Colors';
 import useCatalogFilter from '../hooks/useCatalogFilter';
@@ -56,7 +57,7 @@ const BouncyProductCard = ({ item, theme, router, isDark }) => {
         <View style={styles.cardContent}>
           <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
           <Text style={[styles.cardPrice, { color: theme.tint }]}>{formatPrice(item.price)} грн</Text>
-          <View style={styles.addBtn}>
+          <View style={[styles.addBtn, { backgroundColor: theme.primary }]}>
             <Ionicons name="add" size={20} color="white" />
           </View>
         </View>
@@ -106,6 +107,7 @@ const BouncyHorizontalCard = ({ item, router, theme, isDark, tag, tagColor }) =>
 
 export default function CatalogScreen() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
@@ -114,6 +116,23 @@ export default function CatalogScreen() {
   const isLoading = useSelector((state) => state.catalog.isLoading);
   const [modalVisible, setModalVisible] = useState(false);
   const { sortOrder, setSortOrder, finalProducts } = useCatalogFilter();
+
+  const lastScrollY = useRef(0);
+  const handleScroll = (event) => {
+    const currentOffset = event.nativeEvent.contentOffset.y;
+    const isScrollingDown = currentOffset > lastScrollY.current;
+    
+    if (Math.abs(currentOffset - lastScrollY.current) > 15) {
+      if (currentOffset <= 0) {
+        dispatch(setBottomBarVisible(true));
+      } else if (isScrollingDown && currentOffset > 100) {
+        dispatch(setBottomBarVisible(false));
+      } else {
+        dispatch(setBottomBarVisible(true));
+      }
+      lastScrollY.current = currentOffset;
+    }
+  };
 
   const topProducts = finalProducts.slice(0, 5);
   const newProducts = finalProducts.slice(5, 10);
@@ -151,7 +170,7 @@ export default function CatalogScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.sortButton, Shadows.primary]} 
+              style={[styles.sortButton, { backgroundColor: theme.primary }, Shadows.primary]} 
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setModalVisible(true);
@@ -163,7 +182,11 @@ export default function CatalogScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: 140 }}>
+      <ScrollView 
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: 140 }}
+      >
 
         {isLoading ? (
           <CatalogSkeleton />
@@ -247,7 +270,8 @@ export default function CatalogScreen() {
                 <Text style={[styles.sortText, { color: theme.text }]}>За замовчуванням</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.closeButton, { backgroundColor: '#e334e3' }]} onPress={() => setModalVisible(false)}>
+              <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.primary }]}
+            activeOpacity={0.85} onPress={() => setModalVisible(false)}>
                 <Text style={styles.closeButtonText}>Закрити</Text>
               </TouchableOpacity>
             </BlurView>
@@ -270,7 +294,8 @@ export default function CatalogScreen() {
                 <Text style={[styles.sortText, { color: theme.text }]}>За замовчуванням</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.closeButton, { backgroundColor: '#e334e3' }]} onPress={() => setModalVisible(false)}>
+              <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.primary }]}
+            activeOpacity={0.85} onPress={() => setModalVisible(false)}>
                 <Text style={styles.closeButtonText}>Закрити</Text>
               </TouchableOpacity>
             </View>
@@ -297,7 +322,7 @@ const styles = StyleSheet.create({
   pageTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 10 },
   searchRow: { flexDirection: 'row', alignItems: 'center' },
   searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 46, borderRadius: 12, paddingHorizontal: 12, marginRight: 10 },
-  sortButton: { width: 46, height: 46, backgroundColor: '#e334e3', borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  sortButton: { width: 46, height: 46, backgroundColor: '#000000', borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
 
   section: { marginTop: 20 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 16, marginBottom: 10 },
@@ -314,7 +339,7 @@ const styles = StyleSheet.create({
   cardContent: { padding: 10 },
   cardTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
   cardPrice: { fontSize: 16, fontWeight: 'bold' },
-  addBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#e334e3', padding: 8, borderTopLeftRadius: 8, borderBottomRightRadius: 16 },
+  addBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#000000', padding: 8, borderTopLeftRadius: 8, borderBottomRightRadius: 16 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: Platform.OS === 'ios' ? 40 : 20 },

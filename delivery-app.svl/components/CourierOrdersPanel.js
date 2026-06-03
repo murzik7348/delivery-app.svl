@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-    ScrollView, RefreshControl, Platform, Animated
+    ScrollView, RefreshControl, Platform, Animated, Alert, Linking
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { useDispatch, useSelector } from 'react-redux';
@@ -11,7 +11,7 @@ import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import Colors from '../constants/Colors';
 import CourierOrderSheet from './CourierOrderSheet';
-import { fetchCourierOrders, updateOnlineStatusThunk } from '../store/courierSlice';
+import { fetchCourierOrders, updateOnlineStatusThunk, fetchShiftStatusThunk } from '../store/courierSlice';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { courierUpdateLocation } from '../src/api';
 import { formatPrice } from '../store/cartSlice';
@@ -56,6 +56,28 @@ function StatusBadge({ status, locale, theme }) {
     </View>
   );
 }
+
+const openRouteInMaps = (order) => {
+    const restaurantLat = order.restaurantLatitude;
+    const restaurantLng = order.restaurantLongitude;
+    const customerLat = order.customerLatitude;
+    const customerLng = order.customerLongitude;
+
+    if (!restaurantLat || !restaurantLng || !customerLat || !customerLng) {
+        Alert.alert('Error', 'Coordinates not available.');
+        return;
+    }
+
+    const url = Platform.select({
+        ios: `http://maps.apple.com/?saddr=Current+Location&daddr=${restaurantLat},${restaurantLng}&daddr=${customerLat},${customerLng}`,
+        android: `https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}&waypoints=${restaurantLat},${restaurantLng}&travelmode=driving`
+    });
+
+    Linking.openURL(url).catch(() => {
+        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}&waypoints=${restaurantLat},${restaurantLng}&travelmode=driving`)
+            .catch(() => Alert.alert('Error', 'Could not open maps.'));
+    });
+};
 
 export default function CourierOrdersPanel() {
     const colorScheme = useColorScheme();
@@ -103,9 +125,27 @@ export default function CourierOrdersPanel() {
         }
     }, [activeOrders.length, isLoading]);
 
-    const toggleOnline = () => {
+    const toggleOnline = async () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
-        dispatch(updateOnlineStatusThunk(!isOnline));
+        try {
+            await dispatch(updateOnlineStatusThunk(!isOnline)).unwrap();
+        } catch (error) {
+            if (error === 'ACTIVE_DELIVERY_EXISTS') {
+                Alert.alert(
+                    locale === 'en' ? 'Warning' : 'Попередження',
+                    locale === 'en'
+                        ? 'Finish delivery first. You have active uncompleted orders.'
+                        : 'У вас є активні невиконані замовлення.',
+                    [{ text: 'OK' }]
+                );
+            } else {
+                Alert.alert(
+                    locale === 'en' ? 'Error' : 'Помилка',
+                    locale === 'en' ? 'Failed to change shift status.' : 'Не вдалося змінити статус зміни.',
+                    [{ text: 'OK' }]
+                );
+            }
+        }
     };
 
     const openDetails = (order) => {
@@ -116,7 +156,10 @@ export default function CourierOrdersPanel() {
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        await dispatch(fetchCourierOrders());
+        await Promise.all([
+            dispatch(fetchCourierOrders()),
+            dispatch(fetchShiftStatusThunk())
+        ]);
         setLastSync(new Date().toLocaleTimeString());
         setRefreshing(false);
     }, [dispatch]);
@@ -124,6 +167,7 @@ export default function CourierOrdersPanel() {
     // Poll every 15 s
     useEffect(() => {
         dispatch(fetchCourierOrders());
+        dispatch(fetchShiftStatusThunk());
         const iv = setInterval(() => {
             dispatch(fetchCourierOrders());
             setLastSync(new Date().toLocaleTimeString());
@@ -276,11 +320,29 @@ export default function CourierOrdersPanel() {
 
                 <View style={styles.cardFooter}>
                     <StatusBadge status={item.status} locale={locale} theme={theme} />
-                    <View style={styles.detailsBtn}>
-                        <Text style={styles.detailsText}>
-                            {locale === 'en' ? 'Details' : 'Деталі'}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={16} color="#e334e3" />
+                    
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        {type === 'active' && (
+                            <TouchableOpacity
+                                style={[styles.mapActionBtn, { backgroundColor: `${theme.primary}12` }]}
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    openRouteInMaps(item);
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="map-outline" size={15} color={theme.primary} style={{ marginRight: 4 }} />
+                                <Text style={[styles.mapActionText, { color: theme.primary }]}>
+                                    {locale === 'en' ? 'Map' : 'Карта'}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                        <View style={styles.detailsBtn}>
+                            <Text style={[styles.detailsText, { color: theme.primary }]}>
+                                {locale === 'en' ? 'Details' : 'Деталі'}
+                            </Text>
+                            <Ionicons name="chevron-forward" size={16} color={theme.primary} />
+                        </View>
                     </View>
                 </View>
             </TouchableOpacity>
@@ -618,7 +680,18 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
     },
     detailsBtn: { flexDirection: 'row', alignItems: 'center' },
-    detailsText: { color: '#e334e3', fontWeight: '600', marginRight: 4 },
+    detailsText: { color: '#000000', fontWeight: '600', marginRight: 4 },
+    mapActionBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    mapActionText: {
+        fontSize: 13,
+        fontWeight: '700',
+    },
 
     // Empty
     emptyWrap:    { alignItems: 'center', paddingHorizontal: 24, marginTop: 32 },

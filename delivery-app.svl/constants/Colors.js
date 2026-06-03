@@ -1,7 +1,7 @@
 import { StyleSheet, Platform } from 'react-native';
 
-const tintColorLight = '#e334e3';
-const tintColorDark = '#e334e3';
+const tintColorLight = '#000000';
+const tintColorDark = '#FFFFFF';
 
 const Colors = {
   light: {
@@ -60,7 +60,7 @@ export const Shadows = {
   }),
   primary: Platform.select({
     ios: {
-      shadowColor: '#e334e3',
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.22,
       shadowRadius: 12,

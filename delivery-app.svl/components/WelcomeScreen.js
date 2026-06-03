@@ -28,7 +28,7 @@ export default function WelcomeScreen() {
     ]).start();
   }, []);
 
-  const bgColor = isDark ? '#171717' : '#F14FF1';
+  const bgColor = isDark ? '#171717' : '#FFFFFF';
   const logoSource = isDark 
     ? require('../assets/images/logo_dark.png') 
     : require('../assets/images/logo_light.png');

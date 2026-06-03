@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Platform } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
+import { setBottomBarVisible } from '../store/uiSlice';
 import Colors from '../constants/Colors';
 import { formatUkraineDate } from '../utils/dateUtils';
 import { t } from '../constants/translations';
@@ -87,18 +88,35 @@ export default function OrdersTabScreen() {
         <View style={styles.cardFooter}>
           <StatusBadge order={item} locale={locale} />
           <View style={styles.detailsBtn}>
-            <Text style={styles.detailsText}>{t(locale, 'details')}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#e334e3" />
+            <Text style={[styles.detailsText, { color: theme.primary }]}>{t(locale, 'details')}</Text>
+            <Ionicons name="chevron-forward" size={16} color={theme.primary} />
           </View>
         </View>
       </TouchableOpacity>
     );
   };
 
+  const lastScrollY = useRef(0);
+  const handleScroll = (event) => {
+    const currentOffset = event.nativeEvent.contentOffset.y;
+    const isScrollingDown = currentOffset > lastScrollY.current;
+    
+    if (Math.abs(currentOffset - lastScrollY.current) > 15) {
+      if (currentOffset <= 0) {
+        dispatch(setBottomBarVisible(true));
+      } else if (isScrollingDown && currentOffset > 100) {
+        dispatch(setBottomBarVisible(false));
+      } else {
+        dispatch(setBottomBarVisible(true));
+      }
+      lastScrollY.current = currentOffset;
+    }
+  };
+
   if (isLoading && orders.length === 0) {
     return (
       <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color="#e334e3" style={{ flex: 1 }} />
+        <ActivityIndicator size="large" color={theme.primary} style={{ flex: 1 }} />
       </SafeAreaView>
     );
   }
@@ -106,6 +124,8 @@ export default function OrdersTabScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         data={orders}
         keyExtractor={(item, index) => String(item.deliveryId || item.id || index)}
         renderItem={renderOrderItem}
@@ -114,36 +134,22 @@ export default function OrdersTabScreen() {
           <View style={[styles.header, { paddingHorizontal: 0, paddingBottom: 16 }]}>
             <BackButton />
             <Text style={[styles.headerTitle, { color: theme.text, flex: 1, textAlign: 'center' }]}>{t(locale, 'ordersTitle')}</Text>
-            <TouchableOpacity
-              style={styles.clearBtn}
-              onPress={() =>
-                Alert.alert(
-                  locale === 'en' ? 'Clear history' : 'Очистити історію',
-                  locale === 'en' ? 'Are you sure you want to delete all orders?' : 'Ви впевнені, що хочете видалити всі замовлення?',
-                  [
-                    { text: locale === 'en' ? 'Cancel' : 'Скасувати', style: 'cancel' },
-                    { text: locale === 'en' ? 'Clear' : 'Очистити', style: 'destructive', onPress: () => dispatch(clearOrders()) },
-                  ]
-                )
-              }
-            >
-              <Ionicons name="trash-outline" size={24} color="#e334e3" />
-            </TouchableOpacity>
+            <View style={{ width: 32 }} />
           </View>
         }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#e334e3"
-            colors={["#e334e3"]}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
           />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="receipt-outline" size={80} color={theme.textSecondary} style={{ opacity: 0.5 }} />
             <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{t(locale, 'emptyHistory')}</Text>
-            <TouchableOpacity style={styles.shopBtn} onPress={() => router.push('/home')}>
+            <TouchableOpacity style={[styles.shopBtn, { backgroundColor: theme.primary }]} onPress={() => router.push('/home')}>
               <Text style={styles.shopBtnText}>{t(locale, 'makeFirstOrder')}</Text>
             </TouchableOpacity>
           </View>
@@ -224,9 +230,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.05)'
   },
   detailsBtn: { flexDirection: 'row', alignItems: 'center' },
-  detailsText: { color: '#e334e3', fontWeight: '600', marginRight: 4 },
+  detailsText: { color: '#000000', fontWeight: '600', marginRight: 4 },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
   emptyText: { marginTop: 16, fontSize: 16, marginBottom: 24 },
-  shopBtn: { backgroundColor: '#e334e3', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  shopBtn: { backgroundColor: '#000000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
   shopBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
 });

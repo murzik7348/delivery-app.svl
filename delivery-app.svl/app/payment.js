@@ -48,7 +48,7 @@ export default function PaymentScreen() {
                 styles.cardItem,
                 {
                   backgroundColor: theme.card,
-                  borderColor: isSelected ? '#e334e3' : 'transparent',
+                  borderColor: isSelected ? theme.primary : 'transparent',
                   borderWidth: isSelected ? 2 : 0
                 }
               ]}
@@ -65,7 +65,7 @@ export default function PaymentScreen() {
 
               <View style={styles.radioBox}>
                 {isSelected ? (
-                  <Ionicons name="checkmark-circle" size={28} color="#e334e3" />
+                  <Ionicons name="checkmark-circle" size={28} color={theme.primary} />
                 ) : (
                   <Ionicons name="ellipse-outline" size={28} color={theme.textSecondary} />
                 )}
@@ -85,7 +85,7 @@ export default function PaymentScreen() {
           );
         })}
 
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowCardForm(true)}>
+        <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.primary }]} onPress={() => setShowCardForm(true)}>
           <Ionicons name="add" size={24} color="white" />
           <Text style={styles.addBtnText}>{t(locale, 'addNewCard')}</Text>
         </TouchableOpacity>
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   cardType: { fontSize: 16, fontWeight: 'bold' },
   cardNumber: { color: 'gray', marginTop: 2 },
   radioBox: { marginLeft: 10 },
-  addBtn: { flexDirection: 'row', backgroundColor: '#e334e3', padding: 18, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
+  addBtn: { flexDirection: 'row', backgroundColor: '#000000', padding: 18, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
   addBtnText: { color: 'white', fontWeight: 'bold', marginLeft: 10, fontSize: 16 },
   deleteBtn: { padding: 6, marginLeft: 6 },
 });

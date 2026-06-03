@@ -210,7 +210,7 @@ export default function PromoSheet({ promo, onClose }) {
                     <View style={s.heroWrap}>
                         <Image source={{ uri: promo.image }} style={s.hero} />
                         <View style={s.heroOverlay} />
-                        <View style={[s.tag, { backgroundColor: promo.tagColor ?? '#e334e3' }]}>
+                        <View style={[s.tag, { backgroundColor: promo.tagColor ?? theme.primary }]}>
                             <Text style={s.tagText}>{promo.tag}</Text>
                         </View>
                         <TouchableOpacity style={s.closeBtn} onPress={handleDismiss}>
@@ -240,7 +240,7 @@ export default function PromoSheet({ promo, onClose }) {
                                     <Text style={[s.productDesc, { color: 'gray' }]} numberOfLines={1}>
                                         {product.description}
                                     </Text>
-                                    <Text style={[s.productPrice, { color: promo.tagColor ?? '#e334e3' }]}>
+                                    <Text style={[s.productPrice, { color: promo.tagColor ?? theme.primary }]}>
                                         {product.price} грн
                                     </Text>
                                 </View>
@@ -248,7 +248,7 @@ export default function PromoSheet({ promo, onClose }) {
                                 <Animated.View style={{ transform: [{ scale: cartAnim }] }}>
                                     {cartQty === 0 ? (
                                         <TouchableOpacity
-                                            style={[s.addBtn, { backgroundColor: promo.tagColor ?? '#e334e3' }]}
+                                            style={[s.addBtn, { backgroundColor: promo.tagColor ?? theme.primary }]}
                                             onPress={handleAdd}
                                             activeOpacity={0.8}
                                         >
@@ -264,7 +264,7 @@ export default function PromoSheet({ promo, onClose }) {
                                             </TouchableOpacity>
                                             <Text style={[s.counterQty, { color: theme.text }]}>{cartQty}</Text>
                                             <TouchableOpacity
-                                                style={[s.counterBtn, { backgroundColor: promo.tagColor ?? '#e334e3' }]}
+                                                style={[s.counterBtn, { backgroundColor: promo.tagColor ?? theme.primary }]}
                                                 onPress={handleAdd}
                                             >
                                                 <Ionicons name="add" size={16} color="white" />
@@ -283,15 +283,15 @@ export default function PromoSheet({ promo, onClose }) {
                                     <TouchableOpacity
                                         style={[s.codeBox, {
                                             backgroundColor: isDark ? '#1e1e1e' : '#fff',
-                                            borderColor: copied ? '#27ae60' : (promo.tagColor ?? '#e334e3'),
+                                            borderColor: copied ? '#27ae60' : (promo.tagColor ?? theme.primary),
                                         }]}
                                         onPress={handleCopyCode}
                                         activeOpacity={0.8}
                                     >
-                                        <Text style={[s.codeText, { color: promo.tagColor ?? '#e334e3' }]}>
+                                        <Text style={[s.codeText, { color: promo.tagColor ?? theme.primary }]}>
                                             {promo.promoCode}
                                         </Text>
-                                        <View style={[s.copyBtn, { backgroundColor: copied ? '#27ae60' : (promo.tagColor ?? '#e334e3') }]}>
+                                        <View style={[s.copyBtn, { backgroundColor: copied ? '#27ae60' : (promo.tagColor ?? theme.primary) }]}>
                                             <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={16} color="white" />
                                             <Text style={s.copyBtnText}>{copied ? 'Скопійовано!' : 'Копіювати'}</Text>
                                         </View>
@@ -310,7 +310,7 @@ export default function PromoSheet({ promo, onClose }) {
 
                         {/* ── CTA ── */}
                         <TouchableOpacity
-                            style={[s.ctaBtn, { backgroundColor: promo.tagColor ?? '#e334e3' }]}
+                            style={[s.ctaBtn, { backgroundColor: promo.tagColor ?? theme.primary }]}
                             onPress={handleGoToStore}
                         >
                             <Ionicons name="storefront-outline" size={18} color="white" style={{ marginRight: 8 }} />

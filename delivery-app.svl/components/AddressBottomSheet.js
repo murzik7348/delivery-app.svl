@@ -161,7 +161,7 @@ export default function AddressBottomSheet({ visible, onClose }) {
                                     handleDismiss();
                                 }}
                             >
-                                <Ionicons name="location-outline" size={20} color="#e334e3" />
+                                <Ionicons name="location-outline" size={20} color={theme.primary} />
                                 <Text style={[styles.addressText, { color: theme.text }]} numberOfLines={2}>
                                     {addr.address}
                                 </Text>
@@ -174,7 +174,7 @@ export default function AddressBottomSheet({ visible, onClose }) {
                     )}
 
                     <TouchableOpacity
-                        style={styles.addBtnAction}
+                        style={[styles.addBtnAction, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
                         onPress={() => {
                             handleDismiss();
                             router.push('/location-picker');
@@ -256,11 +256,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 8,
         marginTop: 15,
-        backgroundColor: '#e334e3',
+        backgroundColor: '#000000',
         borderRadius: 12,
         padding: 12,
         ...Platform.select({
-            ios: { shadowColor: '#e334e3', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+            ios: { shadowColor: '#000000', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
             android: { elevation: 4 }
         })
     },

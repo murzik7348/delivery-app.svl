@@ -170,8 +170,10 @@ client.interceptors.response.use(
                     console.log('✅ [Mobile] Token refresh success:', typeof response.data);
 
                     // Normalize token extraction
-                    const newToken = typeof response.data === 'string' ? response.data : response.data.accessToken;
-                    const newRefreshToken = response.data.refreshToken || refreshToken;
+                    const newToken = typeof response.data === 'string'
+                        ? response.data
+                        : (response.data.accessToken || response.data.token);
+                    const newRefreshToken = response.data.refreshToken || response.data.refresh_token || refreshToken;
 
                     if (newToken) {
                         await saveToken(newToken, newRefreshToken);

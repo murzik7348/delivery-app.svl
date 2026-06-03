@@ -3,9 +3,14 @@ import { useRouter } from 'expo-router';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { safeBack } from '../utils/navigation';
 import * as Haptics from 'expo-haptics';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import Colors from '../constants/Colors';
 
-export default function BackButton({ color = '#e334e3', onPress }) {
+export default function BackButton({ color, onPress }) {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
+  const activeColor = color || theme.text;
   
   const handlePress = () => {
     Haptics.selectionAsync();
@@ -22,7 +27,7 @@ export default function BackButton({ color = '#e334e3', onPress }) {
       activeOpacity={0.7}
       onPress={handlePress}
     >
-      <Ionicons name="arrow-back" size={26} color={color} />
+      <Ionicons name="arrow-back" size={26} color={activeColor} />
     </TouchableOpacity>
   );
 }

@@ -7,7 +7,7 @@ import UIKit
 extension Image {
   static func dynamic(assetNameOrPath: String) -> Self {
     if let container = FileManager.default.containerURL(
-      forSecurityApplicationGroupIdentifier: "group.com.murzik7348.deliveryapp"
+      forSecurityApplicationGroupIdentifier: "group.com.murzik7348.K-and-M"
     ) {
       let contentsOfFile = container.appendingPathComponent(assetNameOrPath).path
 
@@ -24,7 +24,7 @@ extension UIImage {
   /// Attempts to load a UIImage either from the shared app group container or the main bundle.
   static func dynamic(assetNameOrPath: String) -> UIImage? {
     if let container = FileManager.default.containerURL(
-      forSecurityApplicationGroupIdentifier: "group.com.murzik7348.deliveryapp"
+      forSecurityApplicationGroupIdentifier: "group.com.murzik7348.K-and-M"
     ) {
       let contentsOfFile = container.appendingPathComponent(assetNameOrPath).path
       if let uiImage = UIImage(contentsOfFile: contentsOfFile) {

@@ -14,20 +14,22 @@ const getNotifications = () => {
 
 const Notifications = getNotifications();
 
-import { useSelector } from 'react-redux';
+import { store } from '../store';
 import WelcomeScreen from '../components/WelcomeScreen';
 
 export default function Index() {
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
   const [isReady, setIsReady] = useState(false);
-  const isAuthenticated = useSelector(state => state.auth?.isAuthenticated);
 
   useEffect(() => {
     // Crucial fix: Do not try to route anywhere before root layout is completely mounted!
     if (!rootNavigationState?.key) return;
 
     async function checkLaunch() {
+      const state = store.getState();
+      const isAuthenticated = state.auth?.isAuthenticated;
+
       try {
         let response = null;
         if (Notifications && Notifications.getLastNotificationResponseAsync) {
@@ -59,7 +61,7 @@ export default function Index() {
     }
 
     checkLaunch();
-  }, [rootNavigationState?.key, isAuthenticated]);
+  }, [rootNavigationState?.key]);
 
   return <WelcomeScreen />;
 }

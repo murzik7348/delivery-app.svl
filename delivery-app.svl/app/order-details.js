@@ -27,7 +27,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // ──────────────────────────────────────────────────────────────
 // Premium Config & Helpers
 // ──────────────────────────────────────────────────────────────
-const MAGENTA = '#E22BC6';
+const MAGENTA = '#000000'; // updated statically, but inline uses dynamic theme.primary
 const NEON_BLUE = '#34C759';
 
 // Status config aligned with backend DeliveryStatus enum 0-6
@@ -66,7 +66,7 @@ const safeNumber = (val, fallback = 0) => {
 const OrderItem = React.memo(({ item, theme }) => (
   <View style={[styles.itemRowWrapper, { backgroundColor: theme.background }]}>
     <View style={[styles.itemQtyBadge, { backgroundColor: theme.input }]}>
-      <Text style={[styles.itemQtyText, { color: MAGENTA }]}>{item.quantity}x</Text>
+      <Text style={[styles.itemQtyText, { color: theme.primary }]}>{item.quantity}x</Text>
     </View>
     <Text style={[styles.itemNameText, { color: theme.text }]} numberOfLines={2}>
       {item.productName || item.name || 'Товар'}
@@ -425,7 +425,7 @@ export default function OrderDetailsScreen() {
         }}
         title={locale === 'en' ? 'Restaurant' : 'Ресторан'}
       >
-        <View style={styles.mapPin}>
+        <View style={[styles.mapPin, { backgroundColor: theme.primary }]}>
           <Ionicons name="restaurant" size={14} color="white" />
         </View>
       </Marker>
@@ -549,7 +549,7 @@ export default function OrderDetailsScreen() {
               <HorizontalProgressBar currentStep={currentStep} theme={theme} />
               <View style={styles.datesRow}>
                 {order.createdAt && <Text style={styles.dateText}>{formatUkraineDate(order.createdAt, { timeOnly: true })}</Text>}
-                {order.estimatedDeliveryTime && currentStep < 6 && <Text style={[styles.dateText, { color: MAGENTA, fontWeight: 'bold' }]}>{formatUkraineDate(order.estimatedDeliveryTime, { timeOnly: true })}</Text>}
+                {order.estimatedDeliveryTime && currentStep < 6 && <Text style={[styles.dateText, { color: theme.primary, fontWeight: 'bold' }]}>{formatUkraineDate(order.estimatedDeliveryTime, { timeOnly: true })}</Text>}
               </View>
             </View>
 
@@ -626,7 +626,7 @@ export default function OrderDetailsScreen() {
                       { latitude: liveCourierCoords?.latitude || order.restaurantLatitude, longitude: liveCourierCoords?.longitude || order.restaurantLongitude },
                       { latitude: order.customerLatitude, longitude: order.customerLongitude },
                     ]}
-                    strokeColor={MAGENTA}
+                    strokeColor={theme.primary}
                     strokeWidth={3}
                     lineDashPattern={routeCoords.length > 0 ? undefined : [5, 5]}
                   />
@@ -656,7 +656,7 @@ export default function OrderDetailsScreen() {
                 disabled={isConfirming}
                 style={[
                   styles.confirmBtn,
-                  { backgroundColor: MAGENTA, shadowColor: MAGENTA }
+                  { backgroundColor: theme.primary, shadowColor: theme.primary }
                 ]}
               >
                 <Ionicons name="checkmark-done-circle" size={24} color="white" />
@@ -695,7 +695,7 @@ export default function OrderDetailsScreen() {
               <View style={[styles.divider, { backgroundColor: theme.border }]} />
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabelTotal}>{t(locale, 'amount')}</Text>
-                <Text style={styles.summaryTotalVal}>
+                <Text style={[styles.summaryTotalVal, { color: theme.primary }]}>
                   {formatPrice(safeNumber(order.totalPrice ?? order.total))} ₴
                 </Text>
               </View>
@@ -713,7 +713,7 @@ export default function OrderDetailsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  backButton: { marginTop: 15, backgroundColor: MAGENTA, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
+  backButton: { marginTop: 15, backgroundColor: '#000000', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
 
   dynamicHeader: { height: 260, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: 'hidden' },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10 },
@@ -811,7 +811,7 @@ const styles = StyleSheet.create({
   summaryVal: { fontSize: 15, fontWeight: '600' },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 16, opacity: 0.5 },
   summaryLabelTotal: { fontSize: 18, fontWeight: '800', color: '#888' },
-  summaryTotalVal: { fontSize: 26, fontWeight: '900', color: MAGENTA },
+  summaryTotalVal: { fontSize: 26, fontWeight: '900', color: '#000000' },
 
   paidBadge: { backgroundColor: '#2ecc71', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 },
   paidBadgeText: { color: 'white', fontWeight: '800', fontSize: 12, textTransform: 'uppercase' },
@@ -838,7 +838,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: MAGENTA,
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

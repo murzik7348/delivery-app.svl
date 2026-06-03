@@ -203,14 +203,14 @@ export default function ProductSheet({ product, onClose }) {
 
                 {/* Кнопка серця */}
                 <TouchableOpacity
-                    style={[styles.heartBtn, { backgroundColor: isFav ? '#e334e322' : theme.input }]}
+                    style={[styles.heartBtn, { backgroundColor: isFav ? `${theme.primary}22` : theme.input, borderColor: isFav ? `${theme.primary}33` : 'rgba(0,0,0,0.05)' }]}
                     onPress={handleHeart}
                 >
                     <Animated.View style={{ transform: [{ scale: heartScale }] }}>
                         <Ionicons
                             name={isFav ? 'heart' : 'heart-outline'}
                             size={20}
-                            color={isFav ? '#e334e3' : theme.text}
+                            color={isFav ? theme.primary : theme.text}
                         />
                     </Animated.View>
                 </TouchableOpacity>
@@ -232,12 +232,12 @@ export default function ProductSheet({ product, onClose }) {
 
                     {/* Ціна + Controls */}
                     <View style={styles.footer}>
-                        <Text style={styles.price}>{formatPrice(product.price)} ₴</Text>
+                        <Text style={[styles.price, { color: theme.primary }]}>{formatPrice(product.price)} ₴</Text>
 
                         {qty === 0 ? (
                             <Animated.View style={{ transform: [{ scale: btnScale }] }}>
                                 <TouchableOpacity
-                                    style={[styles.addBtn, { backgroundColor: addedFlash ? '#2ecc71' : '#e334e3' }]}
+                                    style={[styles.addBtn, { backgroundColor: addedFlash ? '#2ecc71' : theme.primary, shadowColor: theme.primary }]}
                                     onPress={handleAdd}
                                     activeOpacity={0.85}
                                 >
@@ -253,7 +253,7 @@ export default function ProductSheet({ product, onClose }) {
                                     <Ionicons name="remove" size={18} color={theme.text} />
                                 </TouchableOpacity>
                                 <Text style={[styles.counterQty, { color: theme.text }]}>{qty}</Text>
-                                <TouchableOpacity style={[styles.counterBtn, { backgroundColor: '#e334e3' }]} onPress={handleAdd}>
+                                <TouchableOpacity style={[styles.counterBtn, { backgroundColor: theme.primary }]} onPress={handleAdd}>
                                     <Ionicons name="add" size={18} color="white" />
                                 </TouchableOpacity>
                             </View>
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 10,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(227, 52, 227, 0.2)',
+        borderColor: 'rgba(0,0,0,0.05)',
     },
     image: {
         width: '100%',
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     price: {
         fontSize: 26,
         fontWeight: '900',
-        color: '#e334e3',
+        color: '#000000',
         letterSpacing: -0.5,
     },
     addBtn: {
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         borderRadius: 18,
         ...Platform.select({
-            ios: { shadowColor: '#e334e3', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+            ios: { shadowColor: '#000000', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
             android: { elevation: 6 }
         })
     },

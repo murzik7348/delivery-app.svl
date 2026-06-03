@@ -3,7 +3,7 @@ const fs = require('fs-extra');
 const path = require('path');
 
 const OLD_APP_GROUP_ID = 'group.expoLiveActivity.sharedData';
-const APP_GROUP_ID = 'group.com.murzik7348.deliveryapp';
+const APP_GROUP_ID = 'group.com.murzik7348.K-and-M';
 
 /**
  * Ensures the App Group entitlement is added to the provided entitlements object.

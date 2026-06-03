@@ -65,7 +65,7 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
           <View style={styles.actions}>
             {qty === 0 ? (
               <TouchableOpacity
-                style={styles.addButton}
+                style={[styles.addButton, { backgroundColor: theme.primary }]}
                 onPress={handleAddToCart}
                 activeOpacity={0.8}
               >
@@ -82,7 +82,7 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
                 </TouchableOpacity>
                 <Text style={[styles.counterText, { color: theme.text }]}>{qty}</Text>
                 <TouchableOpacity
-                  style={[styles.counterBtn, { backgroundColor: '#e334e3' }]}
+                  style={[styles.counterBtn, { backgroundColor: theme.primary }]}
                   onPress={handleAddToCart}
                 >
                   <Ionicons name="add" size={16} color="white" />
@@ -94,7 +94,7 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
 
         {/* Серце */}
         <TouchableOpacity
-          style={[styles.heartBtn, { backgroundColor: isFavProd ? '#e334e322' : theme.input }]}
+          style={[styles.heartBtn, { backgroundColor: isFavProd ? `${theme.primary}22` : theme.input }]}
           onPress={() => {
             Haptics.selectionAsync();
             onToggleFav(product.product_id);
@@ -104,7 +104,7 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
           <Ionicons
             name={isFavProd ? 'heart' : 'heart-outline'}
             size={20}
-            color={isFavProd ? '#e334e3' : 'gray'}
+            color={isFavProd ? theme.primary : 'gray'}
           />
         </TouchableOpacity>
       </Animated.View>
@@ -180,8 +180,8 @@ export default function RestaurantScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#e334e3"
-            colors={["#e334e3"]}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
           />
         }
       >
@@ -264,7 +264,7 @@ export default function RestaurantScreen() {
       {/* Плаваюча кнопка Кошика */}
       {totalAmount > 0 && (
         <View style={styles.floatingCartContainer}>
-          <TouchableOpacity style={styles.viewCartBtn} onPress={() => router.push('/cart')}>
+          <TouchableOpacity style={[styles.viewCartBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]} onPress={() => router.push('/cart')}>
             <Text style={styles.viewCartText}>{locale === 'en' ? 'To cart:' : 'У кошик:'} {formatPrice(totalAmount)} {locale === 'en' ? 'UAH' : 'грн'}</Text>
           </TouchableOpacity>
         </View>
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e334e3',
+    backgroundColor: '#000000',
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 12,
@@ -393,6 +393,6 @@ const styles = StyleSheet.create({
   },
 
   floatingCartContainer: { position: 'absolute', bottom: 30, width: '100%', paddingHorizontal: 20 },
-  viewCartBtn: { backgroundColor: '#e334e3', padding: 16, borderRadius: 16, alignItems: 'center', shadowColor: "#e334e3", shadowOpacity: 0.5, shadowRadius: 10, elevation: 10 },
+  viewCartBtn: { backgroundColor: '#000000', padding: 16, borderRadius: 16, alignItems: 'center', shadowColor: '#000000', shadowOpacity: 0.5, shadowRadius: 10, elevation: 10 },
   viewCartText: { color: 'white', fontWeight: 'bold', fontSize: 18 }
 });

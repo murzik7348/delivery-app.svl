@@ -100,7 +100,7 @@ export default function SearchScreen() {
           <Text style={[styles.productName, { color: theme.text }]} numberOfLines={2}>
             {item.name}
           </Text>
-          <Text style={styles.productPrice}>{formatPrice(item.price)} ₴</Text>
+          <Text style={[styles.productPrice, { color: theme.primary }]}>{formatPrice(item.price)} ₴</Text>
         </View>
         <TouchableOpacity
           onPress={handleAdd}
@@ -111,7 +111,7 @@ export default function SearchScreen() {
             style={[
               styles.addBtn,
               {
-                backgroundColor: added ? '#2ecc71' : '#e334e3',
+                backgroundColor: added ? '#2ecc71' : theme.primary,
                 transform: [{ scale: scaleAnim }],
               },
             ]}
@@ -254,8 +254,8 @@ export default function SearchScreen() {
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
-                  tintColor="#e334e3"
-                  colors={["#e334e3"]}
+                  tintColor={theme.primary}
+                  colors={[theme.primary]}
                 />
               }
               renderItem={({ item }) => {
@@ -363,16 +363,16 @@ const styles = StyleSheet.create({
   productImg: { width: 72, height: 72, borderRadius: 16, backgroundColor: '#eee' },
   productInfo: { flex: 1, marginLeft: 14 },
   productName: { fontSize: 16, fontWeight: '600', marginBottom: 6, lineHeight: 20 },
-  productPrice: { color: '#e334e3', fontWeight: 'bold', fontSize: 15 },
+  productPrice: { color: '#000000', fontWeight: 'bold', fontSize: 15 },
   addBtn: {
     width: 38,
     height: 38,
     borderRadius: 14,
-    backgroundColor: '#e334e3',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
-    shadowColor: '#e334e3',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,

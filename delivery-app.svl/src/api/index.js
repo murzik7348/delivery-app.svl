@@ -11,6 +11,7 @@ export {
     getMe,
     logout,
     updatePushToken,
+    sendTestPushNotification,
     uploadAvatar,
 } from './auth';
 
@@ -48,6 +49,7 @@ export {
     courierPickupDelivery,
     courierConfirmDelivery,
     courierSetOnlineStatus,
+    getCourierShiftStatus,
     courierUpdateLocation,
 } from './courier';
 

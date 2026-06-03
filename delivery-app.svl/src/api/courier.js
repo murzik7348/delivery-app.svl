@@ -74,9 +74,19 @@ export const courierConfirmDelivery = (id) =>
  * @param {boolean} isOnline 
  */
 export const courierSetOnlineStatus = async (isOnline) => {
-    // Note: Endpoint /courier/status does not exist on backend.
-    // Online status is managed purely client-side to prevent 404 warnings.
+    if (isOnline) {
+        await client.post('/courier/shift/start', {});
+    } else {
+        await client.post('/courier/shift/end', {});
+    }
     return { success: true, isOnline };
+};
+
+/**
+ * Get the courier's current shift status.
+ */
+export const getCourierShiftStatus = async () => {
+    return client.get('/courier/shift/status');
 };
 
 /**
@@ -86,10 +96,11 @@ export const courierSetOnlineStatus = async (isOnline) => {
  */
 export const courierUpdateLocation = async (latitude, longitude) => {
     try {
-        return await client.post('/courier/deliveries/location', { lat: latitude, lng: longitude }, { _silentErrors: [404], _quiet: true, _skipLogout: true });
+        const updatedAt = new Date().toISOString();
+        return await client.post('/courier/location', { lat: latitude, lng: longitude, updatedAt }, { _silentErrors: [404], _quiet: true, _skipLogout: true });
     } catch (err) {
         if (err.status === 404) {
-            console.warn('⚠️ [CourierAPI] Endpoint /courier/deliveries/location not found on backend. Skipping location update.');
+            console.warn('⚠️ [CourierAPI] Endpoint /courier/location not found on backend. Skipping location update.');
             return null;
         }
         throw err;

@@ -209,8 +209,8 @@ export default function AiChatSheet() {
         const isUser = item.role === 'user';
         return (
             <View style={{ marginBottom: 16 }}>
-                <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble, { backgroundColor: isUser ? '#e334e3' : (isDark ? '#2C2C2E' : '#E5E5EA') }]}>
-                    {!isUser && <Ionicons name="sparkles" size={14} color={isDark ? '#e334e3' : '#FF2D55'} style={{ marginBottom: 4 }} />}
+                <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble, { backgroundColor: isUser ? theme.primary : (isDark ? '#2C2C2E' : '#E5E5EA') }]}>
+                    {!isUser && <Ionicons name="sparkles" size={14} color={isDark ? theme.primary : '#FF2D55'} style={{ marginBottom: 4 }} />}
                     <Text style={[styles.messageText, { color: isUser ? 'white' : (isDark ? 'white' : 'black') }]}>
                         {item.text}
                     </Text>
@@ -235,8 +235,8 @@ export default function AiChatSheet() {
                                     <Text style={[styles.gridCardTitle, { color: theme.text }]} numberOfLines={1}>
                                         {product.name}
                                     </Text>
-                                    <Text style={[styles.gridCardPrice, { color: '#e334e3' }]}>{product.price} ₴</Text>
-                                    <View style={styles.gridAddBtn}>
+                                    <Text style={[styles.gridCardPrice, { color: theme.primary }]}>{product.price} ₴</Text>
+                                    <View style={[styles.gridAddBtn, { backgroundColor: theme.primary }]}>
                                         <Ionicons name="add" size={20} color="white" />
                                     </View>
                                 </View>
@@ -298,7 +298,7 @@ export default function AiChatSheet() {
 
                     <View style={styles.header}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Ionicons name="sparkles" size={20} color="#e334e3" />
+                            <Ionicons name="sparkles" size={20} color={theme.primary} />
                             <Text style={[styles.title, { color: isDark ? 'white' : 'black' }]}>AI Помічник</Text>
                         </View>
                         <TouchableOpacity onPress={handleDismiss} style={styles.closeBtn}>
@@ -338,7 +338,7 @@ export default function AiChatSheet() {
                             returnKeyType="send"
                         />
                         <TouchableOpacity
-                            style={[styles.sendBtn, { backgroundColor: inputText.trim() ? '#e334e3' : 'gray' }]}
+                            style={[styles.sendBtn, { backgroundColor: inputText.trim() ? theme.primary : 'gray' }]}
                             onPress={handleSend}
                             disabled={!inputText.trim() || isTyping}
                         >
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     gridCardPrice: {
-        color: '#e334e3',
+        color: '#000000',
         fontWeight: 'bold',
         fontSize: 16,
     },
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         right: 0,
-        backgroundColor: '#e334e3',
+        backgroundColor: '#000000',
         padding: 8,
         borderTopLeftRadius: 10,
         borderBottomRightRadius: 16,

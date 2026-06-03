@@ -52,7 +52,7 @@ export default function LanguageScreen() {
                             style={[
                                 s.langItem,
                                 { backgroundColor: theme.card },
-                                isSelected && s.langItemActive,
+                                isSelected && [s.langItemActive, { borderColor: theme.primary }],
                             ]}
                             onPress={() => setSelected(lang.code)}
                             activeOpacity={0.8}
@@ -62,15 +62,15 @@ export default function LanguageScreen() {
                                 <Text style={[s.langLabel, { color: theme.text }]}>{lang.label}</Text>
                                 <Text style={[s.langSub, { color: 'gray' }]}>{lang.sub}</Text>
                             </View>
-                            <View style={[s.radio, isSelected && s.radioActive]}>
-                                {isSelected && <View style={s.radioDot} />}
+                            <View style={[s.radio, isSelected && [s.radioActive, { borderColor: theme.primary }]]}>
+                                {isSelected && <View style={[s.radioDot, { backgroundColor: theme.primary }]} />}
                             </View>
                         </TouchableOpacity>
                     );
                 })}
             </View>
 
-            <TouchableOpacity style={s.saveBtn} onPress={handleSave} activeOpacity={0.85}>
+            <TouchableOpacity style={[s.saveBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]} onPress={handleSave} activeOpacity={0.85}>
                 <Text style={s.saveBtnText}>{t(locale, 'save')}</Text>
             </TouchableOpacity>
         </SafeAreaView>
@@ -96,7 +96,7 @@ const s = StyleSheet.create({
         padding: 16, borderRadius: 16,
         borderWidth: 2, borderColor: 'transparent',
     },
-    langItemActive: { borderColor: '#e334e3' },
+    langItemActive: { borderColor: '#000000' },
     flag: { fontSize: 36, marginRight: 14 },
     langText: { flex: 1 },
     langLabel: { fontSize: 17, fontWeight: '700' },
@@ -107,17 +107,17 @@ const s = StyleSheet.create({
         borderWidth: 2, borderColor: 'gray',
         justifyContent: 'center', alignItems: 'center',
     },
-    radioActive: { borderColor: '#e334e3' },
+    radioActive: { borderColor: '#000000' },
     radioDot: {
         width: 12, height: 12, borderRadius: 6,
-        backgroundColor: '#e334e3',
+        backgroundColor: '#000000',
     },
 
     saveBtn: {
         margin: 20, marginTop: 'auto',
-        backgroundColor: '#e334e3', height: 54, borderRadius: 16,
+        backgroundColor: '#000000', height: 54, borderRadius: 16,
         justifyContent: 'center', alignItems: 'center',
-        shadowColor: '#e334e3', shadowOpacity: 0.4, shadowRadius: 14,
+        shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 14,
         shadowOffset: { width: 0, height: 5 }, elevation: 8,
     },
     saveBtnText: { color: 'white', fontWeight: '800', fontSize: 16 },

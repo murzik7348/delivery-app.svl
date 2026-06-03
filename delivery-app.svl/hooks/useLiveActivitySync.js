@@ -81,7 +81,7 @@ export default function useLiveActivitySync() {
                     backgroundColor: '#000000',
                     titleColor: '#FFFFFF',
                     subtitleColor: '#AAAAAA',
-                    progressViewTint: '#e334e3',
+                    progressViewTint: '#000000',
                 };
 
                 const startNew = () => {

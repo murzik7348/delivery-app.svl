@@ -26,6 +26,7 @@ import {
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
+import { setBottomBarVisible } from '../store/uiSlice';
 import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import {
@@ -57,7 +58,7 @@ const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.62;
 const MAX_TRANS = EXPANDED_HEIGHT - COLLAPSED_HEIGHT;
 const MIN_TRANS = 0;
 
-const NEON = '#e334e3';
+const NEON = '#000000'; // fallback, replaced inline
 
 /** Parse any value safely — never returns NaN. */
 const safeNum = (v) => {
@@ -99,7 +100,7 @@ function DeliveryProgressBar({ progress, amountToFreeDelivery, locale, theme }) 
           style={[
             progressStyles.fill,
             {
-              backgroundColor: isFree ? '#22c55e' : NEON,
+              backgroundColor: isFree ? '#22c55e' : theme.primary,
               width: anim.interpolate({
                 inputRange: [0, 1],
                 outputRange: ['0%', '100%'],
@@ -124,12 +125,14 @@ const progressStyles = StyleSheet.create({
 // Modifier chips (Feature 2)
 // ─────────────────────────────────────────────────────────────────────────────
 function ModifierChips({ modifiers }) {
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
   if (!modifiers || modifiers.length === 0) return null;
   return (
     <View style={chipStyles.row}>
       {modifiers.map((m, i) => (
-        <View key={i} style={chipStyles.chip}>
-          <Text style={chipStyles.text}>
+        <View key={i} style={[chipStyles.chip, { borderColor: theme.primary, backgroundColor: `${theme.primary}10` }]}>
+          <Text style={[chipStyles.text, { color: theme.primary }]}>
             {m.price >= 0 ? '+' : '−'} {m.name}
           </Text>
         </View>
@@ -142,13 +145,13 @@ const chipStyles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 5, gap: 4 },
   chip: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: NEON,
+    borderColor: '#000000',
     borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 2,
     backgroundColor: 'rgba(227,52,227,0.08)',
   },
-  text: { fontSize: 10, color: NEON, fontWeight: '600' },
+  text: { fontSize: 10, color: '#000000', fontWeight: '600' },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -161,6 +164,23 @@ export default function CartScreen() {
   const theme = Colors[colorScheme ?? 'light'];
   const locale = useSelector((s) => s.language?.locale ?? 'uk');
   const insets = useSafeAreaInsets();
+
+  const lastScrollY = useRef(0);
+  const handleScroll = (event) => {
+    const currentOffset = event.nativeEvent.contentOffset.y;
+    const isScrollingDown = currentOffset > lastScrollY.current;
+    
+    if (Math.abs(currentOffset - lastScrollY.current) > 15) {
+      if (currentOffset <= 0) {
+        dispatch(setBottomBarVisible(true));
+      } else if (isScrollingDown && currentOffset > 100) {
+        dispatch(setBottomBarVisible(false));
+      } else {
+        dispatch(setBottomBarVisible(true));
+      }
+      lastScrollY.current = currentOffset;
+    }
+  };
 
   const { initiateCheckout, processActualCheckout, isLoading } =
     useCheckoutFlow();
@@ -214,7 +234,19 @@ export default function CartScreen() {
     : { name: t(locale, 'choosePayment'), icon: 'card-outline' };
 
   const recommendations = products
-    .filter((p) => !cartItems.find((i) => resolveId(i) === p.product_id))
+    .filter((p) => {
+      // Avoid recommending items already in the cart
+      const isAlreadyInCart = cartItems.some((i) => resolveId(i) === p.product_id);
+      if (isAlreadyInCart) return false;
+
+      // Filter recommendations by the restaurant currently in the cart
+      if (cartItems.length > 0) {
+        const currentStoreId = Number(cartItems[0].store_id || cartItems[0].restaurantId);
+        const productStoreId = Number(p.store_id || p.restaurantId);
+        return currentStoreId === productStoreId;
+      }
+      return true;
+    })
     .slice(0, 6);
 
   // ── Bottom sheet animation ─────────────────────────────────────────────────
@@ -271,6 +303,11 @@ export default function CartScreen() {
 
   const snapTo = useCallback(
     (toValue) => {
+      if (toValue === MIN_TRANS) {
+        dispatch(setBottomBarVisible(false));
+      } else {
+        dispatch(setBottomBarVisible(true));
+      }
       Animated.timing(translateY, {
         toValue,
         duration: 420,
@@ -278,7 +315,7 @@ export default function CartScreen() {
         useNativeDriver: true,
       }).start();
     },
-    [translateY]
+    [translateY, dispatch]
   );
 
   const toggleCartSheet = () => {
@@ -393,7 +430,7 @@ export default function CartScreen() {
             </Text>
             {/* Feature 2: modifier chips */}
             <ModifierChips modifiers={item.modifiers} />
-            <Text style={styles.itemPrice}>{formatPrice(unitPrice)} ₴</Text>
+            <Text style={[styles.itemPrice, { color: theme.primary }]}>{formatPrice(unitPrice)} ₴</Text>
           </View>
         </TouchableOpacity>
 
@@ -403,7 +440,7 @@ export default function CartScreen() {
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             onPress={() => handleDecrement(item)}
           >
-            <Ionicons name="remove-circle" size={32} color={NEON} />
+            <Ionicons name="remove-circle" size={32} color={theme.primary} />
           </TouchableOpacity>
 
           <Text style={[styles.stepperQty, { color: theme.text }]}>{item.quantity}</Text>
@@ -415,7 +452,7 @@ export default function CartScreen() {
               dispatch(updateQuantity({ cartKey: item.cartKey, quantity: item.quantity + 1 }));
             }}
           >
-            <Ionicons name="add-circle" size={32} color={NEON} />
+            <Ionicons name="add-circle" size={32} color={theme.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -429,10 +466,10 @@ export default function CartScreen() {
         <Text style={[styles.recName, { color: theme.text }]} numberOfLines={1}>
           {item.name}
         </Text>
-        <Text style={styles.recPrice}>{formatPrice(safeNum(item.price))} ₴</Text>
+        <Text style={[styles.recPrice, { color: theme.primary }]}>{formatPrice(safeNum(item.price))} ₴</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={styles.recAddBtn}
+        style={[styles.recAddBtn, { backgroundColor: theme.primary }]}
         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -456,7 +493,23 @@ export default function CartScreen() {
         {cartItems.length > 0 && (
           <TouchableOpacity onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            dispatch(clearCart());
+            Alert.alert(
+              locale === 'en' ? 'Clear cart?' : 'Очистити кошик?',
+              locale === 'en'
+                ? 'Are you sure you want to remove all items from your cart?'
+                : 'Ви впевнені, що хочете видалити всі товари з кошика?',
+              [
+                { text: locale === 'en' ? 'Cancel' : 'Скасувати', style: 'cancel' },
+                {
+                  text: locale === 'en' ? 'Clear' : 'Очистити',
+                  style: 'destructive',
+                  onPress: () => {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+                    dispatch(clearCart());
+                  },
+                },
+              ]
+            );
           }}>
             <Text style={styles.clearBtn}>{t(locale, 'clearCart')}</Text>
           </TouchableOpacity>
@@ -491,6 +544,8 @@ export default function CartScreen() {
       {cartItems.length > 0 ? (
         <>
           <FlatList
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
             data={cartItems}
             renderItem={renderCartItem}
             keyExtractor={(item, idx) => item.cartKey ?? (resolveId(item) ?? idx).toString()}
@@ -502,8 +557,8 @@ export default function CartScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor="#e334e3"
-                colors={["#e334e3"]}
+                tintColor={theme.primary}
+                colors={[theme.primary]}
               />
             }
             ListFooterComponent={
@@ -606,6 +661,7 @@ export default function CartScreen() {
               <TouchableOpacity
                 style={[
                   styles.checkoutBtn,
+                  { backgroundColor: theme.primary },
                   (!isMinOrderMet || isLoading || isOffline) && styles.checkoutBtnDisabled,
                 ]}
                 activeOpacity={isMinOrderMet && !isLoading && !isOffline ? 0.85 : 1}
@@ -681,7 +737,7 @@ export default function CartScreen() {
                 onPress={() => router.push('/promocodes')}
               >
                 <View style={styles.actionRowLeft}>
-                  <Ionicons name="ticket-outline" size={20} color={NEON} />
+                  <Ionicons name="ticket-outline" size={20} color={theme.primary} />
                   <Text style={[styles.actionRowText, { color: theme.text }]}>
                     {appliedPromo ? appliedPromo.code : t(locale, 'promoCode')}
                   </Text>
@@ -693,7 +749,7 @@ export default function CartScreen() {
               {deliveryType === 'delivery' && (
                 isAddressMissing ? (
                   <TouchableOpacity
-                    style={[styles.checkoutBtn, { backgroundColor: NEON, marginBottom: 12, borderStyle: 'dashed', borderWidth: 1, borderColor: 'white' }]}
+                    style={[styles.checkoutBtn, { backgroundColor: theme.primary, marginBottom: 12, borderStyle: 'dashed', borderWidth: 1, borderColor: 'white' }]}
                     activeOpacity={0.8}
                     onPress={() => router.push('/location-picker')}
                   >
@@ -717,7 +773,7 @@ export default function CartScreen() {
                         {userAddress}
                       </Text>
                     </View>
-                    <Text style={styles.changeText}>{t(locale, 'change')}</Text>
+                    <Text style={[styles.changeText, { color: theme.primary }]}>{t(locale, 'change')}</Text>
                   </TouchableOpacity>
                 )
               )}
@@ -747,7 +803,7 @@ export default function CartScreen() {
                       setNoteVisible(true);
                     }}
                   >
-                    <Text style={styles.addNoteText}>{t(locale, 'addComment')}</Text>
+                    <Text style={[styles.addNoteText, { color: theme.primary }]}>{t(locale, 'addComment')}</Text>
                   </TouchableOpacity>
                 ) : (
                   <View style={[styles.noteBox, { backgroundColor: theme.input }]}>
@@ -819,14 +875,14 @@ export default function CartScreen() {
                   </Text>
                   {cartItems.find((i) => resolveId(i) === resolveId(viewProduct)) ? (
                     <TouchableOpacity
-                      style={styles.productSheetBtn}
+                      style={[styles.productSheetBtn, { backgroundColor: theme.primary }]}
                       onPress={() => setViewProduct(null)}
                     >
                       <Text style={styles.productSheetBtnText}>Зрозуміло</Text>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
-                      style={styles.productSheetBtn}
+                      style={[styles.productSheetBtn, { backgroundColor: theme.primary }]}
                       onPress={() => {
                         dispatch(tryAddToCart({ ...viewProduct }));
                         setViewProduct(null);
@@ -899,7 +955,7 @@ const styles = StyleSheet.create({
   itemImage: { width: 66, height: 66, borderRadius: 16, backgroundColor: '#eee' },
   itemInfo: { flex: 1, marginLeft: 12 },
   itemName: { fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  itemPrice: { color: NEON, fontWeight: 'bold', marginTop: 4 },
+  itemPrice: { color: '#000000', fontWeight: 'bold', marginTop: 4 },
 
   stepper: { flexDirection: 'row', alignItems: 'center' },
   stepperQty: { marginHorizontal: 10, fontSize: 18, fontWeight: 'bold' },
@@ -921,12 +977,12 @@ const styles = StyleSheet.create({
   },
   recImage: { width: 100, height: 78, borderRadius: 12, marginBottom: 7, backgroundColor: '#eee' },
   recName: { fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 2 },
-  recPrice: { color: NEON, fontWeight: 'bold', fontSize: 12, marginBottom: 4 },
+  recPrice: { color: '#000000', fontWeight: 'bold', fontSize: 12, marginBottom: 4 },
   recAddBtn: {
     position: 'absolute',
     bottom: 8,
     right: 8,
-    backgroundColor: NEON,
+    backgroundColor: '#000000',
     borderRadius: 14,
     width: 28,
     height: 28,
@@ -978,7 +1034,7 @@ const styles = StyleSheet.create({
   totalValue: { fontSize: 26, fontWeight: 'bold' },
 
   checkoutBtn: {
-    backgroundColor: NEON,
+    backgroundColor: '#000000',
     borderRadius: 18,
     padding: 16,
     alignItems: 'center',
@@ -1020,9 +1076,9 @@ const styles = StyleSheet.create({
   },
   actionRowLeft: { flexDirection: 'row', alignItems: 'center' },
   actionRowText: { fontSize: 14, fontWeight: '600', marginLeft: 10 },
-  changeText: { color: NEON, fontSize: 13, fontWeight: '600' },
+  changeText: { color: '#000000', fontSize: 13, fontWeight: '600' },
 
-  addNoteText: { color: NEON, fontWeight: 'bold', paddingVertical: 6 },
+  addNoteText: { color: '#000000', fontWeight: 'bold', paddingVertical: 6 },
   noteBox: { borderRadius: 14, padding: 12 },
   noteInput: { fontSize: 14, maxHeight: 70, lineHeight: 20, paddingVertical: 0, textAlignVertical: 'top' },
 
@@ -1060,7 +1116,7 @@ const styles = StyleSheet.create({
   productSheetPrice: { fontSize: 22, fontWeight: 'bold', color: NEON },
   productSheetDesc: { fontSize: 15, marginTop: 8, marginBottom: 24, lineHeight: 23 },
   productSheetBtn: {
-    backgroundColor: NEON,
+    backgroundColor: '#000000',
     padding: 16,
     borderRadius: 18,
     alignItems: 'center',

@@ -350,6 +350,28 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
         Linking.openURL(url).catch(() => Alert.alert('Error', 'Could not open maps.'));
     };
 
+    const openRouteInMaps = (order) => {
+        const restaurantLat = order.restaurantLatitude;
+        const restaurantLng = order.restaurantLongitude;
+        const customerLat = order.customerLatitude;
+        const customerLng = order.customerLongitude;
+
+        if (!restaurantLat || !restaurantLng || !customerLat || !customerLng) {
+            Alert.alert('Error', 'Coordinates not available.');
+            return;
+        }
+
+        const url = Platform.select({
+            ios: `http://maps.apple.com/?saddr=Current+Location&daddr=${restaurantLat},${restaurantLng}&daddr=${customerLat},${customerLng}`,
+            android: `https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}&waypoints=${restaurantLat},${restaurantLng}&travelmode=driving`
+        });
+
+        Linking.openURL(url).catch(() => {
+            Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${customerLat},${customerLng}&waypoints=${restaurantLat},${restaurantLng}&travelmode=driving`)
+                .catch(() => Alert.alert('Error', 'Could not open maps.'));
+        });
+    };
+
     const doAccept = async () => {
         setSubmitting(true);
         const res = await dispatch(courierAcceptOrderThunk(liveOrder.id));
@@ -597,7 +619,11 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                         </View>
 
                         {liveOrder.restaurantLatitude && liveOrder.customerLatitude && (
-                            <View style={[s.mapWrap, { borderColor: theme.border }]}>
+                            <TouchableOpacity
+                                style={[s.mapWrap, { borderColor: theme.border }]}
+                                onPress={() => openRouteInMaps(liveOrder)}
+                                activeOpacity={0.9}
+                            >
                                 <MapView
                                     ref={mapRef}
                                     style={StyleSheet.absoluteFillObject}
@@ -627,7 +653,13 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                                         strokeColor={theme.primary} strokeWidth={2.5}
                                     />
                                 </MapView>
-                            </View>
+                                <View style={s.mapOverlayBtn}>
+                                    <Ionicons name="navigate-outline" size={14} color="#fff" />
+                                    <Text style={s.mapOverlayBtnText}>
+                                        {locale === 'en' ? 'Open Route' : 'Відкрити маршрут'}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
                         )}
 
                         {/* Status Journey */}
@@ -773,6 +805,23 @@ const s = StyleSheet.create({
         })
     },
     pin: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
+    mapOverlayBtn: {
+        position: 'absolute',
+        bottom: 12,
+        right: 12,
+        backgroundColor: 'rgba(0,0,0,0.65)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        gap: 4,
+    },
+    mapOverlayBtnText: {
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: '700',
+    },
 
     // Status chip
     statusChip: {

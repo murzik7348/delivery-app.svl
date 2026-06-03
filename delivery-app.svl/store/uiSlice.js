@@ -12,6 +12,7 @@ const initialState = {
         type: 'success', // 'success', 'error', 'info'
     },
     isOffline: false,
+    bottomBarVisible: true,
 };
 
 const uiSlice = createSlice({
@@ -39,8 +40,11 @@ const uiSlice = createSlice({
         setOffline: (state, action) => {
             state.isOffline = action.payload;
         },
+        setBottomBarVisible: (state, action) => {
+            state.bottomBarVisible = action.payload;
+        },
     },
 });
 
-export const { setLoading, setTheme, showDynamicIsland, hideDynamicIsland, setOffline } = uiSlice.actions;
+export const { setLoading, setTheme, showDynamicIsland, hideDynamicIsland, setOffline, setBottomBarVisible } = uiSlice.actions;
 export default uiSlice.reducer;

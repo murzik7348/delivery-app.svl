@@ -438,6 +438,12 @@ class OrderService {
                     // Not available
                 }
                 if (LocationApi && LocationApi.reverseGeocodeAsync) {
+                    if (LocationApi.getForegroundPermissionsAsync) {
+                        const { status } = await LocationApi.getForegroundPermissionsAsync();
+                        if (status !== 'granted') {
+                            return order;
+                        }
+                    }
                     const results = await LocationApi.reverseGeocodeAsync({
                         latitude: order.customerLatitude,
                         longitude: order.customerLongitude

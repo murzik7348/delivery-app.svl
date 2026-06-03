@@ -61,7 +61,13 @@ export default function CourierDeliveryScreen() {
                 <Text style={[s.headerTitle, { color: theme.text }]}>
                     {locale === 'en' ? 'Courier Panel' : 'Панель кур\'єра'}
                 </Text>
-                <View style={{ width: 44 }} />
+                <TouchableOpacity 
+                    style={s.statsBtn} 
+                    onPress={() => router.push('/courier-earnings')}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="calendar-outline" size={24} color={theme.text} />
+                </TouchableOpacity>
             </View>
 
             <View style={s.body}>
@@ -82,6 +88,12 @@ const s = StyleSheet.create({
         padding: 20,
     },
     headerTitle: { fontSize: 20, fontWeight: 'bold' },
+    statsBtn: {
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     body: { flex: 1, paddingHorizontal: 16 },
 
     accessCard: {

@@ -147,14 +147,14 @@ export default function CartBottomSheet({
 
            {safeDiscount > 0 && (
              <View style={styles.detailRow}>
-               <Text style={{ color: '#e334e3', fontSize: 16 }}>Знижка</Text>
-               <Text style={{ color: '#e334e3', fontSize: 16 }}>- {formatPrice(safeDiscount)} ₴</Text>
+               <Text style={{ color: theme.primary, fontSize: 16 }}>Знижка</Text>
+               <Text style={{ color: theme.primary, fontSize: 16 }}>- {formatPrice(safeDiscount)} ₴</Text>
              </View>
            )}
 
            <TouchableOpacity style={styles.menuItem} onPress={onOpenPromo} activeOpacity={0.7}>
              <View style={{flexDirection:'row', alignItems:'center', gap: 10}}>
-                <Ionicons name="ticket-outline" size={24} color="#e334e3" />
+                <Ionicons name="ticket-outline" size={24} color={theme.primary} />
                 <Text style={styles.menuText}>{appliedPromo ? appliedPromo.code : 'Промокод'}</Text>
              </View>
              <Ionicons name="chevron-forward" size={20} color="gray" />
@@ -166,7 +166,7 @@ export default function CartBottomSheet({
                   <Ionicons name="location-outline" size={24} color="white" />
                   <Text style={styles.menuText} numberOfLines={1}>{userAddress}</Text>
                </View>
-               <Text style={{color: '#e334e3', fontSize: 12}}>Змінити</Text>
+               <Text style={{color: theme.primary, fontSize: 12}}>Змінити</Text>
              </TouchableOpacity>
            )}
 
@@ -181,7 +181,7 @@ export default function CartBottomSheet({
            <View style={{ marginTop: 15, paddingBottom: 20 }}>
              {!isNoteVisible && !orderNote ? (
                <TouchableOpacity onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setIsNoteVisible(true); }}>
-                   <Text style={{ color: '#e334e3', fontWeight: 'bold' }}>+ Коментар до замовлення</Text>
+                   <Text style={{ color: theme.primary, fontWeight: 'bold' }}>+ Коментар до замовлення</Text>
                </TouchableOpacity>
              ) : (
                <View style={styles.noteContainer}>
