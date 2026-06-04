@@ -12,7 +12,7 @@ import { setBottomBarVisible } from '../store/uiSlice';
 
 function CartBadge({ color, focused, count }) {
   const colorScheme = useColorScheme();
-  const badgeBg = colorScheme === 'dark' ? '#ffffff' : '#000000';
+  const badgeBg = '#e334e3';
   return (
     <View style={styles.iconContainer}>
       <Ionicons name={focused ? 'cart' : 'cart-outline'} size={24} color={color} />

@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { useColorScheme } from '../hooks/use-color-scheme';
+import Colors from '../constants/Colors';
 import {
   Alert,
   Platform,
