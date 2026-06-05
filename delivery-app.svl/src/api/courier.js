@@ -97,7 +97,7 @@ export const getCourierShiftStatus = async () => {
 export const courierUpdateLocation = async (latitude, longitude) => {
     try {
         const updatedAt = new Date().toISOString();
-        return await client.post('/courier/location', { lat: latitude, lng: longitude, updatedAt }, { _silentErrors: [404], _quiet: true, _skipLogout: true });
+        return await client.post('/courier/location', { lat: latitude, lng: longitude, updatedAt }, { _silentErrors: [404], _quiet: false, _skipLogout: true });
     } catch (err) {
         if (err.status === 404) {
             console.warn('⚠️ [CourierAPI] Endpoint /courier/location not found on backend. Skipping location update.');

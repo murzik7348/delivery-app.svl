@@ -6,6 +6,7 @@ import { createDelivery, getMyDeliveries, getAddresses } from '../src/api';
 class OrderService {
     static geocodeCache = new Map();
     static geocodeFailed = new Map();
+    static globalGeocodePauseUntil = 0;
 
     /**
      * Creates a new delivery order on the backend.
@@ -239,7 +240,7 @@ class OrderService {
             item.address?.lng || 
             item.address?.Lng || 
             item.customerAddress?.longitude || 
-            item.customerAddress?.Longitude || 
+            item.customerAddress?.Latitude || 
             item.customerAddress?.lng || 
             item.customerAddress?.Lng || 
             item.deliveryAddress?.longitude || 
@@ -430,6 +431,11 @@ class OrderService {
                 }
             }
 
+            // If global geocoding is paused due to rate-limiting, skip it
+            if (Date.now() < OrderService.globalGeocodePauseUntil) {
+                return order;
+            }
+
             try {
                 let LocationApi = null;
                 try {
@@ -478,6 +484,12 @@ class OrderService {
                 }
             } catch (e) {
                 console.warn('[OrderService] enrichAddress failed:', e.message || e);
+                const errorMsg = String(e.message || e).toLowerCase();
+                if (errorMsg.includes('rate limit') || errorMsg.includes('too many requests')) {
+                    // Pause geocoding globally for 3 minutes to avoid spamming the OS
+                    OrderService.globalGeocodePauseUntil = Date.now() + 180000;
+                    console.warn('⚠️ [OrderService] Geocoding rate limit hit. Pausing geocoding requests for 3 minutes.');
+                }
                 if (OrderService.geocodeFailed) {
                     OrderService.geocodeFailed.set(cacheKey, Date.now());
                 }

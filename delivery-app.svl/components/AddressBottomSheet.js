@@ -27,6 +27,8 @@ export default function AddressBottomSheet({ visible, onClose }) {
     const router = useRouter();
     const dispatch = useDispatch();
     const savedAddresses = useSelector((s) => s.auth?.addresses || []);
+    const { currentLocation } = useSelector((s) => s.location);
+    const activeAddressText = currentLocation?.addressName || (savedAddresses.length > 0 ? savedAddresses[0].address : null);
 
     const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
     const activeScale = useRef(new Animated.Value(1)).current;
@@ -146,27 +148,44 @@ export default function AddressBottomSheet({ visible, onClose }) {
                     <Text style={[styles.title, { color: theme.text }]}>Адреса доставки</Text>
 
                     {savedAddresses && savedAddresses.length > 0 ? (
-                        savedAddresses.map((addr, i) => (
-                            <TouchableOpacity
-                                key={i}
-                                style={[styles.addressRow, { backgroundColor: theme.input }]}
-                                onPress={() => {
-                                    // When user picks an address, switch to delivery mode and set location
-                                    dispatch(setDeliveryType('delivery'));
-                                    dispatch(setCurrentLocation({
-                                        latitude: addr.latitude,
-                                        longitude: addr.longitude,
-                                        addressName: addr.address,
-                                    }));
-                                    handleDismiss();
-                                }}
-                            >
-                                <Ionicons name="location-outline" size={20} color={theme.primary} />
-                                <Text style={[styles.addressText, { color: theme.text }]} numberOfLines={2}>
-                                    {addr.address}
-                                </Text>
-                            </TouchableOpacity>
-                        ))
+                        savedAddresses.map((addr, i) => {
+                            const isSelected = addr.address === activeAddressText;
+                            return (
+                                <TouchableOpacity
+                                    key={i}
+                                    style={[
+                                        styles.addressRow,
+                                        {
+                                            backgroundColor: theme.input,
+                                            borderColor: isSelected ? theme.primary : 'rgba(0,0,0,0.05)',
+                                            borderWidth: isSelected ? 1.5 : StyleSheet.hairlineWidth
+                                        }
+                                    ]}
+                                    onPress={() => {
+                                        dispatch(setDeliveryType('delivery'));
+                                        dispatch(setCurrentLocation({
+                                            latitude: addr.latitude,
+                                            longitude: addr.longitude,
+                                            addressName: addr.address,
+                                            name: addr.name || addr.title || null,
+                                        }));
+                                        handleDismiss();
+                                    }}
+                                >
+                                    <Ionicons name="location-outline" size={20} color={theme.primary} />
+                                    <Text style={[styles.addressText, { color: theme.text, fontWeight: isSelected ? '700' : '500' }]} numberOfLines={2}>
+                                        {addr.address || [
+                                            addr.title,
+                                            addr.house ? `буд. ${addr.house}` : '',
+                                            addr.apartment ? `кв. ${addr.apartment}` : ''
+                                        ].filter(Boolean).join(', ')}
+                                    </Text>
+                                    {isSelected && (
+                                        <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })
                     ) : (
                         <Text style={[styles.noAddress, { color: 'gray' }]}>
                             Збережених адрес немає

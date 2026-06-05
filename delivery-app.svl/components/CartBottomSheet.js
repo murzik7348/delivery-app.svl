@@ -1,21 +1,27 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Dimensions, Animated, 
+  View, Text, StyleSheet, Dimensions, Animated,
   PanResponder, TouchableOpacity, TextInput, LayoutAnimation, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatPrice } from '../store/cartSlice';
+import { GUIDELINE_BASE_DIAGONAL } from '../utils/scaling';
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const CLOSED_HEIGHT = 120; 
-const OPEN_HEIGHT = SCREEN_HEIGHT * 0.75; 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SCREEN_DIAGONAL = Math.sqrt(SCREEN_WIDTH * SCREEN_WIDTH + SCREEN_HEIGHT * SCREEN_HEIGHT);
+const getScaled = (val) => Math.round(val * (SCREEN_DIAGONAL / GUIDELINE_BASE_DIAGONAL));
 
-export default function CartBottomSheet({ 
+const CLOSED_HEIGHT = getScaled(120);
+const OPEN_HEIGHT = SCREEN_HEIGHT * 0.76;
+
+export default function CartBottomSheet({
   totalAmount, subtotal, deliveryFee, discountAmount, deliveryType,
   appliedPromo, userAddress, paymentInfo, orderNote,
   onOrder, onOpenPromo, onOpenAddress, onOpenPayment, onNoteChange
 }) {
+  const insets = useSafeAreaInsets();
   const maxOffset = OPEN_HEIGHT - CLOSED_HEIGHT;
   const panY = useRef(new Animated.Value(maxOffset)).current;
   const [isNoteVisible, setIsNoteVisible] = useState(false);
@@ -45,7 +51,7 @@ export default function CartBottomSheet({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 1.5;
         if (!isVertical) return false;
-        
+
         const { locationY } = evt.nativeEvent;
         return locationY < 48 || Math.abs(gestureState.dy) > 5;
       },
@@ -106,21 +112,21 @@ export default function CartBottomSheet({
     >
       {/* Преміальна та надчутлива зона перетягування */}
       <View style={styles.dragHandleArea}>
-        <Animated.View 
+        <Animated.View
           style={[
-            styles.dragIndicator, 
-            { 
+            styles.dragIndicator,
+            {
               transform: [
                 { scaleX: activeScale },
                 { scaleY: activeScale }
-              ] 
+              ]
             }
-          ]} 
+          ]}
         />
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.content}>
-        
+
         <View style={styles.headerRow}>
           <Text style={styles.totalLabel}>До сплати:</Text>
           <Text style={styles.totalPrice}>{formatPrice(safeTotal)} ₴</Text>
@@ -131,71 +137,71 @@ export default function CartBottomSheet({
         </TouchableOpacity>
 
         <View style={styles.detailsContainer}>
-           <View style={styles.divider} />
-           
-           <View style={styles.detailRow}>
-             <Text style={styles.detailText}>Товари</Text>
-             <Text style={styles.detailPrice}>{formatPrice(safeSubtotal)} ₴</Text>
-           </View>
+          <View style={styles.divider} />
 
-           {deliveryType === 'delivery' && (
-             <View style={styles.detailRow}>
-               <Text style={styles.detailText}>Доставка</Text>
-               <Text style={styles.detailPrice}>{safeDelivery === 0 ? 'Безкоштовно' : `${formatPrice(safeDelivery)} ₴`}</Text>
-             </View>
-           )}
+          <View style={styles.detailRow}>
+            <Text style={styles.detailText}>Товари</Text>
+            <Text style={styles.detailPrice}>{formatPrice(safeSubtotal)} ₴</Text>
+          </View>
 
-           {safeDiscount > 0 && (
-             <View style={styles.detailRow}>
-               <Text style={{ color: theme.primary, fontSize: 16 }}>Знижка</Text>
-               <Text style={{ color: theme.primary, fontSize: 16 }}>- {formatPrice(safeDiscount)} ₴</Text>
-             </View>
-           )}
+          {deliveryType === 'delivery' && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailText}>Доставка</Text>
+              <Text style={styles.detailPrice}>{safeDelivery === 0 ? 'Безкоштовно' : `${formatPrice(safeDelivery)} ₴`}</Text>
+            </View>
+          )}
 
-           <TouchableOpacity style={styles.menuItem} onPress={onOpenPromo} activeOpacity={0.7}>
-             <View style={{flexDirection:'row', alignItems:'center', gap: 10}}>
-                <Ionicons name="ticket-outline" size={24} color={theme.primary} />
-                <Text style={styles.menuText}>{appliedPromo ? appliedPromo.code : 'Промокод'}</Text>
-             </View>
-             <Ionicons name="chevron-forward" size={20} color="gray" />
-           </TouchableOpacity>
+          {safeDiscount > 0 && (
+            <View style={styles.detailRow}>
+              <Text style={{ color: theme.primary, fontSize: 16 }}>Знижка</Text>
+              <Text style={{ color: theme.primary, fontSize: 16 }}>- {formatPrice(safeDiscount)} ₴</Text>
+            </View>
+          )}
 
-           {deliveryType === 'delivery' && (
-             <TouchableOpacity style={styles.menuItem} onPress={onOpenAddress} activeOpacity={0.7}>
-               <View style={{flexDirection:'row', alignItems:'center', gap: 10, flex: 1}}>
-                  <Ionicons name="location-outline" size={24} color="white" />
-                  <Text style={styles.menuText} numberOfLines={1}>{userAddress}</Text>
-               </View>
-               <Text style={{color: theme.primary, fontSize: 12}}>Змінити</Text>
-             </TouchableOpacity>
-           )}
+          <TouchableOpacity style={styles.menuItem} onPress={onOpenPromo} activeOpacity={0.7}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Ionicons name="ticket-outline" size={24} color={theme.primary} />
+              <Text style={styles.menuText}>{appliedPromo ? appliedPromo.code : 'Промокод'}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="gray" />
+          </TouchableOpacity>
 
-           <TouchableOpacity style={styles.menuItem} onPress={onOpenPayment} activeOpacity={0.7}>
-             <View style={{flexDirection:'row', alignItems:'center', gap: 10}}>
-                <Ionicons name={paymentInfo?.icon || 'logo-apple'} size={24} color="white" />
-                <Text style={styles.menuText}>{paymentInfo?.name || 'Оплата'}</Text>
-             </View>
-             <Ionicons name="chevron-forward" size={20} color="gray" />
-           </TouchableOpacity>
-           
-           <View style={{ marginTop: 15, paddingBottom: 20 }}>
-             {!isNoteVisible && !orderNote ? (
-               <TouchableOpacity onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setIsNoteVisible(true); }}>
-                   <Text style={{ color: theme.primary, fontWeight: 'bold' }}>+ Коментар до замовлення</Text>
-               </TouchableOpacity>
-             ) : (
-               <View style={styles.noteContainer}>
-                 <TextInput 
-                   style={styles.noteInput} 
-                   placeholder="Код домофону, прибори..." 
-                   placeholderTextColor="gray" 
-                   value={orderNote} 
-                   onChangeText={onNoteChange} 
-                   multiline 
-                 />
-               </View>
-             )}
-           </View>
+          {deliveryType === 'delivery' && (
+            <TouchableOpacity style={styles.menuItem} onPress={onOpenAddress} activeOpacity={0.7}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <Ionicons name="location-outline" size={24} color="white" />
+                <Text style={styles.menuText} numberOfLines={1}>{userAddress}</Text>
+              </View>
+              <Text style={{ color: theme.primary, fontSize: 12 }}>Змінити</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={styles.menuItem} onPress={onOpenPayment} activeOpacity={0.7}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Ionicons name={paymentInfo?.icon || 'logo-apple'} size={24} color="white" />
+              <Text style={styles.menuText}>{paymentInfo?.name || 'Оплата'}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="gray" />
+          </TouchableOpacity>
+
+          <View style={{ marginTop: getScaled(15), paddingBottom: insets.bottom + getScaled(20) }}>
+            {!isNoteVisible && !orderNote ? (
+              <TouchableOpacity onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setIsNoteVisible(true); }}>
+                <Text style={{ color: '#d946ef', fontWeight: 'bold' }}>+ Коментар до замовлення</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.noteContainer}>
+                <TextInput
+                  style={styles.noteInput}
+                  placeholder="Код домофону, прибори..."
+                  placeholderTextColor="gray"
+                  value={orderNote}
+                  onChangeText={onNoteChange}
+                  multiline
+                />
+              </View>
+            )}
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Animated.View>
@@ -214,18 +220,18 @@ const styles = StyleSheet.create({
     }),
     zIndex: 999,
   },
-  dragHandleArea: { 
-    width: '100%', 
-    height: 48, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    backgroundColor: 'transparent' 
+  dragHandleArea: {
+    width: '100%',
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent'
   },
-  dragIndicator: { 
-    width: 48, 
-    height: 5, 
-    backgroundColor: '#555', 
-    borderRadius: 2.5 
+  dragIndicator: {
+    width: 48,
+    height: 5,
+    backgroundColor: '#555',
+    borderRadius: 2.5
   },
   content: { paddingHorizontal: 20, flex: 1 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
@@ -238,17 +244,17 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   detailText: { color: 'gray', fontSize: 16 },
   detailPrice: { color: 'white', fontSize: 16 },
-  menuItem: { 
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
+  menuItem: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: '#2c2c2e', padding: 15, borderRadius: 12, marginTop: 10,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.05)',
   },
-  menuText: { color: 'white', fontSize: 16, fontWeight:'500' },
-  noteContainer: { 
-    backgroundColor: '#2c2c2e', borderRadius: 12, padding: 10,
+  menuText: { color: 'white', fontSize: 16, fontWeight: '500' },
+  noteContainer: {
+    backgroundColor: '#2c2c2e', borderRadius: getScaled(12), padding: getScaled(10),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.05)',
   },
-  noteInput: { color: 'white', fontSize: 14, maxHeight: 60, paddingVertical: 0, textAlignVertical: 'top' },
+  noteInput: { color: 'white', fontSize: getScaled(14), maxHeight: getScaled(60), paddingVertical: 0, textAlignVertical: 'top' },
 });

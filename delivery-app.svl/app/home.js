@@ -156,19 +156,15 @@ export default function HomeScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
 
-      {/* ── Липкий Скляний Заголовок (Frosted Glass Header) ── */}
+      {/* ── Липкий Заголовок (Solid Header) ── */}
       <View style={[
         styles.stickyHeader,
         {
           paddingTop: insets.top + 6,
+          backgroundColor: theme.background,
           borderBottomColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
         }
       ]}>
-        {Platform.OS === 'ios' ? (
-          <BlurView intensity={85} tint={colorScheme === 'dark' ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-        ) : (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: colorScheme === 'dark' ? 'rgba(18, 18, 18, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]} />
-        )}
         
         {/* Шапка */}
         <View style={styles.header}>

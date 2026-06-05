@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useCallback, useState, useRef } from 'react';
 import { Alert, ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Platform } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
+import MapView, { Marker } from 'react-native-maps';
 import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -42,6 +43,54 @@ export default function ProfileScreen() {
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [liveAddresses, setLiveAddresses] = useState(null); // null = not yet loaded
 
+  const mapRef = useRef(null);
+  const markerRefs = useRef({});
+  const displayAddresses = liveAddresses ?? savedAddresses;
+
+  const mapAddresses = (displayAddresses || []).filter(addr => {
+    const lat = parseFloat(addr.latitude);
+    const lng = parseFloat(addr.longitude);
+    return !isNaN(lat) && !isNaN(lng);
+  });
+
+  const getInitialRegion = () => {
+    if (mapAddresses.length > 0) {
+      return {
+        latitude: parseFloat(mapAddresses[0].latitude),
+        longitude: parseFloat(mapAddresses[0].longitude),
+        latitudeDelta: 0.03,
+        longitudeDelta: 0.03,
+      };
+    }
+    return {
+      latitude: 50.4501,
+      longitude: 30.5234,
+      latitudeDelta: 0.0922,
+      longitudeDelta: 0.0421,
+    };
+  };
+
+  const handleFocusAddress = (addr) => {
+    const lat = parseFloat(addr.latitude);
+    const lng = parseFloat(addr.longitude);
+    const id = addr.addressId || addr.id;
+    if (mapRef.current && !isNaN(lat) && !isNaN(lng)) {
+      mapRef.current.animateToRegion({
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 600);
+
+      setTimeout(() => {
+        const marker = markerRefs.current[id];
+        if (marker && marker.showCallout) {
+          marker.showCallout();
+        }
+      }, 450);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       if (isAuthenticated) {
@@ -59,7 +108,16 @@ export default function ProfileScreen() {
     setAddressesLoading(true);
     try {
       const fetched = await getAddresses();
-      setLiveAddresses(Array.isArray(fetched) ? fetched : fetched?.items ?? []);
+      const rawList = Array.isArray(fetched) ? fetched : fetched?.items ?? [];
+      const mapped = rawList.map(addr => ({
+        ...addr,
+        address: addr.address || [
+          addr.title,
+          addr.house ? `буд. ${addr.house}` : '',
+          addr.apartment ? `кв. ${addr.apartment}` : ''
+        ].filter(Boolean).join(', ')
+      }));
+      setLiveAddresses(mapped);
       // Also refresh user profile to get updated order counts
       dispatch(fetchMe());
     } catch {
@@ -69,7 +127,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const displayAddresses = liveAddresses ?? savedAddresses;
   const handleLogout = () => {
     Alert.alert(t(locale, 'logout'), t(locale, 'logout') + '?', [
       { text: t(locale, 'no') ?? 'Ні', style: 'cancel' },
@@ -271,6 +328,40 @@ export default function ProfileScreen() {
                 <Ionicons name="close-circle" size={30} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
+
+            {/* Міні-карта зі збереженими адресами */}
+            {mapAddresses.length > 0 && (
+              <View style={styles.miniMapContainer}>
+                <MapView
+                  ref={mapRef}
+                  style={styles.miniMap}
+                  initialRegion={getInitialRegion()}
+                  showsUserLocation={false}
+                  rotateEnabled={false}
+                  pitchEnabled={false}
+                  userInterfaceStyle={colorScheme}
+                >
+                  {mapAddresses.map((addr, idx) => (
+                    <Marker
+                      ref={(ref) => {
+                        if (ref) {
+                          markerRefs.current[addr.addressId || addr.id] = ref;
+                        }
+                      }}
+                      key={`marker-${addr.addressId || addr.id || idx}`}
+                      coordinate={{
+                        latitude: parseFloat(addr.latitude),
+                        longitude: parseFloat(addr.longitude),
+                      }}
+                      title={addr.name || addr.title || 'Адреса'}
+                      description={addr.address}
+                      pinColor={theme.primary}
+                    />
+                  ))}
+                </MapView>
+              </View>
+            )}
+
             <FlatList
               data={displayAddresses}
               keyExtractor={(item) => (item.addressId || item.id).toString()}
@@ -286,7 +377,7 @@ export default function ProfileScreen() {
                   alignItems: 'center',
                   padding: 15,
                   marginBottom: 10,
-                  backgroundColor: '#f9f9f9',
+                  backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#f9f9f9',
                   borderRadius: 12,
                   borderWidth: StyleSheet.hairlineWidth,
                   borderColor: theme.border,
@@ -295,15 +386,23 @@ export default function ProfileScreen() {
                     android: { elevation: 1 }
                   })
                 }}>
-                  {/* Ліва частина: Назва і Вулиця */}
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: 'black' }}>
+                  {/* Ліва частина: Назва і Вулиця (Клікабельна для фокусування карти) */}
+                  <TouchableOpacity
+                    style={{ flex: 1, marginRight: 10 }}
+                    activeOpacity={0.7}
+                    onPress={() => handleFocusAddress(item)}
+                  >
+                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>
                       {item.name || item.title || 'Адреса'}
                     </Text>
-                    <Text style={{ fontSize: 14, color: 'gray', marginTop: 2 }}>
-                      {item.address || (item.house ? `буд. ${item.house}${item.apartment ? `, кв. ${item.apartment}` : ''}` : '')}
+                    <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 2 }}>
+                      {item.address || [
+                        item.title,
+                        item.house ? `буд. ${item.house}` : '',
+                        item.apartment ? `кв. ${item.apartment}` : ''
+                      ].filter(Boolean).join(', ')}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
 
                   {/* Права частина: Кнопка видалити */}
                   <TouchableOpacity onPress={() => handleDeleteAddress(item.addressId || item.id)} style={{ padding: 5 }}>
@@ -367,8 +466,21 @@ const styles = StyleSheet.create({
   logoutText: { color: 'red', fontSize: 16, fontWeight: 'bold' },
   version: { textAlign: 'center', marginTop: 20, fontSize: 12 },
   modalOverlay: { flex: 1, backgroundColor: 'transparent', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, height: '60%' },
+  modalContent: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, height: '80%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  miniMapContainer: {
+    height: 180,
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  miniMap: {
+    width: '100%',
+    height: '100%',
+  },
   modalTitle: { fontSize: 22, fontWeight: 'bold' },
   addressItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1 },
   addressInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },

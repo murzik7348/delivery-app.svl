@@ -52,9 +52,14 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const COLLAPSED_HEIGHT = 200; // slightly taller to fit progress bar
-const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.62;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SCREEN_DIAGONAL = Math.sqrt(SCREEN_WIDTH * SCREEN_WIDTH + SCREEN_HEIGHT * SCREEN_HEIGHT);
+// Baseline diagonal is ~900 logical pixels. Clamped between 0.8 and 1.25.
+const scale = Math.min(Math.max(SCREEN_DIAGONAL / 900, 0.8), 1.25);
+const getScaled = (val) => Math.round(val * scale);
+
+const COLLAPSED_HEIGHT = getScaled(200); // slightly taller to fit progress bar
+const EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.68;
 const MAX_TRANS = EXPANDED_HEIGHT - COLLAPSED_HEIGHT;
 const MIN_TRANS = 0;
 
@@ -169,7 +174,7 @@ export default function CartScreen() {
   const handleScroll = (event) => {
     const currentOffset = event.nativeEvent.contentOffset.y;
     const isScrollingDown = currentOffset > lastScrollY.current;
-    
+
     if (Math.abs(currentOffset - lastScrollY.current) > 15) {
       if (currentOffset <= 0) {
         dispatch(setBottomBarVisible(true));
@@ -223,10 +228,15 @@ export default function CartScreen() {
   const paymentId = useSelector((s) => s.payment?.selectedMethodId);
   const paymentMethods = useSelector((s) => s.payment?.methods ?? []);
   const savedAddresses = useSelector((s) => s.auth?.addresses || []);
+  const { currentLocation } = useSelector((s) => s.location);
   console.log('[cart.js] savedAddresses from auth:', JSON.stringify(savedAddresses, null, 2));
 
-  const userAddress =
-    savedAddresses?.length > 0 ? savedAddresses[0].address : t(locale, 'chooseAddressBtn');
+  const userAddress = currentLocation?.name
+    ? `${currentLocation.name} (${currentLocation.addressName})`
+    : (currentLocation?.addressName ||
+       (savedAddresses?.length > 0 
+         ? (savedAddresses[0].name ? `${savedAddresses[0].name} (${savedAddresses[0].address})` : savedAddresses[0].address)
+         : t(locale, 'chooseAddressBtn')));
   const isAddressMissing = !savedAddresses || savedAddresses.length === 0;
   const activeMethod = paymentMethods.find((m) => m.id === paymentId);
   const paymentInfo = activeMethod
@@ -333,14 +343,14 @@ export default function CartScreen() {
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 1.5;
         if (!isVertical) return false;
-        
+
         const { locationY } = evt.nativeEvent;
         return locationY < 48 || Math.abs(gestureState.dy) > 5;
       },
-      onPanResponderGrant: () => { 
+      onPanResponderGrant: () => {
         translateY.stopAnimation();
         startY.current = currentY.current;
-        translateY.extractOffset(); 
+        translateY.extractOffset();
         Animated.spring(activeScale, { toValue: 1.35, friction: 8, tension: 60, useNativeDriver: true }).start();
       },
       onPanResponderMove: (_, gs) => {
@@ -440,7 +450,7 @@ export default function CartScreen() {
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             onPress={() => handleDecrement(item)}
           >
-            <Ionicons name="remove-circle" size={32} color={theme.primary} />
+            <Ionicons name="remove-circle" size={getScaled(32)} color={theme.primary} />
           </TouchableOpacity>
 
           <Text style={[styles.stepperQty, { color: theme.text }]}>{item.quantity}</Text>
@@ -452,7 +462,7 @@ export default function CartScreen() {
               dispatch(updateQuantity({ cartKey: item.cartKey, quantity: item.quantity + 1 }));
             }}
           >
-            <Ionicons name="add-circle" size={32} color={theme.primary} />
+            <Ionicons name="add-circle" size={getScaled(32)} color={theme.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -608,14 +618,14 @@ export default function CartScreen() {
             ]}
           >
             {/* Drag handle */}
-            <TouchableOpacity 
+            <TouchableOpacity
               activeOpacity={1}
               onPress={toggleCartSheet}
               onPressIn={handlePressIn}
               onPressOut={handlePressOut}
-              style={styles.dragHandleArea} 
+              style={styles.dragHandleArea}
             >
-              <Animated.View 
+              <Animated.View
                 style={[
                   styles.dragPill,
                   {
@@ -624,7 +634,7 @@ export default function CartScreen() {
                       { scaleY: activeScale }
                     ]
                   }
-                ]} 
+                ]}
               />
             </TouchableOpacity>
 
@@ -671,8 +681,8 @@ export default function CartScreen() {
                 <Text style={styles.checkoutBtnText}>
                   {isOffline
                     ? (locale === 'en' ? 'Offline Mode' : 'Офлайн-режим')
-                    : (isLoading 
-                      ? (locale === 'en' ? 'Processing...' : 'Обробка...') 
+                    : (isLoading
+                      ? (locale === 'en' ? 'Processing...' : 'Обробка...')
                       : (isMinOrderMet
                         ? t(locale, 'placeOrder')
                         : (locale === 'en'
@@ -794,7 +804,7 @@ export default function CartScreen() {
               </TouchableOpacity>
 
               {/* Order note */}
-              <View style={{ marginTop: 6, paddingBottom: insets.bottom + 12 }}>
+              <View style={{ marginTop: getScaled(6), paddingBottom: insets.bottom + getScaled(12) }}>
                 {!noteVisible && !orderNote ? (
                   <TouchableOpacity
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -940,9 +950,9 @@ const styles = StyleSheet.create({
   itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    padding: 12,
-    borderRadius: 20,
+    marginBottom: getScaled(12),
+    padding: getScaled(12),
+    borderRadius: getScaled(20),
     marginHorizontal: 16,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(0,0,0,0.05)',
@@ -952,13 +962,13 @@ const styles = StyleSheet.create({
     })
   },
   itemLeft: { flex: 1, flexDirection: 'row', alignItems: 'flex-start' },
-  itemImage: { width: 66, height: 66, borderRadius: 16, backgroundColor: '#eee' },
+  itemImage: { width: getScaled(66), height: getScaled(66), borderRadius: getScaled(16), backgroundColor: '#eee' },
   itemInfo: { flex: 1, marginLeft: 12 },
-  itemName: { fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  itemPrice: { color: '#000000', fontWeight: 'bold', marginTop: 4 },
+  itemName: { fontSize: getScaled(15), fontWeight: '700', lineHeight: getScaled(22) },
+  itemPrice: { color: '#000000', fontWeight: 'bold', marginTop: 4, fontSize: getScaled(15) },
 
   stepper: { flexDirection: 'row', alignItems: 'center' },
-  stepperQty: { marginHorizontal: 10, fontSize: 18, fontWeight: 'bold' },
+  stepperQty: { marginHorizontal: getScaled(10), fontSize: getScaled(18), fontWeight: 'bold' },
 
   recSection: { marginTop: 22, marginBottom: 20 },
   recTitle: { fontSize: 18, fontWeight: 'bold', marginLeft: 16, marginBottom: 12 },
@@ -1021,17 +1031,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: getScaled(14),
   },
-  totalLabel: { fontSize: 17, fontWeight: '700' },
+  totalLabel: { fontSize: getScaled(17), fontWeight: '700' },
   totalPriceGroup: { alignItems: 'flex-end' },
   totalStrike: {
-    fontSize: 13,
+    fontSize: getScaled(13),
     color: 'gray',
     textDecorationLine: 'line-through',
     marginBottom: 2,
   },
-  totalValue: { fontSize: 26, fontWeight: 'bold' },
+  totalValue: { fontSize: getScaled(26), fontWeight: 'bold' },
 
   checkoutBtn: {
     backgroundColor: '#000000',
@@ -1043,7 +1053,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#8a3f8a',
     opacity: 0.6,
   },
-  checkoutBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  checkoutBtnText: { color: 'white', fontSize: getScaled(16), fontWeight: 'bold' },
 
   expandedZone: { flex: 1 },
   divider: { height: StyleSheet.hairlineWidth, marginBottom: 14, opacity: 0.2, backgroundColor: 'rgba(0,0,0,0.1)' },
@@ -1054,15 +1064,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 9,
   },
-  priceLabel: { fontSize: 15 },
+  priceLabel: { fontSize: getScaled(15) },
   priceValueGroup: { alignItems: 'flex-end' },
   priceStrike: {
-    fontSize: 12,
+    fontSize: getScaled(12),
     color: 'gray',
     textDecorationLine: 'line-through',
     marginBottom: 1,
   },
-  priceValue: { fontSize: 15, fontWeight: '600' },
+  priceValue: { fontSize: getScaled(15), fontWeight: '600' },
 
   actionRow: {
     flexDirection: 'row',
@@ -1078,9 +1088,9 @@ const styles = StyleSheet.create({
   actionRowText: { fontSize: 14, fontWeight: '600', marginLeft: 10 },
   changeText: { color: '#000000', fontSize: 13, fontWeight: '600' },
 
-  addNoteText: { color: '#000000', fontWeight: 'bold', paddingVertical: 6 },
-  noteBox: { borderRadius: 14, padding: 12 },
-  noteInput: { fontSize: 14, maxHeight: 70, lineHeight: 20, paddingVertical: 0, textAlignVertical: 'top' },
+  addNoteText: { color: '#000000', fontWeight: 'bold', paddingVertical: getScaled(6) },
+  noteBox: { borderRadius: getScaled(14), padding: getScaled(12) },
+  noteInput: { fontSize: getScaled(14), maxHeight: getScaled(70), lineHeight: getScaled(20), paddingVertical: 0, textAlignVertical: 'top' },
 
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: -50 },
   emptyText: { fontSize: 18, marginTop: 16, marginBottom: 20 },

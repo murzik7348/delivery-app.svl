@@ -25,9 +25,10 @@ export default function useCheckoutFlow() {
     const selectedMethodId = useSelector(state => state.payment?.selectedMethodId);
     const { items: cartItems, totalAmount, discountAmount, deliveryFee, appliedPromo, orderNote, deliveryType } = useSelector((state) => state.cart);
     const locale = useSelector(state => state.language.locale);
+    const { currentLocation } = useSelector(state => state.location);
 
     // Active Selection State
-    const activeAddress = savedAddresses.length > 0 ? savedAddresses[0] : null;
+    const activeAddress = savedAddresses.find(a => a.address === currentLocation?.addressName) ?? (savedAddresses.length > 0 ? savedAddresses[0] : null);
     const activePayment = paymentMethods.find(m => m.id === selectedMethodId) ?? (paymentMethods.length > 0 ? paymentMethods[0] : null);
 
     /**
