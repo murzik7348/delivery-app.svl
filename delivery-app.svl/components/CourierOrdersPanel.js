@@ -175,67 +175,7 @@ export default function CourierOrdersPanel() {
         return () => clearInterval(iv);
     }, [dispatch]);
 
-    // GPS tracking
-    useEffect(() => {
-        let intervalId = null;
-
-        const startTracking = async () => {
-            try {
-                console.log(`📍 [Courier GPS] startTracking called. isOnline = ${isOnline}`);
-                const { status } = await Location.requestForegroundPermissionsAsync();
-                console.log(`📍 [Courier GPS] Permissions status = ${status}`);
-                if (status !== 'granted') {
-                    console.warn('⚠️ [Courier GPS] Location permission not granted');
-                    if (isOnline) dispatch(updateOnlineStatusThunk(false));
-                    return;
-                }
-                if (isOnline) {
-                    console.log('📍 [Courier GPS] Courier is online. Fetching initial position...');
-                    // Send immediately once
-                    try {
-                        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                        if (loc?.coords) {
-                            console.log(`📍 [Courier GPS] Initial position: lat=${loc.coords.latitude}, lng=${loc.coords.longitude}`);
-                            await courierUpdateLocation(loc.coords.latitude, loc.coords.longitude);
-                        } else {
-                            console.warn('⚠️ [Courier GPS] Initial position loc.coords is empty');
-                        }
-                    } catch (err) {
-                        console.warn('[Courier GPS] Initial fetch failed:', err);
-                    }
-
-                    console.log('📍 [Courier GPS] Setting up 15-second tracking interval...');
-                    // Setup periodic update every 15 seconds
-                    intervalId = setInterval(async () => {
-                        try {
-                            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                            if (loc?.coords) {
-                                console.log(`📍 [Courier GPS] Periodic position: lat=${loc.coords.latitude}, lng=${loc.coords.longitude}`);
-                                await courierUpdateLocation(loc.coords.latitude, loc.coords.longitude);
-                            } else {
-                                console.warn('⚠️ [Courier GPS] Periodic position loc.coords is empty');
-                            }
-                        } catch (err) {
-                            console.warn('[Courier GPS] Periodic update failed:', err);
-                        }
-                    }, 15000);
-                } else {
-                    console.log('📍 [Courier GPS] Courier is offline. GPS tracking is idle.');
-                }
-            } catch (err) {
-                console.error('[Courier GPS] Tracking error:', err);
-            }
-        };
-
-        startTracking();
-
-        return () => {
-            if (intervalId) {
-                console.log('📍 [Courier GPS] Clearing tracking interval');
-                clearInterval(intervalId);
-            }
-        };
-    }, [isOnline, dispatch]);
+    // GPS tracking is managed globally in RootLayout (via useCourierLocation hook)
 
     const todayEarnings = completedOrders.reduce((sum, o) => sum + (Number(o.earnings) || 0), 0);
 

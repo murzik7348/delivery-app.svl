@@ -140,7 +140,7 @@ client.interceptors.response.use(
         }
 
         // Auto-logout/Refresh logic
-        if (error.response?.status === 401 && !originalRequest._retry && !originalRequest?._skipLogout) {
+        if (error.response?.status === 401 && !originalRequest._retry) {
             
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
@@ -197,12 +197,14 @@ client.interceptors.response.use(
                     );
                     
                     processQueue(refreshError, null);
-                    await removeToken().catch(() => {});
                     
-                    const store = getStore();
-                    if (store) {
-                        const { logoutUser } = require('../../store/authSlice');
-                        store.dispatch(logoutUser());
+                    if (!originalRequest?._skipLogout) {
+                        await removeToken().catch(() => {});
+                        const store = getStore();
+                        if (store) {
+                            const { logoutUser } = require('../../store/authSlice');
+                            store.dispatch(logoutUser());
+                        }
                     }
                     return Promise.reject(refreshError);
                 } finally {
