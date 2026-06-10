@@ -8,6 +8,7 @@ import { useColorScheme } from '../hooks/use-color-scheme';
 import { PersistGate } from 'redux-persist/integration/react';
 import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { getAuth } from '@react-native-firebase/auth';
 import usePushNotifications from '../hooks/usePushNotifications';
 import useCourierLocation from '../hooks/useCourierLocation';
 // import useLiveActivitySync from '../hooks/useLiveActivitySync';
@@ -28,6 +29,15 @@ function AppStartup() {
   const router = useRouter();
   const segments = useSegments();
   const pathname = usePathname();
+
+  useEffect(() => {
+    try {
+      const authInstance = getAuth();
+      console.log("🔥 [Firebase Test] Auth status: initialized successfully. Current user:", authInstance.currentUser ? authInstance.currentUser.uid : "None");
+    } catch (e) {
+      console.error("❌ [Firebase Test] Failed to initialize Auth:", e);
+    }
+  }, []);
 
   // Global Auth Guard
   useEffect(() => {

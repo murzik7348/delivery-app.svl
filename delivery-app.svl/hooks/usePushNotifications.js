@@ -14,7 +14,18 @@ const getNotifications = () => {
   }
 };
 
+// Helper to get Firebase Messaging only when safe
+const getFirebaseMessaging = () => {
+  if (Constants.appOwnership === 'expo') return null;
+  try {
+    return require('@react-native-firebase/messaging').default;
+  } catch (e) {
+    return null;
+  }
+};
+
 const Notifications = getNotifications();
+const firebaseMessaging = getFirebaseMessaging();
 
 if (Notifications) {
   Notifications.setNotificationHandler({
@@ -38,6 +49,30 @@ export default function usePushNotifications() {
 
     registerForPushNotificationsAsync().then(token => setExpoPushToken(token));
 
+    // ─── Foreground FCM handler ───────────────────────────────────────────────
+    // When the app is open, FCM doesn't show a banner automatically.
+    // We intercept the message and schedule a local notification instead.
+    let unsubscribeForeground = null;
+    if (firebaseMessaging) {
+      unsubscribeForeground = firebaseMessaging().onMessage(async remoteMessage => {
+        console.log('📩 FCM foreground message received:', remoteMessage);
+        const { title, body } = remoteMessage.notification ?? {};
+        if (Notifications && title) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: title ?? 'Нове повідомлення',
+              body: body ?? '',
+              data: remoteMessage.data ?? {},
+              sound: true,
+              priority: Notifications.AndroidNotificationPriority?.MAX ?? 'max',
+            },
+            trigger: null, // показати одразу
+          });
+        }
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       setNotification(notification);
     });
@@ -55,6 +90,7 @@ export default function usePushNotifications() {
     return () => {
       if (notificationListener.current) notificationListener.current.remove();
       if (responseListener.current) responseListener.current.remove();
+      if (unsubscribeForeground) unsubscribeForeground();
     };
   }, []);
 
@@ -93,11 +129,15 @@ async function registerForPushNotificationsAsync() {
       return;
     }
     try {
-      const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-      token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-      console.log(token);
+      if (Platform.OS === 'android') {
+        token = (await Notifications.getDevicePushTokenAsync()).data;
+      } else {
+        const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+        token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+      }
+      console.log("📲 Retrieved Push Token:", token);
     } catch (e) {
-      console.log(e);
+      console.log("❌ Error getting push token:", e);
     }
   } else {
     console.log('Must use physical device for Push Notifications');
