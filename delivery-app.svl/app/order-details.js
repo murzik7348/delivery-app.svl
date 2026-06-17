@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import { HubConnectionBuilder } from '@microsoft/signalr';
+import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
 import { getToken } from '../src/api/client';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -63,23 +63,46 @@ const safeNumber = (val, fallback = 0) => {
   return isNaN(parsed) ? fallback : parsed;
 };
 
-const OrderItem = React.memo(({ item, theme }) => (
-  <View style={[styles.itemRowWrapper, { backgroundColor: theme.background }]}>
-    <View style={[styles.itemQtyBadge, { backgroundColor: theme.input }]}>
-      <Text style={[styles.itemQtyText, { color: theme.primary }]}>{item.quantity}x</Text>
+const OrderItem = React.memo(({ item, theme, locale }) => {
+  const quantity = safeNumber(item.quantity, 1);
+  const actualWeight = item.actualWeight ? safeNumber(item.actualWeight) : null;
+  const weightStep = item.weightStep ? safeNumber(item.weightStep) : null;
+  const pricingType = item.pricingType ?? 'piece';
+
+  let qtyText = `${quantity}x`;
+  let weightDetail = '';
+
+  if (pricingType === 'weight_step' && weightStep) {
+    qtyText = `${quantity * weightStep}г`;
+  } else if (actualWeight) {
+    weightDetail = `(${actualWeight}г)`;
+  } else if (pricingType === 'piece_variable' && item.averageWeight) {
+    weightDetail = `(≈ ${item.averageWeight}г)`;
+  }
+
+  return (
+    <View style={[styles.itemRowWrapper, { backgroundColor: theme.background }]}>
+      <View style={[styles.itemQtyBadge, { backgroundColor: theme.input }]}>
+        <Text style={[styles.itemQtyText, { color: theme.primary, fontSize: qtyText.length > 3 ? 11 : 15 }]}>{qtyText}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.itemNameText, { color: theme.text }]} numberOfLines={2}>
+          {item.productName || item.name || 'Товар'}
+        </Text>
+        {weightDetail ? (
+          <Text style={{ fontSize: 12, color: 'gray', marginTop: 2 }}>{weightDetail}</Text>
+        ) : null}
+      </View>
+      <Text style={[styles.itemPriceText, { color: theme.text }]}>
+        {formatPrice(
+          item.totalLineAmount !== undefined && item.totalLineAmount !== null 
+            ? safeNumber(item.totalLineAmount) 
+            : (safeNumber(item.price) * quantity)
+        )} ₴
+      </Text>
     </View>
-    <Text style={[styles.itemNameText, { color: theme.text }]} numberOfLines={2}>
-      {item.productName || item.name || 'Товар'}
-    </Text>
-    <Text style={[styles.itemPriceText, { color: theme.text }]}>
-      {formatPrice(
-        item.totalLineAmount !== undefined && item.totalLineAmount !== null 
-          ? safeNumber(item.totalLineAmount) 
-          : (safeNumber(item.price) * safeNumber(item.quantity, 1))
-      )} ₴
-    </Text>
-  </View>
-));
+  );
+});
 
 // ──────────────────────────────────────────────────────────────
 // Animated Progress Bar (Horizontal)
@@ -156,28 +179,59 @@ export default function OrderDetailsScreen() {
   const [liveCourierCoords, setLiveCourierCoords] = useState(null);
   const [hasRealSignalRCoords, setHasRealSignalRCoords] = useState(false);
   const mapRef = useRef(null);
+  const lastRouteFetchedCoords = useRef({ startLat: null, startLng: null, endLat: null, endLng: null });
+  const hasFittedMap = useRef({ withCourier: false, withoutCourier: false });
+
+  // Reset state when order ID changes
+  useEffect(() => {
+    setLiveCourierCoords(null);
+    setHasRealSignalRCoords(false);
+    setRouteCoords([]);
+    lastRouteFetchedCoords.current = { startLat: null, startLng: null, endLat: null, endLng: null };
+    hasFittedMap.current = { withCourier: false, withoutCourier: false };
+  }, [id]);
 
   const order = useSelector(state =>
     state.orders.orders.find(o => String(o.deliveryId || o.id) === String(id))
   );
 
+  const hasWeightedItems = useMemo(() => 
+    order?.items?.some(i => i.pricingType === 'piece_variable') ?? false
+  , [order?.items]);
+
+  const isFullyWeighed = useMemo(() => 
+    hasWeightedItems && (order?.items?.filter(i => i.pricingType === 'piece_variable').every(i => i.actualWeight > 0) ?? false)
+  , [hasWeightedItems, order?.items]);
+
   const activeStatus = order?.statusDelivery ?? order?.status ?? 'created';
   const currentStep = statusToStep(activeStatus);
-  const courierName = order?.courierName || (locale === 'en' ? 'Searching...' : 'Шукаємо кур\'єра...');
+  const courierName = order?.courierName || (
+    currentStep === 5 
+      ? (locale === 'en' ? 'Not specified' : 'Не вказано') 
+      : currentStep === 6 
+      ? (locale === 'en' ? 'Not assigned' : 'Не призначений') 
+      : (locale === 'en' ? 'Searching...' : 'Шукаємо кур\'єра...')
+  );
   const courierRating = order?.courierRating;
   const courierPhone = order?.courierPhone;
   const courierPhoto = order?.courierPhoto;
 
   const [routeCoords, setRouteCoords] = useState([]);
 
-  // Animate map to show restaurant/courier and customer pin
+  // Animate map to show restaurant/courier and customer pin (only fit once per status condition to prevent jumping)
   useEffect(() => {
     if (mapRef.current) {
       const points = [];
+      const hasCourier = !!(liveCourierCoords?.latitude && liveCourierCoords?.longitude);
+      
+      // Prevent repeated map jumping on every GPS update
+      if (hasCourier && hasFittedMap.current.withCourier) return;
+      if (!hasCourier && hasFittedMap.current.withoutCourier) return;
+
       if (order?.customerLatitude && order?.customerLongitude) {
         points.push({ latitude: order.customerLatitude, longitude: order.customerLongitude });
       }
-      if (liveCourierCoords?.latitude && liveCourierCoords?.longitude) {
+      if (hasCourier) {
         points.push({ latitude: liveCourierCoords.latitude, longitude: liveCourierCoords.longitude });
       } else if (order?.restaurantLatitude && order?.restaurantLongitude) {
         points.push({ latitude: order.restaurantLatitude, longitude: order.restaurantLongitude });
@@ -190,6 +244,11 @@ export default function OrderDetailsScreen() {
             edgePadding: { top: 70, right: 70, bottom: 70, left: 70 },
             animated: true,
           });
+          if (hasCourier) {
+            hasFittedMap.current.withCourier = true;
+          } else {
+            hasFittedMap.current.withoutCourier = true;
+          }
         }, 300);
         return () => clearTimeout(timer);
       }
@@ -217,6 +276,18 @@ export default function OrderDetailsScreen() {
         return;
       }
 
+      // Check if coordinates are the same as last fetched to prevent spamming
+      const last = lastRouteFetchedCoords.current;
+      if (
+        last.startLat === startLat &&
+        last.startLng === startLng &&
+        last.endLat === endLat &&
+        last.endLng === endLng
+      ) {
+        console.log('📡 [OrderDetails] OSRM route skipped: coordinates unchanged');
+        return;
+      }
+
       try {
         const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
         console.log('📡 [OrderDetails] Fetching route from OSRM:', url);
@@ -229,6 +300,8 @@ export default function OrderDetailsScreen() {
           }));
           console.log('📡 [OrderDetails] Route coordinates fetched successfully:', coords.length);
           setRouteCoords(coords);
+          // Update ref
+          lastRouteFetchedCoords.current = { startLat, startLng, endLat, endLng };
         } else {
           console.warn('📡 [OrderDetails] OSRM returned empty routes');
         }
@@ -264,9 +337,11 @@ export default function OrderDetailsScreen() {
         if (!token) return;
         if (!isMounted) return;
 
+        // Force WebSockets transport to prevent fallback to ServerSentEvents (which fails in React Native due to missing EventSource)
         connection = new HubConnectionBuilder()
           .withUrl("https://api.andi.delivery/trackingHub", {
-            accessTokenFactory: () => token
+            accessTokenFactory: () => token,
+            transport: HttpTransportType.WebSockets
           })
           .withAutomaticReconnect()
           .build();
@@ -277,12 +352,20 @@ export default function OrderDetailsScreen() {
 
         connection.on("ReceiveLocation", (data) => {
           console.log('📡 [SignalR User] ReceiveLocation:', data);
-          if (data && data.lat !== undefined && data.lng !== undefined) {
-            setLiveCourierCoords({
-              latitude: Number(data.lat),
-              longitude: Number(data.lng),
-            });
-            setHasRealSignalRCoords(true);
+          if (data) {
+            // Support multiple latitude/longitude naming conventions from backend
+            const lat = data.latitude ?? data.lat ?? data.Latitude;
+            const lng = data.longitude ?? data.lng ?? data.Longitude;
+            
+            if (lat !== undefined && lng !== undefined && Number(lat) > 0 && Number(lng) > 0) {
+              setLiveCourierCoords({
+                latitude: Number(lat),
+                longitude: Number(lng),
+              });
+              setHasRealSignalRCoords(true);
+            } else {
+              console.warn('⚠️ [SignalR User] Ignored invalid coordinates:', data);
+            }
           }
         });
 
@@ -335,51 +418,26 @@ export default function OrderDetailsScreen() {
     };
   }, [id]);
 
-  // 2. Fallback / Simulation logic for courier location on map
+  // 2. Fallback logic for courier location on map (no fake simulation, no fake restLat fallback for courier)
   useEffect(() => {
     if (!order) return;
-    const restLat = order.restaurantLatitude;
-    const restLng = order.restaurantLongitude;
-    const custLat = order.customerLatitude;
-    const custLng = order.customerLongitude;
 
-    // If we have received real coords from SignalR, do not overwrite them with simulation/fallback
+    // If we have received real coords from SignalR, do not overwrite them
     if (hasRealSignalRCoords) return;
 
-    // Use initial REST API courier coordinates if they exist
+    // Use initial REST API courier coordinates if they exist and are valid (> 0)
     if (order.courierLatitude > 0 && order.courierLongitude > 0) {
       setLiveCourierCoords({
         latitude: order.courierLatitude,
         longitude: order.courierLongitude,
       });
-      return;
-    }
-
-    // Otherwise, simulate movement when status is delivering (step 4)
-    if (currentStep === 4 && restLat && custLat) {
-      let fraction = 0;
-      const interval = setInterval(() => {
-        fraction = (fraction + 0.02) % 1.0;
-        const currentLat = restLat + (custLat - restLat) * fraction;
-        const currentLng = restLng + (custLng - restLng) * fraction;
-        setLiveCourierCoords({
-          latitude: currentLat,
-          longitude: currentLng,
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    } else if (restLat) {
-      setLiveCourierCoords({
-        latitude: restLat,
-        longitude: restLng,
-      });
+    } else {
+      // Clean up coordinates if they are invalid or not provided
+      setLiveCourierCoords(null);
     }
   }, [
     order?.courierLatitude, 
     order?.courierLongitude, 
-    currentStep, 
-    order?.restaurantLatitude, 
-    order?.customerLatitude,
     hasRealSignalRCoords
   ]);
 
@@ -391,14 +449,25 @@ export default function OrderDetailsScreen() {
       if (!id) return;
 
       const fetchAndSync = async () => {
-        const result = await dispatch(fetchOrderDetails(id));
-        return result?.payload;
+        try {
+          const result = await dispatch(fetchOrderDetails(id));
+          return result?.payload;
+        } catch (e) {
+          console.warn('[OrderDetails] fetch failed:', e);
+        }
       };
 
+      // Fetch immediately on focus
+      fetchAndSync();
+
+      // Poll every 5 seconds for live status and courier updates
+      const interval = setInterval(fetchAndSync, 5000);
+
+      // Keep startPolling fallback if needed
       startPolling(id, fetchAndSync);
 
       return () => {
-        // MM: We don't stop polling here so it continues globally
+        clearInterval(interval);
       };
     }, [id, dispatch])
   );
@@ -450,8 +519,8 @@ export default function OrderDetailsScreen() {
   }, [order?.customerLatitude, order?.customerLongitude, locale]);
 
   const renderItem = useCallback(({ item }) => (
-    <OrderItem item={item} theme={theme} />
-  ), [theme]);
+    <OrderItem item={item} theme={theme} locale={locale} />
+  ), [theme, locale]);
 
   const handleSupportPress = () => {
     Alert.alert(
@@ -574,9 +643,22 @@ export default function OrderDetailsScreen() {
                       </View>
                     </View>
                     <TouchableOpacity
-                      onPress={() => {
+                      onPress={async () => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        if (courierPhone) Alert.alert(t(locale, 'call'), courierPhone);
+                        if (courierPhone) {
+                          try {
+                            const url = `tel:${courierPhone.replace(/\s+/g, '')}`;
+                            const supported = await Linking.canOpenURL(url);
+                            if (supported) {
+                              await Linking.openURL(url);
+                            } else {
+                              Alert.alert(t(locale, 'call'), courierPhone);
+                            }
+                          } catch (err) {
+                            console.warn('[Call] Failed to open tel link:', err);
+                            Alert.alert(t(locale, 'call'), courierPhone);
+                          }
+                        }
                       }}
                       style={[styles.premiumCallBtn, { backgroundColor: courierPhone ? '#34C759' : '#555' }]}
                     >
@@ -690,6 +772,16 @@ export default function OrderDetailsScreen() {
                   <View style={styles.paidBadge}>
                     <Text style={styles.paidBadgeText}>Оплачено</Text>
                   </View>
+                </View>
+              )}
+              {hasWeightedItems && (
+                <View style={[styles.orderWeightNotice, { backgroundColor: theme.input }]}>
+                  <Ionicons name="scale-outline" size={16} color={theme.primary} />
+                  <Text style={[styles.orderWeightNoticeText, { color: theme.textSecondary }]}>
+                    {isFullyWeighed 
+                      ? (locale === 'en' ? 'All items weighed, price adjusted.' : 'Всі товари зважено, ціну скориговано.')
+                      : (locale === 'en' ? 'Awaiting kitchen weighing, price is estimated.' : 'Очікує зважування на кухні, ціна є орієнтовною.')}
+                  </Text>
                 </View>
               )}
               <View style={[styles.divider, { backgroundColor: theme.border }]} />
@@ -846,5 +938,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+  },
+  orderWeightNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 11,
+    borderRadius: 12,
+    marginTop: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  orderWeightNoticeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    flex: 1,
   },
 });

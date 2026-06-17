@@ -10,7 +10,9 @@ import {
   Text,
   TextInput, TouchableOpacity,
   View,
-  Platform
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +23,7 @@ import { uploadAvatar } from '../src/api/auth';
 import { resolveImageUrl } from '../src/api/client';
 import { updateUser, fetchMe } from '../store/authSlice';
 import BackButton from '../components/BackButton';
+import { safeBack } from '../utils/navigation';
 
 export default function ProfileEditScreen() {
   const router = useRouter();

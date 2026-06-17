@@ -43,7 +43,11 @@ const safeNum = (v) => {
  * Modifier shape: { id, name, price, qty? }
  */
 const lineUnitPrice = (item) => {
-  const base = safeNum(item.price);
+  let base = safeNum(item.price);
+  if (item.pricingType === 'piece_variable') {
+    const avgWeight = safeNum(item.averageWeight ?? item.weightGrams ?? 100);
+    base = base * (avgWeight / 100);
+  }
   const addOns = (item.modifiers ?? []).reduce(
     (sum, m) => sum + safeNum(m.price) * (m.qty ?? 1),
     0
@@ -70,8 +74,6 @@ export const formatPrice = (value) => {
     return rounded.toFixed(0);
   }
   if (formatted.endsWith('0')) {
-    // Keep 2 decimals for monetary values if desired, or return 1 decimal.
-    // The user specifically mentions 135.70 UAH, so we keep 2 decimals: e.g. 135.70
     return formatted;
   }
   return formatted;
@@ -155,11 +157,15 @@ const cartSlice = createSlice({
       if (existingItem) {
         existingItem.quantity += 1;
       } else {
+        const step = safeNum(action.payload.weightStep ?? 100);
+        const minW = safeNum(action.payload.minWeight ?? step);
+        const initialQty = Math.max(1, Math.round(minW / step));
+
         state.items.push({
           ...action.payload,
           price: safePrice,
           modifiers: action.payload.modifiers ?? [],
-          quantity: 1,
+          quantity: initialQty,
           cartKey,
         });
       }
@@ -174,9 +180,15 @@ const cartSlice = createSlice({
     decrementItem: (state, action) => {
       const cartKey = action.payload;
       const item = state.items.find((i) => i.cartKey === cartKey);
-      if (item && item.quantity > 1) {
-        item.quantity -= 1;
-        calculateTotals(state);
+      if (item) {
+        const step = safeNum(item.weightStep ?? 100);
+        const minW = safeNum(item.minWeight ?? step);
+        const minQty = Math.max(1, Math.round(minW / step));
+
+        if (item.quantity > minQty) {
+          item.quantity -= 1;
+          calculateTotals(state);
+        }
       }
     },
 
@@ -204,6 +216,37 @@ const cartSlice = createSlice({
         item.quantity = Math.max(1, safeQuantity);
         calculateTotals(state);
       }
+    },
+
+    /**
+     * Replace the modifiers array for an existing cart item.
+     * Used by CartItemExtrasSheet when user adjusts add-ons.
+     * Also updates the cartKey to reflect the new modifier combo.
+     */
+    updateCartItemModifiers: (state, action) => {
+      const { cartKey, modifiers } = action.payload;
+      const itemIdx = state.items.findIndex((i) => i.cartKey === cartKey);
+      if (itemIdx === -1) return;
+
+      const item = state.items[itemIdx];
+      const newItem = { ...item, modifiers: modifiers ?? [] };
+      const newCartKey = makeCartKey(newItem);
+
+      // If cartKey didn't change (same mods), just update in place
+      if (newCartKey === cartKey) {
+        state.items[itemIdx].modifiers = modifiers ?? [];
+      } else {
+        // Check if a line item with the new key already exists → merge quantities
+        const existingIdx = state.items.findIndex((i) => i.cartKey === newCartKey);
+        if (existingIdx !== -1) {
+          state.items[existingIdx].quantity += item.quantity;
+          state.items.splice(itemIdx, 1);
+        } else {
+          state.items[itemIdx] = { ...newItem, cartKey: newCartKey };
+        }
+      }
+
+      calculateTotals(state);
     },
 
     clearCart: (state) => {
@@ -247,6 +290,7 @@ export const {
   removeItem,
   removeFromCart,
   updateQuantity,
+  updateCartItemModifiers,
   clearCart,
   applyDiscount,
   removeDiscount,

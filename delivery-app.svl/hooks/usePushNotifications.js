@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
@@ -17,6 +17,7 @@ const getNotifications = () => {
 // Helper to get Firebase Messaging only when safe
 const getFirebaseMessaging = () => {
   if (Constants.appOwnership === 'expo') return null;
+  if (!NativeModules.RNFBMessagingModule) return null;
   try {
     return require('@react-native-firebase/messaging').default;
   } catch (e) {
@@ -54,22 +55,26 @@ export default function usePushNotifications() {
     // We intercept the message and schedule a local notification instead.
     let unsubscribeForeground = null;
     if (firebaseMessaging) {
-      unsubscribeForeground = firebaseMessaging().onMessage(async remoteMessage => {
-        console.log('📩 FCM foreground message received:', remoteMessage);
-        const { title, body } = remoteMessage.notification ?? {};
-        if (Notifications && title) {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: title ?? 'Нове повідомлення',
-              body: body ?? '',
-              data: remoteMessage.data ?? {},
-              sound: true,
-              priority: Notifications.AndroidNotificationPriority?.MAX ?? 'max',
-            },
-            trigger: null, // показати одразу
-          });
-        }
-      });
+      try {
+        unsubscribeForeground = firebaseMessaging().onMessage(async remoteMessage => {
+          console.log('📩 FCM foreground message received:', remoteMessage);
+          const { title, body } = remoteMessage.notification ?? {};
+          if (Notifications && title) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: title ?? 'Нове повідомлення',
+                body: body ?? '',
+                data: remoteMessage.data ?? {},
+                sound: true,
+                priority: Notifications.AndroidNotificationPriority?.MAX ?? 'max',
+              },
+              trigger: null, // показати одразу
+            });
+          }
+        });
+      } catch (err) {
+        console.warn('⚠️ Firebase Messaging is not available natively:', err.message);
+      }
     }
     // ─────────────────────────────────────────────────────────────────────────
 

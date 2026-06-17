@@ -12,12 +12,14 @@ import {
     View,
     Platform,
     PanResponder,
+    ScrollView,
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
-import { tryAddToCart, removeFromCart, decrementItem, formatPrice } from '../store/cartSlice';
+import { tryAddToCart, removeFromCart, decrementItem, removeItem, formatPrice, makeCartKey } from '../store/cartSlice';
 import { toggleFavoriteProduct } from '../store/favoritesSlice';
+import * as Haptics from 'expo-haptics';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const SHEET_H = SCREEN_H * 0.65;
@@ -29,15 +31,79 @@ export default function ProductSheet({ product, onClose }) {
 
     const cartItems = useSelector((s) => s.cart.items);
     const favoriteProductIds = useSelector((s) => s.favorites.productIds ?? []);
-    const qty = cartItems.find(
-        (i) => (i.product_id ?? i.id) === (product?.product_id ?? product?.id)
-    )?.quantity ?? 0;
-
-    const isFav = favoriteProductIds.includes(product?.product_id ?? product?.id);
+    const locale = useSelector((s) => s.language?.locale ?? 'uk');
 
     const [addedFlash, setAddedFlash] = useState(false);
     const [heartScale] = useState(new Animated.Value(1));
     const btnScale = useRef(new Animated.Value(1)).current;
+
+    const pricingType = product?.pricingType ?? 'piece';
+    const weightStep = product?.weightStep ?? 100;
+    const minWeight = product?.minWeight ?? weightStep;
+    const avgWeight = product?.averageWeight ?? product?.weightGrams ?? 350;
+
+    const [selectedModifiers, setSelectedModifiers] = useState({});
+
+    // Pre-select first modifier of each group by default on mount/change
+    useEffect(() => {
+        if (product?.modifierGroups) {
+            const initial = {};
+            product.modifierGroups.forEach(group => {
+                if (group.modifiers && group.modifiers.length > 0) {
+                    initial[group.id] = group.modifiers[0];
+                }
+            });
+            setSelectedModifiers(initial);
+        } else {
+            setSelectedModifiers({});
+        }
+    }, [product]);
+
+    const getModifiersList = () => Object.values(selectedModifiers);
+
+    const currentCartKey = product ? makeCartKey({
+        ...product,
+        modifiers: getModifiersList()
+    }) : null;
+
+    const qty = cartItems.find((i) => i.cartKey === currentCartKey)?.quantity ?? 0;
+    const isFav = favoriteProductIds.includes(product?.product_id ?? product?.id);
+
+    // Calculate dynamic price based on selection
+    const selectedModsList = getModifiersList();
+    const modsPrice = selectedModsList.reduce((sum, m) => sum + safeNum(m.price), 0);
+    const baseProductPrice = safeNum(product?.price);
+    const singleUnitPrice = baseProductPrice + modsPrice;
+
+    // Price formatting
+    let priceLabel = `${formatPrice(singleUnitPrice)} ₴`;
+    let detailLabel = '';
+    let isWeighted = false;
+
+    if (pricingType === 'weight_step') {
+        priceLabel = `${formatPrice(product?.price)} ₴ / ${weightStep}г`;
+        if (qty > 0) {
+            const currentWeight = qty * weightStep;
+            detailLabel = `${currentWeight} г`;
+        } else {
+            detailLabel = `мін. ${minWeight} г`;
+        }
+    } else if (pricingType === 'piece_variable') {
+        priceLabel = `${formatPrice(product?.price)} ₴ / 100г`;
+        isWeighted = true;
+        if (qty > 0) {
+            const estWeight = qty * avgWeight;
+            const estPrice = qty * (avgWeight / 100) * product?.price;
+            detailLabel = `${qty} шт (≈ ${estWeight}г) ≈ ${formatPrice(estPrice)} ₴`;
+        } else {
+            const estPrice = (avgWeight / 100) * product?.price;
+            detailLabel = `1 шт ≈ ${avgWeight}г (≈ ${formatPrice(estPrice)} ₴)`;
+        }
+    } else if (selectedModsList.length > 0) {
+        if (qty > 0) {
+            detailLabel = `${qty} шт — ${formatPrice(singleUnitPrice * qty)} ₴`;
+        }
+    }
 
     const flashAdd = () => {
         setAddedFlash(true);
@@ -49,20 +115,46 @@ export default function ProductSheet({ product, onClose }) {
     };
 
     const handleAdd = () => {
-        const success = dispatch(tryAddToCart({ ...product }));
+        // Validate required modifiers selection
+        const reqGroups = product?.modifierGroups?.filter(g => g.required) ?? [];
+        const missing = reqGroups.filter(g => !selectedModifiers[g.id]);
+        if (missing.length > 0) {
+            let AlertModule;
+            try {
+                AlertModule = require('react-native').Alert;
+            } catch (e) {
+                AlertModule = { alert: (t, m) => console.log(t, m) };
+            }
+            AlertModule.alert(
+                locale === 'en' ? 'Select options' : 'Оберіть параметри',
+                locale === 'en' 
+                  ? `Please select: ${missing.map(g => g.name).join(', ')}`
+                  : `Будь ласка, виберіть: ${missing.map(g => g.name).join(', ')}`
+            );
+            return;
+        }
+
+        const success = dispatch(tryAddToCart({ 
+            ...product,
+            modifiers: getModifiersList()
+        }));
         if (success) {
             flashAdd();
         }
     };
 
     const handleRemove = () => {
-        const prodId = product.product_id ?? product.id;
-        const itemInCart = cartItems.find(i => (i.product_id ?? i.id) === prodId);
-        if (itemInCart) {
-            if (itemInCart.quantity > 1) {
-                dispatch(decrementItem(itemInCart.cartKey));
-            } else {
-                dispatch(removeFromCart(prodId));
+        if (currentCartKey) {
+            const itemInCart = cartItems.find(i => i.cartKey === currentCartKey);
+            if (itemInCart) {
+                const step = itemInCart.weightStep ?? 100;
+                const minW = itemInCart.minWeight ?? step;
+                const minQty = Math.max(1, Math.round(minW / step));
+                if (itemInCart.quantity > minQty) {
+                    dispatch(decrementItem(currentCartKey));
+                } else {
+                    dispatch(removeItem(currentCartKey));
+                }
             }
         }
     };
@@ -226,13 +318,69 @@ export default function ProductSheet({ product, onClose }) {
                 <View style={styles.content}>
                     <Text style={[styles.name, { color: theme.text }]}>{product.name}</Text>
 
-                    {product.description ? (
-                        <Text style={[styles.desc, { color: 'gray' }]}>{product.description}</Text>
+                    <ScrollView 
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{ paddingBottom: 24 }}
+                        style={{ flex: 1 }}
+                    >
+                        {product.description ? (
+                            <Text style={[styles.desc, { color: 'gray', marginBottom: 16 }]}>{product.description}</Text>
+                        ) : null}
+
+                        {isWeighted && (
+                            <View style={[styles.warningBox, { backgroundColor: theme.input }]}>
+                                <Ionicons name="information-circle-outline" size={16} color={theme.text} />
+                                <Text style={[styles.warningText, { color: theme.textSecondary }]}>
+                                    Точна вага та ціна будуть відомі після приготування
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* Options / Weight variants */}
+                        {product.modifierGroups?.map((group) => (
+                            <View key={group.id} style={styles.groupContainer}>
+                                <Text style={[styles.groupName, { color: theme.text }]}>
+                                    {group.name} {group.required && <Text style={{ color: theme.primary }}>*</Text>}
+                                </Text>
+                                <View style={styles.optionsRow}>
+                                    {group.modifiers?.map((mod) => {
+                                        const isSelected = selectedModifiers[group.id]?.id === mod.id;
+                                        return (
+                                            <TouchableOpacity
+                                                key={mod.id}
+                                                style={[
+                                                    styles.optionChip,
+                                                    { 
+                                                        backgroundColor: isSelected ? theme.primary : theme.input,
+                                                        borderColor: isSelected ? theme.primary : 'rgba(0,0,0,0.05)'
+                                                    }
+                                                ]}
+                                                onPress={() => {
+                                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                                    setSelectedModifiers(prev => ({
+                                                        ...prev,
+                                                        [group.id]: mod
+                                                    }));
+                                                }}
+                                            >
+                                                <Text style={[styles.optionText, { color: isSelected ? 'white' : theme.text }]}>
+                                                    {mod.name} {mod.price > 0 ? `(+${mod.price} ₴)` : ''}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        ))}
+                    </ScrollView>
+
+                    {detailLabel ? (
+                        <Text style={[styles.detailLabel, { color: theme.primary }]}>{detailLabel}</Text>
                     ) : null}
 
                     {/* Ціна + Controls */}
                     <View style={styles.footer}>
-                        <Text style={[styles.price, { color: theme.primary }]}>{formatPrice(product.price)} ₴</Text>
+                        <Text style={[styles.price, { color: theme.primary, fontSize: pricingType !== 'piece' ? 18 : 26 }]}>{priceLabel}</Text>
 
                         {qty === 0 ? (
                             <Animated.View style={{ transform: [{ scale: btnScale }] }}>
@@ -252,7 +400,9 @@ export default function ProductSheet({ product, onClose }) {
                                 <TouchableOpacity style={[styles.counterBtn, { backgroundColor: theme.input }]} onPress={handleRemove}>
                                     <Ionicons name="remove" size={18} color={theme.text} />
                                 </TouchableOpacity>
-                                <Text style={[styles.counterQty, { color: theme.text }]}>{qty}</Text>
+                                <Text style={[styles.counterQty, { color: theme.text }]}>
+                                    {pricingType === 'weight_step' ? `${qty * weightStep}г` : qty}
+                                </Text>
                                 <TouchableOpacity style={[styles.counterBtn, { backgroundColor: theme.primary }]} onPress={handleAdd}>
                                     <Ionicons name="add" size={18} color="white" />
                                 </TouchableOpacity>
@@ -380,9 +530,52 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(0,0,0,0.05)',
     },
     counterQty: {
-        fontSize: 20,
+        fontSize: 16,
         fontWeight: '800',
-        minWidth: 28,
+        minWidth: 44,
         textAlign: 'center',
+    },
+    warningBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        padding: 10,
+        borderRadius: 12,
+        marginBottom: 12,
+    },
+    warningText: {
+        fontSize: 12,
+        flex: 1,
+    },
+    detailLabel: {
+        fontSize: 16,
+        fontWeight: '700',
+        marginBottom: 12,
+    },
+    groupContainer: {
+        marginBottom: 16,
+    },
+    groupName: {
+        fontSize: 14,
+        fontWeight: '700',
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        opacity: 0.8,
+    },
+    optionsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    optionChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+    },
+    optionText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
 });

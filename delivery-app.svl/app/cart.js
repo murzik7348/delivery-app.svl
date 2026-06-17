@@ -35,6 +35,7 @@ import {
   decrementItem,
   removeItem,
   updateQuantity,
+  updateCartItemModifiers,
   selectCartSummary,
   setDeliveryType,
   setOrderNote,
@@ -47,6 +48,8 @@ import PromoSheet from '../components/PromoSheet';
 import BackButton from '../components/BackButton';
 import { fetchCatalog } from '../store/catalogSlice';
 import useCheckoutFlow from '../hooks/useCheckoutFlow';
+import CartItemExtrasSheet from '../components/CartItemExtrasSheet';
+import ProductSheet from '../components/ProductSheet';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -192,6 +195,7 @@ export default function CartScreen() {
 
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
   const [noteVisible, setNoteVisible] = useState(false);
+  const [extrasItem, setExtrasItem] = useState(null);
   const [viewProduct, setViewProduct] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -223,12 +227,26 @@ export default function CartScreen() {
     freeDeliveryProgress,
   } = useSelector(selectCartSummary);
 
+  const hasWeightedItems = cartItems.some(i => i.pricingType === 'piece_variable');
+
   const isAuthenticated = useSelector((s) => s.auth.isAuthenticated);
   const isOffline = useSelector((s) => s.ui?.isOffline ?? false);
   const paymentId = useSelector((s) => s.payment?.selectedMethodId);
   const paymentMethods = useSelector((s) => s.payment?.methods ?? []);
   const savedAddresses = useSelector((s) => s.auth?.addresses || []);
   const { currentLocation } = useSelector((s) => s.location);
+
+  // ── Sort cart items: main dishes first, sauces/drinks at bottom ──────────
+  const BOTTOM_CATEGORY_KEYWORDS = ['соус', 'sauce', 'напій', 'drink', 'кетчуп', 'кетч', 'вода', 'water', 'напо'];
+  const isSideItem = (item) => {
+    const cat = (item.category_name ?? item.categoryName ?? item.product_category ?? '').toLowerCase();
+    return BOTTOM_CATEGORY_KEYWORDS.some(kw => cat.includes(kw));
+  };
+  const sortedCartItems = [...cartItems].sort((a, b) => {
+    const aIsSide = isSideItem(a) ? 1 : 0;
+    const bIsSide = isSideItem(b) ? 1 : 0;
+    return aIsSide - bIsSide;
+  });
   console.log('[cart.js] savedAddresses from auth:', JSON.stringify(savedAddresses, null, 2));
 
   const userAddress = currentLocation?.name
@@ -422,50 +440,86 @@ export default function CartScreen() {
 
   // ── Render helpers ─────────────────────────────────────────────────────────
   const renderCartItem = ({ item }) => {
-    const unitPrice = safeNum(item.price) +
-      (item.modifiers ?? []).reduce((s, m) => s + safeNum(m.price) * (m.qty ?? 1), 0);
+    const pricingType = item.pricingType ?? 'piece';
+    const weightStep = item.weightStep ?? 100;
+    const avgWeight = item.averageWeight ?? item.weightGrams ?? 350;
+
+    let baseUnitPrice = safeNum(item.price);
+    let displayQty = item.quantity;
+    let priceSubLabel = '';
+
+    if (pricingType === 'weight_step') {
+      priceSubLabel = `/ ${weightStep}г`;
+      displayQty = `${item.quantity * weightStep}г`;
+    } else if (pricingType === 'piece_variable') {
+      baseUnitPrice = baseUnitPrice * (avgWeight / 100);
+      priceSubLabel = `/ шт`;
+      displayQty = `${item.quantity} шт`;
+    }
+
+    const modifiers = item.modifiers ?? [];
+    const modsTotal = modifiers.reduce((s, m) => s + safeNum(m.price) * (m.qty ?? 1), 0);
+    const unitPrice = baseUnitPrice + modsTotal;
+    const lineTotal = unitPrice * item.quantity;
 
     return (
-      <View style={[styles.itemCard, { backgroundColor: theme.card }]}>
-        {/* Left: image + info */}
-        <TouchableOpacity
-          style={styles.itemLeft}
-          activeOpacity={0.75}
-          onPress={() => setViewProduct(item)}
-        >
+      <TouchableOpacity
+        style={[styles.itemCard, { backgroundColor: theme.card }]}
+        activeOpacity={0.92}
+        onPress={() => setExtrasItem(item)}
+      >
+        {/* Top row: image + name + stepper */}
+        <View style={styles.itemTopRow}>
           <Image source={{ uri: item.image }} style={styles.itemImage} />
-          <View style={styles.itemInfo}>
-            <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={2}>
-              {item.name}
-            </Text>
-            {/* Feature 2: modifier chips */}
-            <ModifierChips modifiers={item.modifiers} />
-            <Text style={[styles.itemPrice, { color: theme.primary }]}>{formatPrice(unitPrice)} ₴</Text>
+          <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={2}>
+            {item.name}
+          </Text>
+          {/* Quantity stepper — top right */}
+          <View style={styles.stepper}>
+            <TouchableOpacity
+              hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
+              onPress={(e) => { e.stopPropagation?.(); handleDecrement(item); }}
+            >
+              <Ionicons name="remove-circle" size={getScaled(30)} color={theme.primary} />
+            </TouchableOpacity>
+            <Text style={[styles.stepperQty, { color: theme.text }]}>{displayQty}</Text>
+            <TouchableOpacity
+              hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                dispatch(updateQuantity({ cartKey: item.cartKey, quantity: item.quantity + 1 }));
+              }}
+            >
+              <Ionicons name="add-circle" size={getScaled(30)} color={theme.primary} />
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-
-        {/* Right: quantity stepper — Feature 4 */}
-        <View style={styles.stepper}>
-          <TouchableOpacity
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() => handleDecrement(item)}
-          >
-            <Ionicons name="remove-circle" size={getScaled(32)} color={theme.primary} />
-          </TouchableOpacity>
-
-          <Text style={[styles.stepperQty, { color: theme.text }]}>{item.quantity}</Text>
-
-          <TouchableOpacity
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              dispatch(updateQuantity({ cartKey: item.cartKey, quantity: item.quantity + 1 }));
-            }}
-          >
-            <Ionicons name="add-circle" size={getScaled(32)} color={theme.primary} />
-          </TouchableOpacity>
         </View>
-      </View>
+
+        {/* Modifiers as line rows */}
+        {modifiers.length > 0 && (
+          <View style={styles.modifierRows}>
+            {modifiers.map((mod, idx) => (
+              <View key={`${mod.id}-${idx}`} style={styles.modifierRow}>
+                <Text style={[styles.modifierRowName, { color: theme.textSecondary ?? 'gray' }]}>
+                  {mod.name} <Text style={{ opacity: 0.6 }}>x{mod.qty ?? 1}</Text>
+                </Text>
+                <Text style={[styles.modifierRowPrice, { color: theme.textSecondary ?? 'gray' }]}>
+                  {formatPrice(safeNum(mod.price) * (mod.qty ?? 1))} ₴
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Загалом row */}
+        <View style={styles.itemTotalRow}>
+          <Text style={[styles.itemTotalLabel, { color: theme.primary }]}>Загалом</Text>
+          <Text style={[styles.itemTotalValue, { color: theme.primary }]}>
+            {formatPrice(lineTotal)} ₴{priceSubLabel ? ` ${priceSubLabel}` : ''}
+          </Text>
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -556,7 +610,7 @@ export default function CartScreen() {
           <FlatList
             onScroll={handleScroll}
             scrollEventThrottle={16}
-            data={cartItems}
+            data={sortedCartItems}
             renderItem={renderCartItem}
             keyExtractor={(item, idx) => item.cartKey ?? (resolveId(item) ?? idx).toString()}
             contentContainerStyle={{
@@ -694,6 +748,16 @@ export default function CartScreen() {
 
             {/* ── EXPANDED ZONE ── */}
             <View style={styles.expandedZone}>
+              {hasWeightedItems && (
+                <View style={[styles.weightWarningBox, { backgroundColor: theme.input }]}>
+                  <Ionicons name="information-circle-outline" size={16} color={theme.primary} />
+                  <Text style={[styles.weightWarningText, { color: theme.textSecondary }]}>
+                    {locale === 'en'
+                      ? '*Actual cost of steak/fish will be calculated after weighing.'
+                      : '*Точна вартість стейків/риби буде визначена після зважування.'}
+                  </Text>
+                </View>
+              )}
               <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
               {/* Price breakdown */}
@@ -851,62 +915,24 @@ export default function CartScreen() {
         </View>
       )}
 
-      {/* ── Product detail modal ── */}
-      <Modal
-        animationType="slide"
-        transparent
-        visible={!!viewProduct}
-        onRequestClose={() => setViewProduct(null)}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setViewProduct(null)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={[styles.productSheet, { backgroundColor: theme.card }]}
-          >
-            <View style={styles.productSheetPill} />
-            {viewProduct && (
-              <>
-                <Image source={{ uri: viewProduct.image }} style={styles.productSheetImage} />
-                <View style={styles.productSheetBody}>
-                  <View style={styles.productSheetTitleRow}>
-                    <Text style={[styles.productSheetTitle, { color: theme.text }]}>
-                      {viewProduct.name}
-                    </Text>
-                    <Text style={styles.productSheetPrice}>
-                      {formatPrice(safeNum(viewProduct.price))} ₴
-                    </Text>
-                  </View>
-                  <Text style={[styles.productSheetDesc, { color: theme.textSecondary ?? 'gray' }]}>
-                    {viewProduct.description || 'Опис відсутній.'}
-                  </Text>
-                  {cartItems.find((i) => resolveId(i) === resolveId(viewProduct)) ? (
-                    <TouchableOpacity
-                      style={[styles.productSheetBtn, { backgroundColor: theme.primary }]}
-                      onPress={() => setViewProduct(null)}
-                    >
-                      <Text style={styles.productSheetBtnText}>Зрозуміло</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[styles.productSheetBtn, { backgroundColor: theme.primary }]}
-                      onPress={() => {
-                        dispatch(tryAddToCart({ ...viewProduct }));
-                        setViewProduct(null);
-                      }}
-                    >
-                      <Text style={styles.productSheetBtnText}>Додати в кошик</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </>
-            )}
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+      {/* ── Cart Item Extras Sheet ── */}
+      <CartItemExtrasSheet
+        visible={!!extrasItem}
+        item={extrasItem}
+        catalogProduct={
+          extrasItem
+            ? products.find(p => p.product_id === (extrasItem.product_id ?? extrasItem.id))
+            : null
+        }
+        onClose={() => setExtrasItem(null)}
+      />
+
+      {viewProduct && (
+        <ProductSheet
+          product={viewProduct}
+          onClose={() => setViewProduct(null)}
+        />
+      )}
 
       {/* Address picker */}
       <AddressBottomSheet
@@ -948,8 +974,6 @@ const styles = StyleSheet.create({
   toggleTextActive: { color: 'black' },
 
   itemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: getScaled(12),
     padding: getScaled(12),
     borderRadius: getScaled(20),
@@ -961,14 +985,51 @@ const styles = StyleSheet.create({
       android: { elevation: 2 }
     })
   },
-  itemLeft: { flex: 1, flexDirection: 'row', alignItems: 'flex-start' },
-  itemImage: { width: getScaled(66), height: getScaled(66), borderRadius: getScaled(16), backgroundColor: '#eee' },
-  itemInfo: { flex: 1, marginLeft: 12 },
-  itemName: { fontSize: getScaled(15), fontWeight: '700', lineHeight: getScaled(22) },
-  itemPrice: { color: '#000000', fontWeight: 'bold', marginTop: 4, fontSize: getScaled(15) },
+  itemTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  itemImage: { width: getScaled(56), height: getScaled(56), borderRadius: getScaled(14), backgroundColor: '#eee' },
+  itemName: { flex: 1, fontSize: getScaled(15), fontWeight: '700', lineHeight: getScaled(22), marginHorizontal: 10 },
+  modifierRows: {
+    marginLeft: getScaled(56) + 10,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  modifierRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  modifierRowName: {
+    fontSize: getScaled(12),
+    flex: 1,
+    marginRight: 8,
+  },
+  modifierRowPrice: {
+    fontSize: getScaled(12),
+    fontWeight: '600',
+  },
+  itemTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    marginLeft: getScaled(56) + 10,
+  },
+  itemTotalLabel: {
+    fontSize: getScaled(14),
+    fontWeight: '700',
+  },
+  itemTotalValue: {
+    fontSize: getScaled(14),
+    fontWeight: '700',
+  },
 
   stepper: { flexDirection: 'row', alignItems: 'center' },
-  stepperQty: { marginHorizontal: getScaled(10), fontSize: getScaled(18), fontWeight: 'bold' },
+  stepperQty: { marginHorizontal: getScaled(6), fontSize: getScaled(14), fontWeight: 'bold', minWidth: getScaled(24), textAlign: 'center' },
 
   recSection: { marginTop: 22, marginBottom: 20 },
   recTitle: { fontSize: 18, fontWeight: 'bold', marginLeft: 16, marginBottom: 12 },
@@ -1097,39 +1158,22 @@ const styles = StyleSheet.create({
   shopBtn: { paddingHorizontal: 28, paddingVertical: 13, borderRadius: 14 },
   shopBtnText: { fontWeight: 'bold', fontSize: 16 },
 
-  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
-  productSheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingBottom: 40,
-    width: '100%',
-    maxHeight: '82%',
-  },
-  productSheetPill: {
-    width: 44,
-    height: 5,
-    backgroundColor: '#ccc',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  productSheetImage: { width: '100%', height: 230, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
-  productSheetBody: { padding: 20 },
-  productSheetTitleRow: {
+
+
+  weightWarningBox: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 6,
-  },
-  productSheetTitle: { fontSize: 22, fontWeight: 'bold', flex: 1, marginRight: 10 },
-  productSheetPrice: { fontSize: 22, fontWeight: 'bold', color: NEON },
-  productSheetDesc: { fontSize: 15, marginTop: 8, marginBottom: 24, lineHeight: 23 },
-  productSheetBtn: {
-    backgroundColor: '#000000',
-    padding: 16,
-    borderRadius: 18,
     alignItems: 'center',
+    gap: 8,
+    padding: 11,
+    borderRadius: 12,
+    marginBottom: 12,
+    marginHorizontal: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
-  productSheetBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  weightWarningText: {
+    fontSize: 11,
+    fontWeight: '600',
+    flex: 1,
+  },
 });

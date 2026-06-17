@@ -40,20 +40,30 @@ export default function Index() {
         if (isAuthenticated) {
           if (url) {
             console.log("🔔 ХОЛОДНИЙ СТАРТ: Летимо на", url);
-            router.replace(url);
+            setTimeout(() => {
+              router.replace(url);
+            }, 100);
           } else {
-            router.replace('/home');
+            setTimeout(() => {
+              router.replace('/home');
+            }, 100);
           }
         } else {
           console.log("🔒 НЕ АВТОРИЗОВАНИЙ: На екран логіну");
-          router.replace('/(auth)/login');
+          setTimeout(() => {
+            router.replace('/(auth)/login');
+          }, 100);
         }
       } catch (e) {
         console.error("Помилка старту:", e);
         if (isAuthenticated) {
-          router.replace('/home');
+          setTimeout(() => {
+            router.replace('/home');
+          }, 100);
         } else {
-          router.replace('/(auth)/login');
+          setTimeout(() => {
+            router.replace('/(auth)/login');
+          }, 100);
         }
       } finally {
         setIsReady(true);

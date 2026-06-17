@@ -1385,7 +1385,7 @@
         }
       }
     },
-    "/courier/deliveries{id}/accepted": {
+    "/courier/deliveries/{id}/accepted": {
       "put": {
         "tags": [
           "Courier"
@@ -1445,7 +1445,7 @@
         }
       }
     },
-    "/courier/deliveries{id}/pickedup": {
+    "/courier/deliveries/{id}/pickedup": {
       "put": {
         "tags": [
           "Courier"
@@ -1505,7 +1505,7 @@
         }
       }
     },
-    "/courier/deliveries{id}/confirmations": {
+    "/courier/deliveries/{id}/confirmations": {
       "put": {
         "tags": [
           "Courier"
@@ -2247,18 +2247,11 @@
         "parameters": [
           {
             "name": "productId",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "productId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -3479,7 +3472,6 @@
       "DeliveryCreateRequest": {
         "required": [
           "addressId",
-          "description",
           "paymentMethodId",
           "products"
         ],
@@ -3495,14 +3487,32 @@
           },
           "description": {
             "maxLength": 100,
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "products": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CreateDeliveryProduct"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "DeliveryInformationCourier": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -3560,6 +3570,9 @@
           "paymentStatus": {
             "type": "string",
             "nullable": true
+          },
+          "courier_Information": {
+            "$ref": "#/components/schemas/DeliveryInformationCourier"
           },
           "totalPrice": {
             "type": "number",

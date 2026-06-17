@@ -2,13 +2,13 @@ import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import { Provider } from "react-redux";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { store, persistor } from "../store";
-import { Platform, StatusBar, View } from 'react-native';
+import { Platform, StatusBar, View, NativeModules } from 'react-native';
 import '../services/BackgroundLocationTask';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { PersistGate } from 'redux-persist/integration/react';
 import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getAuth } from '@react-native-firebase/auth';
+import Constants from 'expo-constants';
 import usePushNotifications from '../hooks/usePushNotifications';
 import useCourierLocation from '../hooks/useCourierLocation';
 // import useLiveActivitySync from '../hooks/useLiveActivitySync';
@@ -20,6 +20,17 @@ import DynamicIsland from '../components/DynamicIsland';
 import OfflineBanner from '../components/OfflineBanner';
 // import AiAssistantFAB from '../components/AiAssistantFAB';
 // import AiChatSheet from '../components/AiChatSheet';
+ 
+// Helper to get Firebase Auth only when safe
+const getFirebaseAuth = () => {
+  if (Constants.appOwnership === 'expo') return null;
+  if (!NativeModules.RNFBAuthModule) return null;
+  try {
+    return require('@react-native-firebase/auth').getAuth;
+  } catch (e) {
+    return null;
+  }
+};
 
 function AppStartup() {
   const dispatch = useDispatch();
@@ -32,8 +43,13 @@ function AppStartup() {
 
   useEffect(() => {
     try {
-      const authInstance = getAuth();
-      console.log("🔥 [Firebase Test] Auth status: initialized successfully. Current user:", authInstance.currentUser ? authInstance.currentUser.uid : "None");
+      const getAuthFn = getFirebaseAuth();
+      if (getAuthFn) {
+        const authInstance = getAuthFn();
+        console.log("🔥 [Firebase Test] Auth status: initialized successfully. Current user:", authInstance.currentUser ? authInstance.currentUser.uid : "None");
+      } else {
+        console.log("⚠️ [Firebase Test] Firebase Auth is not available (running in Expo Go or native module not compiled).");
+      }
     } catch (e) {
       console.error("❌ [Firebase Test] Failed to initialize Auth:", e);
     }

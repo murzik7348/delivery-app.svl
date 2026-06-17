@@ -1,4 +1,5 @@
 import { createDelivery, getMyDeliveries, getAddresses } from '../src/api';
+import { resolveImageUrl } from '../src/api/client';
 
 /**
  * OrderService — submits and fetches orders via the real Delivery API.
@@ -305,6 +306,32 @@ class OrderService {
             addressString = 'Address N/A';
         }
 
+        const courierObj = item.courier_Information || item.courier_information || item.courierInformation || item.courier || item.courierUser || item.driver || item.courierInfo || item.courierDto || item.assignedCourier || item.courierDetails;
+        let parsedCourierName = null;
+        let parsedCourierPhone = null;
+        let parsedCourierPhoto = null;
+        let parsedCourierRating = null;
+
+        if (typeof courierObj === 'string') {
+            parsedCourierName = courierObj;
+        } else if (courierObj && typeof courierObj === 'object') {
+            parsedCourierName = courierObj.user?.name || courierObj.user?.fullName || courierObj.name || courierObj.fullName || courierObj.userName || courierObj.username;
+            parsedCourierPhone = courierObj.user?.phone || courierObj.user?.phoneNumber || courierObj.phone || courierObj.phoneNumber || courierObj.phone_number;
+            parsedCourierPhoto = courierObj.user?.avatarUrl || courierObj.user?.photoUrl || courierObj.user?.photo || courierObj.avatarUrl || courierObj.photoUrl || courierObj.photo || courierObj.avatar;
+            parsedCourierRating = courierObj.rating;
+        }
+
+        // Fallbacks to top-level/flat fields
+        parsedCourierName = parsedCourierName || item.courierName || item.courier_name || null;
+        parsedCourierPhone = parsedCourierPhone || item.courierPhone || item.courier_phone || item.courierPhoneNumber || item.courier_phone_number || null;
+        parsedCourierPhoto = parsedCourierPhoto || item.courierPhoto || item.courier_photo || item.courierPhotoUrl || item.courier_photo_url || null;
+        parsedCourierRating = parsedCourierRating ?? item.courierRating ?? item.courier_rating ?? null;
+
+        // Resolve relative URL for photo if present
+        if (parsedCourierPhoto) {
+            parsedCourierPhoto = resolveImageUrl(parsedCourierPhoto);
+        }
+
         return {
             ...item,
             paymentMethod: paymentMethodStr,
@@ -359,12 +386,30 @@ class OrderService {
             ),
             customerLatitude,
             customerLongitude,
-            courierLatitude: Number(item.courier?.latitude || item.courier?.lat || item.courierLatitude || item.courierLocation?.latitude || item.courierLocation?.lat || 0),
-            courierLongitude: Number(item.courier?.longitude || item.courier?.lng || item.courierLongitude || item.courierLocation?.longitude || item.courierLocation?.lng || 0),
-            courierName: item.courier?.name || item.courierName || null,
-            courierPhone: item.courier?.phoneNumber || item.courierPhone || null,
-            courierPhoto: item.courier?.photoUrl || item.courierPhoto || null,
-            courierRating: item.courier?.rating ?? item.courierRating ?? null,
+            courierLatitude: Number(
+                item.courier?.latitude || 
+                item.courier?.lat || 
+                item.courier?.location?.latitude || 
+                item.courier?.location?.lat || 
+                item.courierLatitude || 
+                item.courierLocation?.latitude || 
+                item.courierLocation?.lat || 
+                0
+            ),
+            courierLongitude: Number(
+                item.courier?.longitude || 
+                item.courier?.lng || 
+                item.courier?.location?.longitude || 
+                item.courier?.location?.lng || 
+                item.courierLongitude || 
+                item.courierLocation?.longitude || 
+                item.courierLocation?.lng || 
+                0
+            ),
+            courierName: parsedCourierName,
+            courierPhone: parsedCourierPhone,
+            courierPhoto: parsedCourierPhoto,
+            courierRating: parsedCourierRating,
         };
     }
 
