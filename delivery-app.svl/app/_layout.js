@@ -31,10 +31,84 @@ import OfflineBanner from '../components/OfflineBanner';
 import { useAppFonts } from '../utils/fonts';
 
 // ── Global AppText as default for ALL <Text> components ────────────────────
-// This replaces all standard <Text> components in the app with AppText dynamically.
-const RN = require('react-native');
-import { AppText } from '../components/AppText';
-RN.Text = AppText;
+// Intercepts and patches Text.render dynamically so all standard <Text> components
+// automatically support variant="body|heading|caption|button" and apply Inter.
+import { StyleSheet } from 'react-native';
+
+const variantStyles = StyleSheet.create({
+  body: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  heading: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  caption: {
+    fontSize: 12,
+    lineHeight: 16,
+    opacity: 0.7,
+  },
+  button: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+});
+
+function getFontFamily(variant, style) {
+  const flat = StyleSheet.flatten(style) || {};
+  if (flat.fontFamily) return flat.fontFamily;
+
+  const weight = flat.fontWeight;
+  if (weight === 'bold' || weight === '700' || weight === '800' || weight === '900') {
+    return 'Inter_700Bold';
+  }
+  if (weight === '600') {
+    return 'Inter_600SemiBold';
+  }
+  if (weight === '500') {
+    return 'Inter_500Medium';
+  }
+
+  if (variant === 'heading') return 'Inter_600SemiBold';
+  if (variant === 'button') return 'Inter_500Medium';
+  return 'Inter_400Regular';
+}
+
+try {
+  if (Text.render) {
+    const originalRender = Text.render;
+    Text.render = function(props, ref) {
+      const { variant = 'body', style, ...rest } = props;
+      const variantStyle = variantStyles[variant] || variantStyles.body;
+      const fontFamily = getFontFamily(variant, style);
+
+      // Clean up fontWeight on Android to prevent double bolding issues
+      const cleanStyle = { ...(StyleSheet.flatten(style) || {}) };
+      if (Platform.OS === 'android' && fontFamily !== 'Inter_400Regular') {
+        delete cleanStyle.fontWeight;
+      }
+
+      return originalRender.call(this, {
+        ...rest,
+        style: [
+          variantStyle,
+          { fontFamily },
+          cleanStyle,
+        ],
+      }, ref);
+    };
+  } else {
+    if (Text.defaultProps == null) Text.defaultProps = {};
+    Text.defaultProps.style = [
+      { fontFamily: 'Inter_400Regular' },
+      Text.defaultProps.style,
+    ];
+  }
+} catch (e) {
+  console.warn('[Layout] Failed to patch Text.render:', e);
+}
+
  
 // Helper to get Firebase Auth only when safe
 const getFirebaseAuth = () => {
