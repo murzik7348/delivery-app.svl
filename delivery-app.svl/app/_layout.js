@@ -2,7 +2,15 @@ import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import { Provider } from "react-redux";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { store, persistor } from "../store";
-import { Platform, StatusBar, View, NativeModules } from 'react-native';
+import { Platform, StatusBar, View, NativeModules, Text } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+
+try {
+  SplashScreen.preventAutoHideAsync();
+} catch (e) {
+  // Silent fallback
+}
+
 import '../services/BackgroundLocationTask';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -20,6 +28,13 @@ import DynamicIsland from '../components/DynamicIsland';
 import OfflineBanner from '../components/OfflineBanner';
 // import AiAssistantFAB from '../components/AiAssistantFAB';
 // import AiChatSheet from '../components/AiChatSheet';
+import { useAppFonts } from '../utils/fonts';
+
+// ── Global AppText as default for ALL <Text> components ────────────────────
+// This replaces all standard <Text> components in the app with AppText dynamically.
+const RN = require('react-native');
+import { AppText } from '../components/AppText';
+RN.Text = AppText;
  
 // Helper to get Firebase Auth only when safe
 const getFirebaseAuth = () => {
@@ -105,6 +120,8 @@ function ThemeStatusBar() {
 }
 
 export default function RootLayout() {
+  const { fontsLoaded, fontError } = useAppFonts();
+
   const pathname = usePathname();
   const mainScreens = ['/home', '/catalog', '/favorites', '/cart', '/orders', '/profile', '/courier'];
   const showBottomBar = mainScreens.includes(pathname);
@@ -117,17 +134,16 @@ export default function RootLayout() {
     const newIdx = mainScreens.indexOf(pathname);
 
     if (prevIdx !== -1 && newIdx !== -1 && prevIdx !== newIdx) {
-      if (newIdx > prevIdx) {
-        setTransitionAnimation('slide_from_right');
-      } else {
-        setTransitionAnimation('slide_from_left');
-      }
+      setTransitionAnimation('none');
     } else {
       // Fallback for standard pushes/pops outside of tab bar
       setTransitionAnimation(Platform.OS === 'ios' ? 'default' : 'slide_from_right');
     }
     prevPathname.current = pathname;
   }, [pathname]);
+
+  // Block render until fonts are ready (SplashScreen is still showing via useAppFonts)
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <SafeAreaProvider>

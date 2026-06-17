@@ -22,8 +22,9 @@ import { formatPrice } from '../store/cartSlice';
 import Colors, { Shadows } from '../constants/Colors';
 import useCatalogFilter from '../hooks/useCatalogFilter';
 import { CatalogSkeleton } from '../components/Skeleton';
+import ProductSheet from '../components/ProductSheet';
 
-const BouncyProductCard = ({ item, theme, router, isDark }) => {
+const BouncyProductCard = ({ item, theme, router, isDark, onPress }) => {
   const [scaleAnim] = useState(new Animated.Value(1));
 
   const handlePressIn = () => {
@@ -39,7 +40,7 @@ const BouncyProductCard = ({ item, theme, router, isDark }) => {
       onPressOut={handlePressOut}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push(`/restaurant/${item.store_id}`);
+        if (onPress) onPress();
       }}
       activeOpacity={1}
     >
@@ -66,7 +67,7 @@ const BouncyProductCard = ({ item, theme, router, isDark }) => {
   );
 };
 
-const BouncyHorizontalCard = ({ item, router, theme, isDark, tag, tagColor }) => {
+const BouncyHorizontalCard = ({ item, router, theme, isDark, tag, tagColor, onPress }) => {
   const [scaleAnim] = useState(new Animated.Value(1));
 
   const handlePressIn = () => {
@@ -82,7 +83,7 @@ const BouncyHorizontalCard = ({ item, router, theme, isDark, tag, tagColor }) =>
       onPressOut={handlePressOut}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push(`/restaurant/${item.store_id}`);
+        if (onPress) onPress();
       }}
       activeOpacity={1}
     >
@@ -115,6 +116,7 @@ export default function CatalogScreen() {
   
   const isLoading = useSelector((state) => state.catalog.isLoading);
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const { sortOrder, setSortOrder, finalProducts } = useCatalogFilter();
 
   const lastScrollY = useRef(0);
@@ -206,6 +208,7 @@ export default function CatalogScreen() {
                       isDark={isDark} 
                       tag="TOP" 
                       tagColor="#FF5722" 
+                      onPress={() => setSelectedProduct(item)}
                     />
                   ))}
                 </ScrollView>
@@ -226,6 +229,7 @@ export default function CatalogScreen() {
                       isDark={isDark} 
                       tag="NEW" 
                       tagColor="#4CAF50" 
+                      onPress={() => setSelectedProduct(item)}
                     />
                   ))}
                 </ScrollView>
@@ -238,7 +242,13 @@ export default function CatalogScreen() {
               <View style={styles.grid}>
                 {finalProducts.map((item, index) => (
                   <View key={`prod-${index}`} style={{ width: '48%', marginBottom: 16 }}>
-                    <BouncyProductCard item={item} theme={theme} router={router} isDark={isDark} />
+                    <BouncyProductCard 
+                      item={item} 
+                      theme={theme} 
+                      router={router} 
+                      isDark={isDark} 
+                      onPress={() => setSelectedProduct(item)}
+                    />
                   </View>
                 ))}
               </View>
@@ -303,6 +313,12 @@ export default function CatalogScreen() {
         </View>
       </Modal>
 
+      {selectedProduct && (
+        <ProductSheet
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
     </View>
   );
 }

@@ -51,7 +51,8 @@
         "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_LOCATION"
-      ]
+      ],
+      "edgeToEdgeLayoutEnabled": false
     },
     "web": {
       "favicon": "./assets/images/icon.png"

@@ -62,16 +62,34 @@ export default function SearchScreen() {
   }, [dispatch]);
 
   const { searchQuery, setSearchQuery, finalProducts, searchFilteredStores } = useCatalogFilter();
+  const [inputValue, setInputValue] = useState('');
 
-  const handleChange = useCallback((text) => {
-    setSearchQuery(text);
-    fadeAnim.setValue(0);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
+  const updateSearch = useCallback((text, immediate = false) => {
+    setInputValue(text);
+    if (immediate) {
+      setSearchQuery(text);
+      fadeAnim.setValue(0);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    }
   }, [fadeAnim, setSearchQuery]);
+
+  useEffect(() => {
+    if (inputValue === searchQuery) return;
+    const timer = setTimeout(() => {
+      setSearchQuery(inputValue);
+      fadeAnim.setValue(0);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    }, 180); // 180ms debounce
+    return () => clearTimeout(timer);
+  }, [inputValue, searchQuery, setSearchQuery, fadeAnim]);
 
   const ProductResultItem = ({ item }) => {
     const [added, setAdded] = useState(false);
@@ -194,7 +212,7 @@ export default function SearchScreen() {
                 styles.hintChip, 
                 { backgroundColor: theme.card, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth }
               ]}
-              onPress={() => handleChange(hint)}
+              onPress={() => updateSearch(hint, true)}
             >
               <Text style={styles.hintEmoji}>{emojis[idx]}</Text>
               <Text style={[styles.hintText, { color: theme.text }]}>{hint}</Text>
@@ -218,18 +236,18 @@ export default function SearchScreen() {
             placeholder="Піца, суші, бургер..."
             placeholderTextColor="gray"
             autoFocus
-            value={searchQuery}
-            onChangeText={handleChange}
-            returnKeyType="search"
-            clearButtonMode="never"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => handleChange('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="close-circle" size={18} color="gray" />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+             value={inputValue}
+             onChangeText={(text) => updateSearch(text, false)}
+             returnKeyType="search"
+             clearButtonMode="never"
+           />
+           {inputValue.length > 0 && (
+             <TouchableOpacity onPress={() => updateSearch('', true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+               <Ionicons name="close-circle" size={18} color="gray" />
+             </TouchableOpacity>
+           )}
+         </View>
+       </View>
 
       <KeyboardAvoidingView 
         style={{ flex: 1 }} 

@@ -471,9 +471,14 @@ export default function CartScreen() {
         {/* Top row: image + name + stepper */}
         <View style={styles.itemTopRow}>
           <Image source={{ uri: item.image }} style={styles.itemImage} />
-          <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={2}>
-            {item.name}
-          </Text>
+          <View style={{ flex: 1, marginHorizontal: 10, justifyContent: 'center' }}>
+            <Text style={[styles.itemName, { color: theme.text, marginHorizontal: 0 }]} numberOfLines={2}>
+              {item.name}
+            </Text>
+            <Text style={{ fontSize: getScaled(13), color: theme.textSecondary, fontWeight: '600', marginTop: 2 }}>
+              {formatPrice(unitPrice)} ₴{priceSubLabel ? ` ${priceSubLabel}` : ''}
+            </Text>
+          </View>
           {/* Quantity stepper — top right */}
           <View style={styles.stepper}>
             <TouchableOpacity
@@ -516,7 +521,7 @@ export default function CartScreen() {
         <View style={styles.itemTotalRow}>
           <Text style={[styles.itemTotalLabel, { color: theme.primary }]}>Загалом</Text>
           <Text style={[styles.itemTotalValue, { color: theme.primary }]}>
-            {formatPrice(lineTotal)} ₴{priceSubLabel ? ` ${priceSubLabel}` : ''}
+            {formatPrice(lineTotal)} ₴
           </Text>
         </View>
       </TouchableOpacity>

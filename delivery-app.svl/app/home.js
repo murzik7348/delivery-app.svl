@@ -59,7 +59,7 @@ const StoreCardItem = ({ store, theme, router }) => {
         <View style={styles.storeInfo}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={[styles.storeName, { color: theme.text }]} numberOfLines={1}>{store.name}</Text>
-            <View style={[styles.ratingBadge, { backgroundColor: theme.card === '#000000' ? '#222' : '#f0f0f0' }]}>
+            <View style={[styles.ratingBadge, { backgroundColor: theme.text === '#FFFFFF' ? '#2C2C2E' : '#F0F0F0' }]}>
               <Ionicons name="star" size={12} color="#f1c40f" style={{marginRight: 3}} />
               <Text style={[styles.ratingText, { color: theme.text }]}>{store.rating}</Text>
             </View>
@@ -315,8 +315,7 @@ export default function HomeScreen() {
                     styles.catCircle,
                     {
                       backgroundColor: isSelected ? theme.primary : theme.card,
-                      borderWidth: isSelected ? 2 : 0,
-                      borderColor: '#000000',
+                      borderWidth: isSelected ? 0 : StyleSheet.hairlineWidth,
                     }
                   ]}>
                     {cat.image ? (

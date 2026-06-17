@@ -21,6 +21,7 @@ import * as Haptics from 'expo-haptics';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { safeBack } from '../utils/navigation';
 import { syncLiveActivity, endActivity, startPolling, stopPolling } from '../services/LiveActivityService';
+import { hs, vs, ms, fs, r, hairline } from '../utils/responsive';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -154,10 +155,26 @@ function HorizontalProgressBar({ currentStep, theme }) {
 }
 
 const progressStyles = StyleSheet.create({
-  container: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 20 },
-  stepWrapper: { alignItems: 'center', justifyContent: 'center', width: 36, height: 36 },
-  iconCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  line: { flex: 1, height: 3, marginHorizontal: 4, borderRadius: 2 }
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: vs(20),
+  },
+  stepWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: ms(36),
+    height: ms(36),
+  },
+  iconCircle: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: r(16),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  line: { flex: 1, height: vs(3), marginHorizontal: hs(4), borderRadius: r(2) },
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -807,21 +824,21 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   backButton: { marginTop: 15, backgroundColor: '#000000', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
 
-  dynamicHeader: { height: 260, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, overflow: 'hidden' },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10 },
-  headerBackBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.05)', justifyContent: 'center', alignItems: 'center' },
-  headerHelpBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.05)', justifyContent: 'center', alignItems: 'center' },
+  dynamicHeader: { minHeight: vs(260), borderBottomLeftRadius: r(36), borderBottomRightRadius: r(36), overflow: 'hidden' },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: hs(20), paddingTop: vs(10) },
+  headerBackBtn: { width: ms(44), height: ms(44), borderRadius: r(22), backgroundColor: 'rgba(0,0,0,0.05)', justifyContent: 'center', alignItems: 'center' },
+  headerHelpBtn: { width: ms(44), height: ms(44), borderRadius: r(22), backgroundColor: 'rgba(0,0,0,0.05)', justifyContent: 'center', alignItems: 'center' },
   headerTitleWrap: { flex: 1, alignItems: 'center' },
   hashTitle: { fontSize: 18, fontWeight: '800', fontFamily: 'Menlo' },
 
-  headerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 20 },
-  largeEmoji: { fontSize: 72, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 15 },
-  mainStatusTitle: { fontSize: 28, fontWeight: '900', letterSpacing: 0.5 },
-  etaBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginTop: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
-  etaDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  etaText: { fontSize: 16, fontWeight: '800', color: '#111' },
+  headerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: vs(20) },
+  largeEmoji: { fontSize: fs(72), marginBottom: vs(10), shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 15 },
+  mainStatusTitle: { fontSize: fs(28), fontWeight: '900', letterSpacing: 0.5 },
+  etaBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: hs(16), paddingVertical: vs(8), borderRadius: r(20), marginTop: vs(12), shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  etaDot: { width: ms(8), height: ms(8), borderRadius: r(4), marginRight: hs(8) },
+  etaText: { fontSize: fs(16), fontWeight: '800', color: '#111' },
 
-  bodyWrap: { paddingHorizontal: 20, paddingTop: 20 },
+  bodyWrap: { paddingHorizontal: hs(20), paddingTop: vs(20) },
   
   confirmBtn: {
     flexDirection: 'row',
@@ -845,34 +862,35 @@ const styles = StyleSheet.create({
   },
 
   trackerCard: { 
-    borderRadius: 24, padding: 20, 
-    borderWidth: StyleSheet.hairlineWidth, 
+    borderRadius: r(24),
+    padding: ms(20), 
+    borderWidth: hairline(), 
     borderColor: 'rgba(0,0,0,0.05)',
-    marginBottom: 20, 
+    marginBottom: vs(20), 
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
       android: { elevation: 2 }
     })
   },
-  datesRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -10, paddingHorizontal: 5 },
-  dateText: { fontSize: 12, color: 'gray', fontWeight: '600' },
+  datesRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: vs(-10), paddingHorizontal: hs(5) },
+  dateText: { fontSize: fs(12), color: 'gray', fontWeight: '600' },
 
   blurWrapper: { 
-    borderRadius: 24, overflow: 'hidden', marginBottom: 24, 
-    borderWidth: StyleSheet.hairlineWidth, 
+    borderRadius: r(24), overflow: 'hidden', marginBottom: vs(24), 
+    borderWidth: hairline(), 
     borderColor: 'rgba(255,255,255,0.1)' 
   },
-  glassCard: { padding: 18 },
+  glassCard: { padding: ms(18) },
   courierRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   courierLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  avatarPremium: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' },
+  avatarPremium: { width: ms(56), height: ms(56), borderRadius: r(28), borderWidth: hairline() * 2, borderColor: 'rgba(255,255,255,0.2)' },
   avatarPlaceholder: { backgroundColor: '#FF9500', justifyContent: 'center', alignItems: 'center' },
-  courierName: { fontSize: 18, fontWeight: '800', marginBottom: 2 },
-  courierSub: { fontSize: 13, color: '#888', fontWeight: '600' },
+  courierName: { fontSize: fs(18), fontWeight: '800', marginBottom: vs(2) },
+  courierSub: { fontSize: fs(13), color: '#888', fontWeight: '600' },
   premiumCallBtn: { 
-    width: 50, height: 50, borderRadius: 25, 
+    width: ms(50), height: ms(50), borderRadius: r(25), 
     justifyContent: 'center', alignItems: 'center', 
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: hairline(),
     borderColor: 'rgba(255,255,255,0.2)',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
@@ -880,18 +898,19 @@ const styles = StyleSheet.create({
     })
   },
 
-  sectionTitle: { fontSize: 20, fontWeight: '800', marginBottom: 16, marginTop: 10 },
+  sectionTitle: { fontSize: fs(20), fontWeight: '800', marginBottom: vs(16), marginTop: vs(10) },
 
-  itemRowWrapper: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 12, padding: 14, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.02)' },
-  itemQtyBadge: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  itemQtyText: { fontSize: 15, fontWeight: '800' },
-  itemNameText: { flex: 1, fontSize: 16, fontWeight: '600' },
-  itemPriceText: { fontSize: 16, fontWeight: '800', marginLeft: 10 },
+  itemRowWrapper: { flexDirection: 'row', alignItems: 'center', marginHorizontal: hs(20), marginBottom: vs(12), padding: ms(14), borderRadius: r(16), backgroundColor: 'rgba(0,0,0,0.02)' },
+  itemQtyBadge: { width: ms(34), height: ms(34), borderRadius: r(10), justifyContent: 'center', alignItems: 'center', marginRight: hs(12) },
+  itemQtyText: { fontSize: fs(15), fontWeight: '800' },
+  itemNameText: { flex: 1, fontSize: fs(16), fontWeight: '600' },
+  itemPriceText: { fontSize: fs(16), fontWeight: '800', marginLeft: hs(10) },
 
-  summaryWrap: { paddingHorizontal: 20, marginTop: 20 },
+  summaryWrap: { paddingHorizontal: hs(20), marginTop: vs(20) },
   totalCard: { 
-    borderRadius: 24, padding: 20, 
-    borderWidth: StyleSheet.hairlineWidth, 
+    borderRadius: r(24),
+    padding: ms(20), 
+    borderWidth: hairline(), 
     borderColor: 'rgba(0,0,0,0.05)',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
@@ -899,25 +918,25 @@ const styles = StyleSheet.create({
     })
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  summaryLabel: { fontSize: 15, color: '#888', fontWeight: '600' },
-  summaryVal: { fontSize: 15, fontWeight: '600' },
-  divider: { height: StyleSheet.hairlineWidth, marginVertical: 16, opacity: 0.5 },
-  summaryLabelTotal: { fontSize: 18, fontWeight: '800', color: '#888' },
-  summaryTotalVal: { fontSize: 26, fontWeight: '900', color: '#000000' },
+  summaryLabel: { fontSize: fs(15), color: '#888', fontWeight: '600' },
+  summaryVal: { fontSize: fs(15), fontWeight: '600' },
+  divider: { height: hairline(), marginVertical: vs(16), opacity: 0.5 },
+  summaryLabelTotal: { fontSize: fs(18), fontWeight: '800', color: '#888' },
+  summaryTotalVal: { fontSize: fs(26), fontWeight: '900', color: '#000000' },
 
-  paidBadge: { backgroundColor: '#2ecc71', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 },
-  paidBadgeText: { color: 'white', fontWeight: '800', fontSize: 12, textTransform: 'uppercase' },
+  paidBadge: { backgroundColor: '#2ecc71', paddingHorizontal: hs(12), paddingVertical: vs(4), borderRadius: r(8) },
+  paidBadgeText: { color: 'white', fontWeight: '800', fontSize: fs(12), textTransform: 'uppercase' },
   distanceBanner: { 
-    flexDirection: 'row', alignItems: 'center', borderRadius: 20, 
-    borderWidth: StyleSheet.hairlineWidth, 
-    padding: 16, marginBottom: 16 
+    flexDirection: 'row', alignItems: 'center', borderRadius: r(20), 
+    borderWidth: hairline(), 
+    padding: ms(16), marginBottom: vs(16),
   },
   mapContainer: {
-    height: 200,
-    borderRadius: 24,
+    height: vs(200),
+    borderRadius: r(24),
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 20,
+    borderWidth: hairline(),
+    marginBottom: vs(20),
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
       android: { elevation: 2 }
@@ -927,9 +946,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mapPin: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: ms(32),
+    height: ms(32),
+    borderRadius: r(16),
     backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
@@ -942,15 +961,15 @@ const styles = StyleSheet.create({
   orderWeightNotice: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 11,
-    borderRadius: 12,
-    marginTop: 12,
-    borderWidth: StyleSheet.hairlineWidth,
+    gap: hs(8),
+    padding: ms(11),
+    borderRadius: r(12),
+    marginTop: vs(12),
+    borderWidth: hairline(),
     borderColor: 'rgba(0,0,0,0.05)',
   },
   orderWeightNoticeText: {
-    fontSize: 11,
+    fontSize: fs(11),
     fontWeight: '600',
     flex: 1,
   },

@@ -24,6 +24,7 @@ import { resolveImageUrl } from '../src/api/client';
 import { updateUser, fetchMe } from '../store/authSlice';
 import BackButton from '../components/BackButton';
 import { safeBack } from '../utils/navigation';
+import { hs, vs, ms, fs, r, hairline } from '../utils/responsive';
 
 export default function ProfileEditScreen() {
   const router = useRouter();
@@ -109,8 +110,9 @@ export default function ProfileEditScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 0}
       >
         <ScrollView 
           contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) }]}
@@ -175,21 +177,63 @@ export default function ProfileEditScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20 },
-  title: { fontSize: 20, fontWeight: 'bold' },
-  content: { padding: 20, flexGrow: 1 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: hs(20),
+    paddingVertical: vs(12),
+  },
+  title: { fontSize: fs(20), fontWeight: 'bold' },
+  content: { paddingHorizontal: hs(20), paddingTop: vs(8), flexGrow: 1 },
 
-  avatarContainer: { alignItems: 'center', marginBottom: 30 },
+  avatarContainer: { alignItems: 'center', marginBottom: vs(30) },
   avatarWrapper: { position: 'relative' },
-  avatar: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: '#000000' },
-  placeholderAvatar: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#000000' },
-  cameraIcon: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#000000', padding: 8, borderRadius: 20, borderWidth: 3, borderColor: 'white' },
-  hint: { marginTop: 10, fontSize: 12 },
+  avatar: {
+    width: ms(120),
+    height: ms(120),
+    borderRadius: ms(60),
+    borderWidth: hairline() * 3,
+    borderColor: '#000000',
+  },
+  placeholderAvatar: {
+    width: ms(120),
+    height: ms(120),
+    borderRadius: ms(60),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: hairline() * 3,
+    borderColor: '#000000',
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#000000',
+    padding: ms(8),
+    borderRadius: r(20),
+    borderWidth: hairline() * 3,
+    borderColor: 'white',
+  },
+  hint: { marginTop: vs(10), fontSize: fs(12) },
 
-  form: { marginBottom: 30 },
-  label: { marginBottom: 8, fontSize: 14, fontWeight: '600' },
-  input: { height: 50, borderRadius: 12, paddingHorizontal: 15, fontSize: 16, marginBottom: 20, paddingVertical: 0, textAlignVertical: 'center' },
+  form: { marginBottom: vs(30) },
+  label: { marginBottom: vs(8), fontSize: fs(14), fontWeight: '600' },
+  input: {
+    height: vs(50),
+    borderRadius: r(12),
+    paddingHorizontal: hs(15),
+    fontSize: fs(16),
+    marginBottom: vs(20),
+    paddingVertical: 0,
+    textAlignVertical: 'center',
+  },
 
-  saveBtn: { backgroundColor: '#000000', padding: 18, borderRadius: 16, alignItems: 'center', elevation: 5 },
-  saveBtnText: { color: 'white', fontSize: 18, fontWeight: 'bold' }
+  saveBtn: {
+    padding: ms(18),
+    borderRadius: r(16),
+    alignItems: 'center',
+    elevation: 5,
+  },
+  saveBtnText: { color: 'white', fontSize: fs(18), fontWeight: 'bold' },
 });

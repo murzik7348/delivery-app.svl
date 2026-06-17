@@ -21,6 +21,11 @@ import { tryAddToCart, removeFromCart, decrementItem, removeItem, formatPrice, m
 import { toggleFavoriteProduct } from '../store/favoritesSlice';
 import * as Haptics from 'expo-haptics';
 
+const safeNum = (v) => {
+    const n = Number(v);
+    return isNaN(n) ? 0 : n;
+};
+
 const { height: SCREEN_H } = Dimensions.get('window');
 const SHEET_H = SCREEN_H * 0.65;
 
