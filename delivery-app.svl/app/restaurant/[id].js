@@ -48,6 +48,25 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
               <Text style={styles.priceBadgeTextBlur}>{formatPrice(product.price)} ₴</Text>
             </BlurView>
           </View>
+
+          {/* Серце на картинці */}
+          <TouchableOpacity
+            style={[
+              styles.heartBtn,
+              { backgroundColor: isFavProd ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.45)' }
+            ]}
+            onPress={() => {
+              Haptics.selectionAsync();
+              onToggleFav(product.product_id);
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons
+              name={isFavProd ? 'heart' : 'heart-outline'}
+              size={18}
+              color={isFavProd ? '#FF3B30' : 'white'}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Текст */}
@@ -91,22 +110,6 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
             )}
           </View>
         </View>
-
-        {/* Серце */}
-        <TouchableOpacity
-          style={[styles.heartBtn, { backgroundColor: isFavProd ? `${theme.primary}22` : theme.input }]}
-          onPress={() => {
-            Haptics.selectionAsync();
-            onToggleFav(product.product_id);
-          }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons
-            name={isFavProd ? 'heart' : 'heart-outline'}
-            size={20}
-            color={isFavProd ? theme.primary : 'gray'}
-          />
-        </TouchableOpacity>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -198,7 +201,7 @@ export default function RestaurantScreen() {
 
           {/* 👇 3. Рядок з Назвою і Зірочкою (Те, що ти просив) */}
           <View style={styles.titleRow}>
-            <Text style={[styles.title, { color: theme.text }]}>{restaurant.name}</Text>
+            <Text style={[styles.title, { color: theme.text, flex: 1 }]}>{restaurant.name}</Text>
 
             <TouchableOpacity onPress={() => dispatch(toggleFavorite(Number(id)))}>
               <Ionicons
@@ -384,12 +387,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   heartBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
 
   floatingCartContainer: { position: 'absolute', bottom: 30, width: '100%', paddingHorizontal: 20 },

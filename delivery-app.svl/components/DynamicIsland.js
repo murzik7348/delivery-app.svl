@@ -28,7 +28,7 @@ function LiveDot({ color = '#27ae60' }) {
     useEffect(() => {
         Animated.loop(Animated.sequence([
             Animated.timing(anim, { toValue: 1.5, duration: 600, useNativeDriver: true }),
-            Animated.timing(anim, { toValue: 1,   duration: 600, useNativeDriver: true }),
+            Animated.timing(anim, { toValue: 1, duration: 600, useNativeDriver: true }),
         ])).start();
     }, []);
     return (
@@ -40,7 +40,7 @@ export default function DynamicIsland() {
     const dispatch = useDispatch();
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    
+
     // Dynamic Island notification state
     const island = useSelector((state) => state.ui?.dynamicIsland) || {};
     const { visible = false, title = '', message = '', icon = 'checkmark-circle', type = 'success' } = island;
@@ -52,13 +52,13 @@ export default function DynamicIsland() {
 
     const courierActiveOrders = useSelector((state) => state.courier?.activeOrders || []);
     const clientOrders = useSelector((state) => state.orders?.orders || []);
-    
+
     // Find the most relevant active order (prioritize delivering)
     const allActive = [...courierActiveOrders, ...clientOrders].filter(o => {
         const step = statusToStep(o.status);
         return step >= 1 && step <= 4;
     });
-    
+
     // Sort so delivering (4) is first
     allActive.sort((a, b) => statusToStep(b.status) - statusToStep(a.status));
     const activeOrder = allActive[0];
@@ -90,23 +90,23 @@ export default function DynamicIsland() {
     // Persistent pill logic: show if not in notification mode
     const isPillMode = !visible && !!activeOrder;
 
-    const islandWidth = animValue.interpolate({ 
-        inputRange: [0, 1], 
-        outputRange: [isPillMode ? 240 : 120, width * 0.94] 
+    const islandWidth = animValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [isPillMode ? 240 : 120, width * 0.94]
     });
-    const islandHeight = animValue.interpolate({ 
-        inputRange: [0, 1], 
-        outputRange: [isPillMode ? 44 : 37, 78] 
+    const islandHeight = animValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [isPillMode ? 44 : 37, 78]
     });
-    const contentOpacity = animValue.interpolate({ 
-        inputRange: [0, 0.7, 1], 
-        outputRange: [0, 0, 1] 
+    const contentOpacity = animValue.interpolate({
+        inputRange: [0, 0.7, 1],
+        outputRange: [0, 0, 1]
     });
 
     let iconColor = theme.primary;
     if (type === 'success') iconColor = '#4cd964';
-    if (type === 'error')   iconColor = '#ff3b30';
-    if (type === 'info')    iconColor = '#5ac8fa';
+    if (type === 'error') iconColor = '#ff3b30';
+    if (type === 'info') iconColor = '#5ac8fa';
     if (type === 'courier') iconColor = '#3498db';
 
     const topOffset = Platform.OS === 'ios' ? (insets.top || 44) : 10;
@@ -114,9 +114,9 @@ export default function DynamicIsland() {
     return (
         <View style={[styles.wrapper, { top: topOffset }]} pointerEvents="box-none">
             <Animated.View style={[
-                styles.container, 
-                { 
-                    width: islandWidth, 
+                styles.container,
+                {
+                    width: islandWidth,
                     height: islandHeight,
                     borderColor: isUserCourier && isPillMode ? 'rgba(226, 43, 198, 0.6)' : 'rgba(255,255,255,0.15)',
                     borderWidth: isUserCourier && isPillMode ? 1.2 : 0.8
@@ -131,7 +131,7 @@ export default function DynamicIsland() {
                             </View>
                         </View>
                         <View style={styles.textContainer}>
-                            {!!title   && <Text style={styles.title}   numberOfLines={1}>{title}</Text>}
+                            {!!title && <Text style={styles.title} numberOfLines={1}>{title}</Text>}
                             {!!message && <Text style={styles.message} numberOfLines={1}>{message}</Text>}
                         </View>
                     </Animated.View>
@@ -139,7 +139,7 @@ export default function DynamicIsland() {
 
                 {/* 2. PERSISTENT PILL CONTENT (Visible when idle but has order) */}
                 {isPillMode && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.pillContent}
                         activeOpacity={0.8}
                         onPress={() => {
@@ -167,14 +167,14 @@ export default function DynamicIsland() {
                                 <Ionicons name={statusToStep(activeOrder.status) === 4 ? "bicycle" : "restaurant"} size={14} color="white" />
                             </View>
                         )}
-                        
+
                         <View style={{ marginLeft: 8, flex: 1 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <Text style={styles.pillTitle} numberOfLines={1}>
                                     {isUserCourier ? (
                                         statusToStep(activeOrder.status) === 4 ? 'Доставка клієнту' :
-                                        statusToStep(activeOrder.status) === 3 ? 'Заберіть з ресторану' :
-                                        'Замовлення готується'
+                                            statusToStep(activeOrder.status) === 3 ? 'Заберіть з ресторану' :
+                                                'Замовлення готується'
                                     ) : (
                                         statusToStep(activeOrder.status) === 4 ? 'Кур\'єр їде' : 'Готується'
                                     )}
@@ -189,10 +189,10 @@ export default function DynamicIsland() {
                                 )}
                             </Text>
                         </View>
-                        
+
                         {isUserCourier ? (
                             activeOrder.customerPhone && (
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={(e) => {
                                         e.stopPropagation();
                                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -200,12 +200,12 @@ export default function DynamicIsland() {
                                     }}
                                     style={styles.callIconWrapper}
                                 >
-                                     <Ionicons name="call" size={15} color={theme.primary} />
+                                    <Ionicons name="call" size={15} color={theme.primary} />
                                 </TouchableOpacity>
                             )
                         ) : (
                             (activeOrder.courierPhone || activeOrder.courier?.phone) && (
-                                 <Ionicons name="call" size={16} color="#27ae60" style={{ marginRight: 4 }} />
+                                <Ionicons name="call" size={16} color="#27ae60" style={{ marginRight: 4 }} />
                             )
                         )}
                     </TouchableOpacity>
@@ -227,12 +227,12 @@ const styles = StyleSheet.create({
     iconContainer: { marginRight: 12 },
     iconCircle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
     textContainer: { flex: 1, justifyContent: 'center' },
-    title:   { color: '#fff',  fontSize: 15, fontWeight: '900', letterSpacing: -0.3 },
+    title: { color: '#fff', fontSize: 15, fontWeight: '900', letterSpacing: -0.3 },
     message: { color: '#999', fontSize: 13, marginTop: 1, fontWeight: '500' },
 
     // Pill mode styles
-    pillContent: { 
-        flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: '100%', width: '100%' 
+    pillContent: {
+        flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: '100%', width: '100%'
     },
     avatar: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
     pillTitle: { color: '#fff', fontSize: 12, fontWeight: '800' },

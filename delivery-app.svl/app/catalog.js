@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState, useRef } from 'react';
-import { 
-  Image, 
-  Modal, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View, 
+import {
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
   Animated,
   Platform
 } from 'react-native';
@@ -45,8 +45,8 @@ const BouncyProductCard = ({ item, theme, router, isDark, onPress }) => {
       activeOpacity={1}
     >
       <Animated.View style={[
-        styles.card, 
-        { 
+        styles.card,
+        {
           backgroundColor: isDark ? 'rgba(30, 30, 30, 0.65)' : 'rgba(255, 255, 255, 0.75)',
           borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.4)',
           borderWidth: 1,
@@ -113,7 +113,7 @@ export default function CatalogScreen() {
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
-  
+
   const isLoading = useSelector((state) => state.catalog.isLoading);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -123,7 +123,7 @@ export default function CatalogScreen() {
   const handleScroll = (event) => {
     const currentOffset = event.nativeEvent.contentOffset.y;
     const isScrollingDown = currentOffset > lastScrollY.current;
-    
+
     if (Math.abs(currentOffset - lastScrollY.current) > 15) {
       if (currentOffset <= 0) {
         dispatch(setBottomBarVisible(true));
@@ -138,7 +138,7 @@ export default function CatalogScreen() {
 
   const topProducts = finalProducts.slice(0, 5);
   const newProducts = finalProducts.slice(5, 10);
-  
+
   const headerHeight = (Platform.OS === 'ios' ? 122 : 112) + insets.top;
 
   return (
@@ -171,8 +171,8 @@ export default function CatalogScreen() {
               <Text style={{ color: 'gray', fontSize: 16 }}>Пошук смачненького...</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.sortButton, { backgroundColor: theme.primary }, Shadows.primary]} 
+            <TouchableOpacity
+              style={[styles.sortButton, { backgroundColor: theme.primary }, Shadows.primary]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setModalVisible(true);
@@ -184,7 +184,7 @@ export default function CatalogScreen() {
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         onScroll={handleScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: 140 }}
@@ -200,14 +200,14 @@ export default function CatalogScreen() {
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>🔥 Топ сезону</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 16, paddingRight: 4, paddingBottom: 8 }}>
                   {topProducts.map((item, index) => (
-                    <BouncyHorizontalCard 
-                      key={`top-${index}`} 
-                      item={item} 
-                      router={router} 
-                      theme={theme} 
-                      isDark={isDark} 
-                      tag="TOP" 
-                      tagColor="#FF5722" 
+                    <BouncyHorizontalCard
+                      key={`top-${index}`}
+                      item={item}
+                      router={router}
+                      theme={theme}
+                      isDark={isDark}
+                      tag="TOP"
+                      tagColor="#FF5722"
                       onPress={() => setSelectedProduct(item)}
                     />
                   ))}
@@ -221,14 +221,14 @@ export default function CatalogScreen() {
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>🆕 Новинки</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 16, paddingRight: 4, paddingBottom: 8 }}>
                   {newProducts.map((item, index) => (
-                    <BouncyHorizontalCard 
-                      key={`new-${index}`} 
-                      item={item} 
-                      router={router} 
-                      theme={theme} 
-                      isDark={isDark} 
-                      tag="NEW" 
-                      tagColor="#4CAF50" 
+                    <BouncyHorizontalCard
+                      key={`new-${index}`}
+                      item={item}
+                      router={router}
+                      theme={theme}
+                      isDark={isDark}
+                      tag="NEW"
+                      tagColor="#4CAF50"
                       onPress={() => setSelectedProduct(item)}
                     />
                   ))}
@@ -242,11 +242,11 @@ export default function CatalogScreen() {
               <View style={styles.grid}>
                 {finalProducts.map((item, index) => (
                   <View key={`prod-${index}`} style={{ width: '48%', marginBottom: 16 }}>
-                    <BouncyProductCard 
-                      item={item} 
-                      theme={theme} 
-                      router={router} 
-                      isDark={isDark} 
+                    <BouncyProductCard
+                      item={item}
+                      theme={theme}
+                      router={router}
+                      isDark={isDark}
                       onPress={() => setSelectedProduct(item)}
                     />
                   </View>
@@ -281,7 +281,7 @@ export default function CatalogScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.primary }]}
-            activeOpacity={0.85} onPress={() => setModalVisible(false)}>
+                activeOpacity={0.85} onPress={() => setModalVisible(false)}>
                 <Text style={styles.closeButtonText}>Закрити</Text>
               </TouchableOpacity>
             </BlurView>
@@ -305,7 +305,7 @@ export default function CatalogScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.primary }]}
-            activeOpacity={0.85} onPress={() => setModalVisible(false)}>
+                activeOpacity={0.85} onPress={() => setModalVisible(false)}>
                 <Text style={styles.closeButtonText}>Закрити</Text>
               </TouchableOpacity>
             </View>

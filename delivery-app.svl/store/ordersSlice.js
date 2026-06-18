@@ -5,9 +5,11 @@ import { userConfirmDelivery } from '../src/api';
 // ── Async Thunk ───────────────────────────────────────────────────────────────
 export const fetchOrders = createAsyncThunk(
   'orders/fetchOrders',
-  async (_, { getState, rejectWithValue }) => {
+  async (params = {}, { getState, rejectWithValue }) => {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 20;
     try {
-      const newOrders = await OrderService.getActiveOrders();
+      const newOrders = await OrderService.getActiveOrders(page, pageSize);
       
       const state = getState();
       const oldOrders = state.orders?.orders || [];
@@ -44,7 +46,7 @@ export const fetchOrders = createAsyncThunk(
         });
       }
 
-      return newOrders;
+      return { newOrders, page, pageSize };
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -80,7 +82,10 @@ const initialState = {
   orders: [],
   hiddenOrderIds: [],
   isLoading: false,
+  isMoreLoading: false,
   error: null,
+  currentPage: 1,
+  hasMore: true,
 };
 
 const ordersSlice = createSlice({
@@ -124,43 +129,68 @@ const ordersSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchOrders.pending, (state) => {
-        state.isLoading = true;
+      .addCase(fetchOrders.pending, (state, action) => {
+        const page = action.meta.arg?.page ?? 1;
+        if (page === 1) {
+          state.isLoading = true;
+        } else {
+          state.isMoreLoading = true;
+        }
         state.error = null;
       })
       .addCase(fetchOrders.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.isMoreLoading = false;
+
+        const { newOrders, page, pageSize } = action.payload;
 
         // Ensure hiddenOrderIds exists (for backward comp with persisted state)
         const hiddenIds = new Set(state.hiddenOrderIds || []);
 
         // Filter out orders that the user has cleared/hidden locally
-        const visibleRemoteOrders = (action.payload ?? []).filter(o =>
+        const visibleRemoteOrders = (newOrders ?? []).filter(o =>
           !hiddenIds.has((o.deliveryId || o.id)?.toString())
         );
 
-        // Merge remote orders with locally created ones, avoiding duplicates.
-        // Only keep local orders that have a valid ID (prevents undefined-key duplicates).
         const getOrderId = (o) => (o.deliveryId || o.id)?.toString();
-        const remoteIds = new Set(visibleRemoteOrders.map(getOrderId));
-        const localOnly = state.orders.filter((o) => {
-          const oid = getOrderId(o);
-          return oid && oid !== 'undefined' && !remoteIds.has(oid) && !hiddenIds.has(oid);
-        });
 
-        const merged = [...visibleRemoteOrders, ...localOnly];
-
-        // Sort newest first
-        merged.sort((a, b) => {
-          const dateA = new Date(a.createdAt || a.date || 0).getTime();
-          const dateB = new Date(b.createdAt || b.date || 0).getTime();
-          return dateB - dateA;
-        });
-
-        state.orders = merged;
+        if (page === 1) {
+          // Replace/merge for the first page
+          const remoteIds = new Set(visibleRemoteOrders.map(getOrderId));
+          const localOnly = state.orders.filter((o) => {
+            const oid = getOrderId(o);
+            return oid && oid !== 'undefined' && !remoteIds.has(oid) && !hiddenIds.has(oid);
+          });
+          const merged = [...visibleRemoteOrders, ...localOnly];
+          merged.sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.date || 0).getTime();
+            const dateB = new Date(b.createdAt || b.date || 0).getTime();
+            return dateB - dateA;
+          });
+          state.orders = merged;
+          state.currentPage = 1;
+          state.hasMore = newOrders.length === pageSize;
+        } else {
+          // Append for subsequent pages
+          const existingIds = new Set(state.orders.map(getOrderId));
+          const uniqueNewOrders = visibleRemoteOrders.filter(o => {
+            const oid = getOrderId(o);
+            return oid && !existingIds.has(oid);
+          });
+          state.orders = [...state.orders, ...uniqueNewOrders];
+          // Keep sorted
+          state.orders.sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.date || 0).getTime();
+            const dateB = new Date(b.createdAt || b.date || 0).getTime();
+            return dateB - dateA;
+          });
+          state.currentPage = page;
+          state.hasMore = newOrders.length === pageSize;
+        }
       })
       .addCase(fetchOrders.rejected, (state, action) => {
         state.isLoading = false;
+        state.isMoreLoading = false;
         state.error = action.payload ?? 'Failed to load orders';
         // Keep existing orders in state
       })

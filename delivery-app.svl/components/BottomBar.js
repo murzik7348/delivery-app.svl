@@ -58,7 +58,7 @@ export default function BottomBar() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
-  
+
   const locale = useSelector(s => s.language?.locale ?? 'uk');
   const user = useSelector(state => state.auth.user);
   const colorScheme = useColorScheme();
@@ -96,7 +96,7 @@ export default function BottomBar() {
   const navigate = (route) => {
     // If it's already the current route, don't push
     if (pathname === route) return;
-    
+
     // We use replace to keep the history flat like tabs, 
     // but the Stack transition will still perform the animation.
     router.replace(route);
@@ -126,8 +126,8 @@ export default function BottomBar() {
   const solidBgColor = colorScheme === 'dark' ? '#171717' : '#ffffff';
 
   return (
-    <Animated.View style={[styles.container, { 
-      backgroundColor: solidBgColor, 
+    <Animated.View style={[styles.container, {
+      backgroundColor: solidBgColor,
       borderTopColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
       height: barHeight,
       paddingBottom: paddingBottom,
@@ -139,15 +139,15 @@ export default function BottomBar() {
         const color = focused ? primaryColor : 'gray';
 
         let IconComponent = <Ionicons name={focused ? tab.icon : `${tab.icon}-outline`} size={24} color={color} />;
-        
+
         if (tab.type === 'cart') IconComponent = <CartBadge color={color} focused={focused} count={tab.badge} />;
         if (tab.type === 'orders') IconComponent = <OrdersBadge color={color} focused={focused} count={tab.badge} />;
         if (tab.type === 'courier') IconComponent = <CourierBadge color={color} focused={focused} count={tab.badge} />;
 
         return (
-          <TouchableOpacity 
-            key={tab.name} 
-            style={styles.tabItem} 
+          <TouchableOpacity
+            key={tab.name}
+            style={styles.tabItem}
             onPress={() => navigate(tab.route)}
             activeOpacity={0.7}
           >

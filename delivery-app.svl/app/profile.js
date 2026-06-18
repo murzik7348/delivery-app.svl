@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { Alert, ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Platform } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
-import MapView, { Marker } from 'react-native-maps';
-import Constants from 'expo-constants';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { setBottomBarVisible } from '../store/uiSlice';
@@ -14,20 +13,12 @@ import { t } from '../constants/translations';
 import { fetchMe, logoutUser, removeAddress } from '../store/authSlice';
 import { clearOrders } from '../store/ordersSlice';
 import { clearCourierState } from '../store/courierSlice';
-import { deleteAddress as apiDeleteAddress, getAddresses, sendTestPushNotification } from '../src/api';
+import { deleteAddress as apiDeleteAddress, getAddresses } from '../src/api';
 import { persistor } from '../store/index';
-const getNotifications = () => {
-  if (Platform.OS === 'android' && Constants.appOwnership === 'expo') return null;
-  try {
-    return require('expo-notifications');
-  } catch (e) {
-    return null;
-  }
-};
-const Notifications = getNotifications();
 
 import { resolveImageUrl } from '../src/api/client';
 import BackButton from '../components/BackButton';
+
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -40,8 +31,15 @@ export default function ProfileScreen() {
   const locale = useSelector((state) => state.language?.locale ?? 'uk');
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [mapRendered, setMapRendered] = useState(false);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [liveAddresses, setLiveAddresses] = useState(null); // null = not yet loaded
+
+  useEffect(() => {
+    if (!modalVisible) {
+      setMapRendered(false);
+    }
+  }, [modalVisible]);
 
   const mapRef = useRef(null);
   const markerRefs = useRef({});
@@ -283,30 +281,6 @@ export default function ProfileScreen() {
           <View style={[styles.section, { backgroundColor: theme.card }]}>
             <MenuItem icon="card-outline" label={t(locale, 'paymentMethods')} onPress={() => router.push('/payment')} />
             <MenuItem icon="location-outline" label={t(locale, 'savedAddresses')} onPress={openAddressModal} />
-            <MenuItem icon="notifications-outline" label={t(locale, 'notifications')} />
-            <MenuItem 
-              icon="paper-plane-outline" 
-              label="Test Notification" 
-              onPress={async () => {
-                try {
-                  await sendTestPushNotification("🔔 Тестове сповіщення з сервера!");
-                  Alert.alert("Сповіщення", "Тестовий запит надіслано на сервер.");
-                } catch (err) {
-                  console.warn("Failed to send test push to server, scheduling local fallback:", err.message);
-                  if (Notifications && Notifications.scheduleNotificationAsync) {
-                    await Notifications.scheduleNotificationAsync({
-                      content: {
-                        title: "🔔 Test Notification",
-                        body: "Система сповіщень працює!",
-                      },
-                      trigger: null,
-                    });
-                  } else {
-                    Alert.alert("Сповіщення", "Не вдалося надіслати сповіщення.");
-                  }
-                }
-              }} 
-            />
             <MenuItem icon="language-outline" label={t(locale, 'language')} isLast onPress={() => router.push('/language')} />
           </View>
 
@@ -319,7 +293,17 @@ export default function ProfileScreen() {
       </SafeAreaView>
 
       {/* Модалка Адрес */}
-      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+      <Modal 
+        animationType="slide" 
+        transparent={true} 
+        visible={modalVisible} 
+        onRequestClose={() => setModalVisible(false)}
+        onShow={() => {
+          setTimeout(() => {
+            setMapRendered(true);
+          }, 250);
+        }}
+      >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
             <View style={styles.modalHeader}>
@@ -332,33 +316,40 @@ export default function ProfileScreen() {
             {/* Міні-карта зі збереженими адресами */}
             {mapAddresses.length > 0 && (
               <View style={styles.miniMapContainer}>
-                <MapView
-                  ref={mapRef}
-                  style={styles.miniMap}
-                  initialRegion={getInitialRegion()}
-                  showsUserLocation={false}
-                  rotateEnabled={false}
-                  pitchEnabled={false}
-                  userInterfaceStyle={colorScheme}
-                >
-                  {mapAddresses.map((addr, idx) => (
-                    <Marker
-                      ref={(ref) => {
-                        if (ref) {
-                          markerRefs.current[addr.addressId || addr.id] = ref;
-                        }
-                      }}
-                      key={`marker-${addr.addressId || addr.id || idx}`}
-                      coordinate={{
-                        latitude: parseFloat(addr.latitude),
-                        longitude: parseFloat(addr.longitude),
-                      }}
-                      title={addr.name || addr.title || 'Адреса'}
-                      description={addr.address}
-                      pinColor={theme.primary}
-                    />
-                  ))}
-                </MapView>
+                {mapRendered ? (
+                  <MapView
+                    ref={mapRef}
+                    provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                    style={styles.miniMap}
+                    initialRegion={getInitialRegion()}
+                    showsUserLocation={false}
+                    rotateEnabled={false}
+                    pitchEnabled={false}
+                    userInterfaceStyle={colorScheme}
+                  >
+                    {mapAddresses.map((addr, idx) => (
+                      <Marker
+                        ref={(ref) => {
+                          if (ref) {
+                            markerRefs.current[addr.addressId || addr.id] = ref;
+                          }
+                        }}
+                        key={`marker-${addr.addressId || addr.id || idx}`}
+                        coordinate={{
+                          latitude: parseFloat(addr.latitude),
+                          longitude: parseFloat(addr.longitude),
+                        }}
+                        title={addr.name || addr.title || 'Адреса'}
+                        description={addr.address}
+                        pinColor={theme.primary}
+                      />
+                    ))}
+                  </MapView>
+                ) : (
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colorScheme === 'dark' ? '#1c1c1e' : '#f2f2f7' }}>
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  </View>
+                )}
               </View>
             )}
 

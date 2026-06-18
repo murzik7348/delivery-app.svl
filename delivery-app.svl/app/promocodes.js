@@ -3,8 +3,9 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert, FlatList, Keyboard, StyleSheet, Text, TextInput,
-  TouchableOpacity, View
+  TouchableOpacity, View, Platform
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -23,15 +24,16 @@ export default function PromocodesScreen() {
 
   const [code, setCode] = useState('');
   const promos = [
-    { id: '1', code: 'SALE10', discount: '-10%', desc: locale === 'en' ? 'On entire order' : 'На все замовлення', color: '#FF6B6B' },
-    { id: '2', code: 'BURGER50', discount: '-50₴', desc: locale === 'en' ? 'Burger discount' : 'Знижка на бургери', color: '#4ECDC4' },
-    { id: '3', code: 'FREEFOOD', discount: '🛵 0₴', desc: locale === 'en' ? 'Free delivery' : 'Безкоштовна доставка', color: theme.primary },
+    { id: '1', code: 'SALE10', discount: '10%', desc: locale === 'en' ? 'On entire order' : 'На все замовлення', color: '#FF4757' },
+    { id: '2', code: 'BURGER50', discount: '50₴', desc: locale === 'en' ? 'Burger discount' : 'Знижка на бургери', color: '#2ED573' },
+    { id: '3', code: 'FREEFOOD', discount: '🛵 0₴', desc: locale === 'en' ? 'Free delivery' : 'Безкоштовна доставка', color: '#1E90FF' },
   ];
 
-  const handleApplyPromo = () => {
+  const handleApplyPromo = (promoCode = code) => {
     Keyboard.dismiss();
-    if (code.trim() === '') return;
-    const foundPromo = promos.find(p => p.code === code.trim().toUpperCase());
+    const activeCode = promoCode.trim().toUpperCase();
+    if (activeCode === '') return;
+    const foundPromo = promos.find(p => p.code === activeCode);
     if (foundPromo) {
       let type = 'percent', discountValue = 0;
       if (foundPromo.discount.includes('%')) {
@@ -44,25 +46,38 @@ export default function PromocodesScreen() {
       dispatch(applyDiscount({ code: foundPromo.code, type, discount: discountValue }));
       Alert.alert(t(locale, 'successPromo'), `"${foundPromo.code}" — ${t(locale, 'promoApplied')}`);
       setCode('');
-      safeBack(router);
+      router.back();
     } else {
       Alert.alert(t(locale, 'error'), t(locale, 'promoNotFound'));
     }
   };
 
+  const copyToClipboard = async (promoCode) => {
+    try {
+      await Clipboard.setStringAsync(promoCode);
+      Alert.alert(locale === 'en' ? 'Copied!' : 'Скопійовано!', `"${promoCode}" ${locale === 'en' ? 'copied to clipboard' : 'скопійовано в буфер обміну'}`);
+    } catch (err) {
+      console.warn('Clipboard error:', err);
+    }
+  };
+
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.card }]}>
+      {/* HEADER */}
+      <View style={styles.header}>
         <BackButton color={theme.text} />
         <Text style={[styles.headerTitle, { color: theme.text }]}>{t(locale, 'promoCodesTitle')}</Text>
-        <View style={{ width: 44 }} />
+        <View style={{ width: 32 }} />
       </View>
 
       <View style={styles.content}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'addPromo')}</Text>
+        {/* INPUT SECTION */}
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          {locale === 'en' ? 'ENTER PROMO CODE' : 'ВВЕДІТЬ ПРОМОКОД'}
+        </Text>
         <View style={styles.inputRow}>
           <View style={[styles.inputWrapper, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Ionicons name="ticket-outline" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+            <Ionicons name="ticket-outline" size={22} color={theme.primary} style={styles.inputIcon} />
             <TextInput
               style={[styles.input, { color: theme.text }]}
               placeholder={t(locale, 'enterCode')}
@@ -70,36 +85,79 @@ export default function PromocodesScreen() {
               value={code}
               onChangeText={setCode}
               autoCapitalize="characters"
+              returnKeyType="done"
+              onSubmitEditing={() => handleApplyPromo()}
             />
+            {code.length > 0 && (
+              <TouchableOpacity onPress={() => setCode('')} style={{ padding: 4 }}>
+                <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
+              </TouchableOpacity>
+            )}
           </View>
-          <TouchableOpacity style={[styles.applyBtn, { backgroundColor: theme.primary }]} onPress={handleApplyPromo} activeOpacity={0.8}>
+          <TouchableOpacity 
+            style={[styles.applyBtn, { backgroundColor: theme.primary, opacity: code.trim() ? 1 : 0.6 }]} 
+            onPress={() => handleApplyPromo()} 
+            disabled={!code.trim()}
+            activeOpacity={0.8}
+          >
             <Text style={styles.applyBtnText}>{t(locale, 'apply')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'available')}</Text>
+        {/* LIST SECTION */}
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary, marginBottom: 16 }]}>
+          {locale === 'en' ? 'AVAILABLE OFFERS' : 'ДОСТУПНІ ПРОПОЗИЦІЇ'}
+        </Text>
 
         <FlatList
           data={promos}
           keyExtractor={item => item.id}
           contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) }}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <TouchableOpacity activeOpacity={0.8} onPress={() => setCode(item.code)} style={styles.ticketContainer}>
+            <View style={[styles.ticketContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              {/* Left Column (Accent & Discount) */}
               <View style={[styles.ticketLeft, { backgroundColor: item.color }]}>
                 <Text style={styles.discountText}>{item.discount}</Text>
-                <View style={[styles.circleTop, { backgroundColor: theme.background }]} />
-                <View style={[styles.circleBottom, { backgroundColor: theme.background }]} />
+                <Text style={styles.discountLabel}>{locale === 'en' ? 'OFF' : 'ЗНИЖКА'}</Text>
+                
+                {/* Simulated ticket notches */}
+                <View style={[styles.notch, styles.notchTop, { backgroundColor: theme.background }]} />
+                <View style={[styles.notch, styles.notchBottom, { backgroundColor: theme.background }]} />
               </View>
-              <View style={[styles.ticketRight, { backgroundColor: theme.card }]}>
-                <View>
-                  <Text style={[styles.promoCode, { color: theme.text }]}>{item.code}</Text>
-                  <Text style={[styles.promoDesc, { color: theme.textSecondary }]}>{item.desc}</Text>
+
+              {/* Right Column (Details) */}
+              <View style={styles.ticketRight}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={[styles.promoCode, { color: theme.text }]} numberOfLines={1}>
+                    {item.code}
+                  </Text>
+                  <Text style={[styles.promoDesc, { color: theme.textSecondary }]} numberOfLines={2}>
+                    {item.desc}
+                  </Text>
                 </View>
-                <Ionicons name="copy-outline" size={20} color={theme.textSecondary} />
+
+                {/* Actions */}
+                <View style={styles.actionColumn}>
+                  <TouchableOpacity 
+                    style={[styles.actionBtn, { backgroundColor: theme.primary }]}
+                    onPress={() => handleApplyPromo(item.code)}
+                  >
+                    <Text style={styles.actionBtnText}>{locale === 'en' ? 'Use' : 'Застосувати'}</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.copyBtn}
+                    onPress={() => copyToClipboard(item.code)}
+                  >
+                    <Ionicons name="copy-outline" size={16} color={theme.textSecondary} style={{ marginRight: 2 }} />
+                    <Text style={[styles.copyText, { color: theme.textSecondary }]}>{locale === 'en' ? 'Copy' : 'Копіювати'}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </TouchableOpacity>
+            </View>
           )}
         />
       </View>
@@ -109,24 +167,112 @@ export default function PromocodesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
-  backBtn: { padding: 8, borderRadius: 20 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold' },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 16, 
+    paddingVertical: 12,
+  },
+  headerTitle: { fontSize: 20, fontWeight: 'bold' },
   content: { padding: 16, flex: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 12 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  inputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, marginRight: 10 },
-  inputIcon: { marginRight: 8 },
-  input: { flex: 1, fontSize: 16, paddingVertical: 0, textAlignVertical: 'center' },
-  applyBtn: { backgroundColor: '#000000', height: 50, paddingHorizontal: 20, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  applyBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
-  divider: { height: 1, marginVertical: 10, marginBottom: 20 },
-  ticketContainer: { flexDirection: 'row', height: 100, marginBottom: 15, borderRadius: 16, overflow: 'hidden', elevation: 3 },
-  ticketLeft: { width: 100, justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  discountText: { color: 'white', fontSize: 20, fontWeight: '900', textAlign: 'center' },
-  circleTop: { position: 'absolute', top: -10, right: -10, width: 20, height: 20, borderRadius: 10 },
-  circleBottom: { position: 'absolute', bottom: -10, right: -10, width: 20, height: 20, borderRadius: 10 },
-  ticketRight: { flex: 1, padding: 15, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' },
-  promoCode: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
-  promoDesc: { fontSize: 12 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  inputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10, marginBottom: 24 },
+  inputWrapper: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    height: 52, 
+    borderRadius: 16, 
+    borderWidth: 1, 
+    paddingHorizontal: 16, 
+    marginRight: 10,
+  },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 16, fontWeight: '600', paddingVertical: 0 },
+  applyBtn: { 
+    height: 52, 
+    paddingHorizontal: 22, 
+    borderRadius: 16, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  applyBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  divider: { height: StyleSheet.hairlineWidth, marginBottom: 24 },
+  
+  // Coupon Ticket Styling
+  ticketContainer: { 
+    flexDirection: 'row', 
+    height: 104, 
+    marginBottom: 16, 
+    borderRadius: 20, 
+    overflow: 'hidden', 
+    borderWidth: StyleSheet.hairlineWidth,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 2 }
+    })
+  },
+  ticketLeft: { 
+    width: 108, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    position: 'relative',
+    paddingHorizontal: 8,
+  },
+  discountText: { color: 'white', fontSize: 24, fontWeight: '900', textAlign: 'center' },
+  discountLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '800', marginTop: 2, letterSpacing: 0.5 },
+  
+  notch: { 
+    position: 'absolute', 
+    right: -8, 
+    width: 16, 
+    height: 16, 
+    borderRadius: 8, 
+    zIndex: 10,
+  },
+  notchTop: { top: -8 },
+  notchBottom: { bottom: -8 },
+  
+  ticketRight: { 
+    flex: 1, 
+    padding: 16, 
+    flexDirection: 'row', 
+    alignItems: 'center',
+  },
+  promoCode: { fontSize: 18, fontWeight: '900', marginBottom: 4, fontFamily: Platform.OS === 'ios' ? 'HelveticaNeue-Bold' : 'sans-serif-condensed' },
+  promoDesc: { fontSize: 12, lineHeight: 16 },
+  
+  actionColumn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginLeft: 8,
+  },
+  actionBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  copyText: {
+    fontSize: 11,
+    fontWeight: '600',
+  }
 });

@@ -22,6 +22,9 @@ export default function OrdersTabScreen() {
   const user = useSelector((state) => state.auth.user);
   const orders = useSelector((state) => state.orders.orders);
   const isLoading = useSelector((state) => state.orders.isLoading);
+  const currentPage = useSelector((state) => state.orders.currentPage ?? 1);
+  const hasMore = useSelector((state) => state.orders.hasMore ?? true);
+  const isMoreLoading = useSelector((state) => state.orders.isMoreLoading ?? false);
   const locale = useSelector((state) => state.language?.locale ?? 'uk');
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
@@ -29,7 +32,7 @@ export default function OrdersTabScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await dispatch(fetchOrders()).unwrap();
+      await dispatch(fetchOrders({ page: 1, pageSize: 20 })).unwrap();
     } catch (error) {
       console.error('Refresh orders failed:', error);
     } finally {
@@ -39,10 +42,10 @@ export default function OrdersTabScreen() {
 
   // Load orders from backend on screen mount and periodically
   useEffect(() => {
-    dispatch(fetchOrders());
+    dispatch(fetchOrders({ page: 1, pageSize: 20 }));
     
     const interval = setInterval(() => {
-      dispatch(fetchOrders());
+      dispatch(fetchOrders({ page: 1, pageSize: 20 }));
     }, 20000); // 20 seconds
     
     return () => clearInterval(interval);
@@ -52,7 +55,7 @@ export default function OrdersTabScreen() {
     // Prioritize numeric deliveryStatus from our normalization or backend
     const sNum = item.deliveryStatus ?? Number(item.statusDelivery ?? item.status ?? 0);
     const activeStatus = String(item.statusDelivery ?? item.status ?? 'created').toLowerCase();
-    
+
     // Align with order-details config (0-6)
     let color = '#8e44ad';
     if (sNum === 6 || activeStatus === 'canceled' || activeStatus === 'cancelled') color = '#e74c3c';
@@ -100,7 +103,7 @@ export default function OrdersTabScreen() {
   const handleScroll = (event) => {
     const currentOffset = event.nativeEvent.contentOffset.y;
     const isScrollingDown = currentOffset > lastScrollY.current;
-    
+
     if (Math.abs(currentOffset - lastScrollY.current) > 15) {
       if (currentOffset <= 0) {
         dispatch(setBottomBarVisible(true));
@@ -154,6 +157,17 @@ export default function OrdersTabScreen() {
             </TouchableOpacity>
           </View>
         }
+        onEndReached={() => {
+          if (hasMore && !isMoreLoading) {
+            dispatch(fetchOrders({ page: currentPage + 1, pageSize: 20 }));
+          }
+        }}
+        onEndReachedThreshold={0.15}
+        ListFooterComponent={
+          isMoreLoading ? (
+            <ActivityIndicator size="small" color={theme.primary} style={{ marginVertical: 16 }} />
+          ) : null
+        }
       />
     </SafeAreaView>
   );
@@ -206,10 +220,10 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   headerTitle: { fontSize: 20, fontWeight: 'bold' },
   clearBtn: { padding: 4 },
-  card: { 
-    borderRadius: 24, marginBottom: 16, 
-    borderWidth: StyleSheet.hairlineWidth, 
-    padding: 18, 
+  card: {
+    borderRadius: 24, marginBottom: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 18,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
       android: { elevation: 2 }
@@ -223,8 +237,8 @@ const styles = StyleSheet.create({
   price: { fontSize: 20, fontWeight: '900' },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(0,0,0,0.05)', marginVertical: 12 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statusBadge: { 
-    flexDirection: 'row', alignItems: 'center', 
+  statusBadge: {
+    flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(0,0,0,0.05)'

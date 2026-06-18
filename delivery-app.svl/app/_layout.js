@@ -78,7 +78,7 @@ function getFontFamily(variant, style) {
 try {
   if (Text.render) {
     const originalRender = Text.render;
-    Text.render = function(props, ref) {
+    Text.render = function (props, ref) {
       const { variant = 'body', style, ...rest } = props;
       const variantStyle = variantStyles[variant] || variantStyles.body;
       const fontFamily = getFontFamily(variant, style);
@@ -109,7 +109,7 @@ try {
   console.warn('[Layout] Failed to patch Text.render:', e);
 }
 
- 
+
 // Helper to get Firebase Auth only when safe
 const getFirebaseAuth = () => {
   if (Constants.appOwnership === 'expo') return null;
@@ -225,7 +225,7 @@ export default function RootLayout() {
         <PersistGate loading={null} persistor={persistor}>
           <ThemeStatusBar />
           <View style={{ flex: 1 }}>
-            <Stack screenOptions={{ 
+            <Stack screenOptions={{
               headerShown: false,
               gestureEnabled: true,
               fullScreenGestureEnabled: false, // Gesture only from the left edge
@@ -239,10 +239,10 @@ export default function RootLayout() {
             </Stack>
 
             {showBottomBar && <BottomBar />}
-            
+
             {/* <DynamicIsland /> */}
             <OfflineBanner />
-            
+
             {/* <AiAssistantFAB /> */}
             {/* <AiChatSheet /> */}
             <AppStartup />
