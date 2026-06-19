@@ -14,6 +14,8 @@ import { fetchCatalog, fetchRestaurantProducts } from '../../store/catalogSlice'
 import ProductSheet from '../../components/ProductSheet';
 import { safeBack } from '../../utils/navigation';
 import BackButton from '../../components/BackButton';
+import { isRestaurantClosed } from '../../utils/dateUtils';
+
 
 const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onAddToCart, onRemoveFromCart, onToggleFav }) => {
   const [scaleAnim] = useState(new Animated.Value(1));
@@ -158,6 +160,8 @@ export default function RestaurantScreen() {
   }, [id, dispatch]);
 
   const restaurant = stores.find(s => s.store_id == id);
+  const isClosed = isRestaurantClosed(restaurant);
+
   const restaurantProducts = products.filter(p => {
     // Robust numeric comparison to avoid ID mix-ups
     const pStoreId = Number(p.restaurantId || p.store_id);
@@ -189,8 +193,16 @@ export default function RestaurantScreen() {
         }
       >
         {/* Картинка */}
-        <View>
+        <View style={{ position: 'relative' }}>
           <Image source={{ uri: restaurant.image }} style={styles.image} />
+          {isClosed && (
+            <View style={styles.closedOverlayDetail}>
+              <View style={styles.closedTextBgDetail}>
+                <Ionicons name="lock-closed" size={20} color="white" style={{ marginRight: 6 }} />
+                <Text style={styles.closedTextDetail}>Наразі ресторан зачинений</Text>
+              </View>
+            </View>
+          )}
           <View style={styles.backButton}>
             <BackButton color="white" />
           </View>
@@ -246,7 +258,16 @@ export default function RestaurantScreen() {
               qty={qty}
               isFavProd={isFavProd}
               onSelect={setSelectedProduct}
-              onAddToCart={(p) => dispatch(tryAddToCart(p))}
+              onAddToCart={(p) => {
+                if (isClosed) {
+                  Alert.alert(
+                    'Ресторан зачинено',
+                    'Цей ресторан наразі зачинений і не приймає замовлень.'
+                  );
+                  return;
+                }
+                dispatch(tryAddToCart(p));
+              }}
               onRemoveFromCart={(productId) => {
                 const itemInCart = cartItems.find(i => i.product_id === productId);
                 if (itemInCart) {
@@ -404,5 +425,29 @@ const styles = StyleSheet.create({
 
   floatingCartContainer: { position: 'absolute', bottom: 30, width: '100%', paddingHorizontal: 20 },
   viewCartBtn: { backgroundColor: '#000000', padding: 16, borderRadius: 16, alignItems: 'center', shadowColor: '#000000', shadowOpacity: 0.5, shadowRadius: 10, elevation: 10 },
-  viewCartText: { color: 'white', fontWeight: 'bold', fontSize: 18 }
+  viewCartText: { color: 'white', fontWeight: 'bold', fontSize: 18 },
+
+  closedOverlayDetail: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  closedTextBgDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  closedTextDetail: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
 });

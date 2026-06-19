@@ -3,9 +3,9 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert, FlatList, Keyboard, StyleSheet, Text, TextInput,
-  TouchableOpacity, View, Platform
+  TouchableOpacity, View, Platform, Clipboard
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
+
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -52,9 +52,9 @@ export default function PromocodesScreen() {
     }
   };
 
-  const copyToClipboard = async (promoCode) => {
+  const copyToClipboard = (promoCode) => {
     try {
-      await Clipboard.setStringAsync(promoCode);
+      Clipboard.setString(promoCode);
       Alert.alert(locale === 'en' ? 'Copied!' : 'Скопійовано!', `"${promoCode}" ${locale === 'en' ? 'copied to clipboard' : 'скопійовано в буфер обміну'}`);
     } catch (err) {
       console.warn('Clipboard error:', err);

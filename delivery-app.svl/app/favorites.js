@@ -21,6 +21,8 @@ import { t } from '../constants/translations';
 import { toggleFavorite, toggleFavoriteProduct } from '../store/favoritesSlice';
 import { fetchCatalog } from '../store/catalogSlice';
 import { formatPrice } from '../store/cartSlice';
+import { isRestaurantClosed } from '../utils/dateUtils';
+
 import ProductSheet from '../components/ProductSheet';
 import BackButton from '../components/BackButton';
 
@@ -172,20 +174,26 @@ export default function FavoritesScreen() {
           }
         >
           {activeTab === 'stores'
-            ? favoriteStores.map(item => (
-              <TouchableOpacity
-                key={item.store_id}
-                style={[styles.card, { backgroundColor: theme.card }]}
-                onPress={() => router.push(`/restaurant/${item.store_id}`)}
-                activeOpacity={0.85}
-              >
-                <Image source={{ uri: item.image }} style={styles.storeImg} />
-                <View style={styles.cardInfo}>
+            ? favoriteStores.map(item => {
+              const isClosed = isRestaurantClosed(item);
+              return (
+                <TouchableOpacity
+                  key={item.store_id}
+                  style={[styles.card, { backgroundColor: theme.card }]}
+                  onPress={() => router.push(`/restaurant/${item.store_id}`)}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ position: 'relative' }}>
+                    <Image source={{ uri: item.image }} style={styles.storeImg} />
+                    {isClosed && (
+                      <View style={styles.closedOverlayFav}>
+                        <Ionicons name="lock-closed" size={14} color="white" />
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.cardInfo}>
                   <Text style={[styles.cardName, { color: theme.text }]}>{item.name}</Text>
                   <View style={styles.metaRow}>
-                    <Ionicons name="star" size={12} color="#f5c518" />
-                    <Text style={styles.metaText}>{item.rating}</Text>
-                    <Text style={styles.metaDot}>•</Text>
                     <Text style={styles.metaText}>{item.delivery_time}</Text>
                   </View>
                   <Text style={[styles.tags, { color: 'gray' }]}>{item.tags.join(' · ')}</Text>
@@ -196,8 +204,9 @@ export default function FavoritesScreen() {
                 >
                   <Ionicons name="heart" size={22} color={theme.primary} />
                 </TouchableOpacity>
-              </TouchableOpacity>
-            ))
+                </TouchableOpacity>
+              );
+            })
             : favoriteProducts.map(item => (
               <TouchableOpacity
                 key={item.product_id}
@@ -312,4 +321,13 @@ const styles = StyleSheet.create({
   metaDot: { color: 'gray', fontSize: 12 },
   tags: { fontSize: 12 },
   productPrice: { color: '#000000', fontWeight: '800', fontSize: 15 },
+
+  closedOverlayFav: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
 });

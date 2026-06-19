@@ -24,9 +24,12 @@ import { fetchCatalog, selectAllCategories, selectAllStores, selectAllPromotions
 import { setBottomBarVisible } from '../store/uiSlice';
 import { resolveImageUrl } from '../src/api/client';
 import { Skeleton, StoreListSkeleton } from '../components/Skeleton';
+import { isRestaurantClosed, getRestaurantTodayWorkTime } from '../utils/dateUtils';
+
 
 const StoreCardItem = ({ store, theme, router }) => {
   const [scaleAnim] = useState(new Animated.Value(1));
+  const isClosed = isRestaurantClosed(store);
   
   const handlePressIn = () => {
     Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true }).start();
@@ -46,23 +49,29 @@ const StoreCardItem = ({ store, theme, router }) => {
       activeOpacity={1}
     >
       <Animated.View style={[styles.storeCard, { backgroundColor: theme.card, transform: [{ scale: scaleAnim }] }]}>
-        <Image source={{ uri: store.image }} style={styles.storeImage} />
+        <View style={{ position: 'relative' }}>
+          <Image source={{ uri: store.image }} style={styles.storeImage} />
+          {isClosed && (
+            <View style={styles.closedOverlay}>
+              <View style={styles.closedTextBg}>
+                <Ionicons name="lock-closed" size={18} color="white" style={{ marginRight: 6 }} />
+                <Text style={styles.closedText}>Наразі ресторан зачинений</Text>
+              </View>
+            </View>
+          )}
+        </View>
         
         {/* Glassmorphism Badges overlay the image */}
         <View style={styles.badgesOverlay}>
             <BlurView intensity={60} tint="dark" style={styles.timeBadgeBlur}>
               <Ionicons name="time" size={12} color="white" style={{marginRight: 4}} />
-              <Text style={styles.timeTextBlur}>{store.delivery_time}</Text>
+              <Text style={styles.timeTextBlur}>{getRestaurantTodayWorkTime(store)}</Text>
             </BlurView>
         </View>
 
         <View style={styles.storeInfo}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={[styles.storeName, { color: theme.text }]} numberOfLines={1}>{store.name}</Text>
-            <View style={[styles.ratingBadge, { backgroundColor: theme.text === '#FFFFFF' ? '#2C2C2E' : '#F0F0F0' }]}>
-              <Ionicons name="star" size={12} color="#f1c40f" style={{marginRight: 3}} />
-              <Text style={[styles.ratingText, { color: theme.text }]}>{store.rating}</Text>
-            </View>
           </View>
           <Text style={[styles.storeMeta, { color: theme.textSecondary }]}>
             {store.tags.join(' • ')}
@@ -541,4 +550,28 @@ const styles = StyleSheet.create({
   },
   ratingText: { fontSize: 13, fontWeight: '800' },
   storeMeta: { fontSize: 14, marginTop: 6, opacity: 0.8, fontWeight: '500' },
+
+  closedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  closedTextBg: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  closedText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
 });

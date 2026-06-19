@@ -84,6 +84,7 @@ class CatalogService {
                     rating: r.rating || 4.5,
                     delivery_time: "20-40 хв",
                     tags: tags,
+                    workTimes: r.workTimes || [],
                 };
             });
 

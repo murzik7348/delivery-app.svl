@@ -23,6 +23,8 @@ import Colors from '../constants/Colors';
 import { fetchCatalog, selectAllProducts, selectAllStores } from '../store/catalogSlice';
 import { tryAddToCart, formatPrice } from '../store/cartSlice';
 import ProductSheet from '../components/ProductSheet';
+import { isRestaurantClosed } from '../utils/dateUtils';
+
 import useCatalogFilter from '../hooks/useCatalogFilter';
 import BackButton from '../components/BackButton';
 
@@ -143,21 +145,27 @@ export default function SearchScreen() {
 
   const renderProduct = ({ item }) => <ProductResultItem item={item} />;
 
-  const renderStore = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.storeRow, { backgroundColor: theme.card, shadowColor: theme.text }]}
-      activeOpacity={0.8}
-      onPress={() => router.push(`/restaurant/${item.store_id}`)}
-    >
-      <Image source={{ uri: item.image }} style={styles.storeImg} />
-      <View style={styles.storeInfo}>
+  const renderStore = ({ item }) => {
+    const isClosed = isRestaurantClosed(item);
+    return (
+      <TouchableOpacity
+        style={[styles.storeRow, { backgroundColor: theme.card, shadowColor: theme.text }]}
+        activeOpacity={0.8}
+        onPress={() => router.push(`/restaurant/${item.store_id}`)}
+      >
+        <View style={{ position: 'relative' }}>
+          <Image source={{ uri: item.image }} style={styles.storeImg} />
+          {isClosed && (
+            <View style={styles.closedOverlaySearch}>
+              <Ionicons name="lock-closed" size={14} color="white" />
+            </View>
+          )}
+        </View>
+        <View style={styles.storeInfo}>
         <Text style={[styles.storeName, { color: theme.text }]} numberOfLines={1}>
           {item.name}
         </Text>
         <View style={styles.storeMeta}>
-          <Ionicons name="star" size={12} color="#f5c518" />
-          <Text style={styles.storeRating}>{item.rating}</Text>
-          <Text style={styles.storeDot}>•</Text>
           <Text style={styles.storeTime}>{item.delivery_time}</Text>
         </View>
         <View style={styles.tagRow}>
@@ -169,8 +177,9 @@ export default function SearchScreen() {
         </View>
       </View>
       <Ionicons name="chevron-forward" size={18} color="gray" />
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const sections = [];
   
@@ -425,4 +434,13 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 64, marginBottom: 16 },
   emptyTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
   emptySubtitle: { fontSize: 15, textAlign: 'center', paddingHorizontal: 40 },
+
+  closedOverlaySearch: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
 });

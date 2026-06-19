@@ -236,9 +236,76 @@ client.interceptors.response.use(
                     store.dispatch(logoutUser());
                 }
             }
-            const apiMessage = typeof error.response.data === 'string' 
-                ? error.response.data 
-                : error.response.data?.message || 'Server error. Please try again.';
+            let apiMessage = 'Щось пішло не так. Ми вже працюємо над цим. Спробуйте, будь ласка, пізніше!';
+            
+            if (error.response.data) {
+                const data = error.response.data;
+                if (typeof data === 'string') {
+                    apiMessage = data;
+                } else if (data.message) {
+                    apiMessage = data.message;
+                } else if (data.errors && typeof data.errors === 'object') {
+                    const errorList = [];
+                    for (const key in data.errors) {
+                        if (Array.isArray(data.errors[key])) {
+                            errorList.push(...data.errors[key]);
+                        } else if (typeof data.errors[key] === 'string') {
+                            errorList.push(data.errors[key]);
+                        }
+                    }
+                    if (errorList.length > 0) {
+                        apiMessage = errorList.join('\n');
+                    }
+                } else if (data.detail) {
+                    apiMessage = data.detail;
+                } else if (data.title) {
+                    apiMessage = data.title;
+                }
+            } else {
+                const status = error.response.status;
+                if (status === 400) {
+                    apiMessage = 'Будь ласка, перевірте правильність заповнення полів.';
+                } else if (status === 401) {
+                    apiMessage = 'Будь ласка, авторизуйтеся в додатку знову.';
+                } else if (status === 403) {
+                    apiMessage = 'Ця дія наразі недоступна для вашого акаунту.';
+                } else if (status === 404) {
+                    apiMessage = 'Не вдалося знайти запитувані дані. Спробуйте оновити екран.';
+                } else if (status >= 500) {
+                    apiMessage = 'На сервері ведуться технічні роботи. Ми вже виправляємо це. Спробуйте за кілька хвилин!';
+                }
+            }
+
+            // Translate common English API error texts to reassurance messages
+            const commonTranslations = {
+                'unauthorized': 'Будь ласка, увійдіть у свій акаунт знову.',
+                'forbidden': 'Доступ обмежено.',
+                'bad request': 'Перевірте правильність введених даних.',
+                'not found': 'Дані не знайдено.',
+                'server error': 'Тимчасові технічні неполадки на сервері. Скоро все запрацює!',
+                'network error': 'Проблема зі з\'єднанням. Перевірте інтернет.',
+                'timeout': 'Час очікування відповіді минув. Спробуйте ще раз.',
+                'no token returned from refresh endpoint': 'Сесія закінчилася. Будь ласка, увійдіть в акаунт знову.',
+                'failed to load catalog': 'Не вдалося завантажити каталог. Оновіть екран.',
+                'restaurant is currently closed': 'Цей ресторан наразі зачинений і не приймає замовлень.',
+                'restaurant_closed': 'Цей ресторан наразі зачинений і не приймає замовлень.',
+                'out of delivery range': 'Ваша адреса знаходиться поза зоною доставки цього ресторану.',
+                'out_of_delivery_range': 'Ваша адреса знаходиться поза зоною доставки цього ресторану.',
+                'courier not found': 'Наразі немає вільних кур\'єрів. Спробуйте ще раз за кілька хвилин.',
+                'courier_not_found': 'Наразі немає вільних кур\'єрів. Спробуйте ще раз за кілька хвилин.',
+                'payment failed': 'Оплата не пройшла. Перевірте баланс картки або спробуйте інший спосіб оплати.',
+                'payment_failed': 'Оплата не пройшла. Перевірте баланс картки або спробуйте інший спосіб оплати.',
+                'order already processed': 'Це замовлення вже оброблено.',
+                'order_already_processed': 'Це замовлення вже оброблено.',
+            };
+
+            const cleanMsg = apiMessage.toLowerCase().trim();
+            for (const engKey in commonTranslations) {
+                if (cleanMsg.includes(engKey)) {
+                    apiMessage = commonTranslations[engKey];
+                    break;
+                }
+            }
                 
             const apiError = new Error(apiMessage);
             apiError.status = error.response.status;
@@ -261,8 +328,14 @@ client.interceptors.response.use(
                 }));
             }
 
+            if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+                return Promise.reject(
+                    new Error('Очікування відповіді триває задовго. Будь ласка, перевірте швидкість інтернету та спробуйте знову.'),
+                );
+            }
+
             return Promise.reject(
-                new Error(`No connection to server. Check your internet. (${error.message})`),
+                new Error('Немає зв\'язку з сервером. Перевірте підключення до мобільного інтернету або Wi-Fi та спробуйте знову.'),
             );
         }
         console.error('[Axios Error]', error.message);

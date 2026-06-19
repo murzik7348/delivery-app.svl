@@ -198,7 +198,10 @@ export default function useCheckoutFlow() {
 
         } catch (error) {
             console.error("Checkout failed:", error);
-            Alert.alert("Checkout Failed", error.message || "An error occurred.");
+            Alert.alert(
+                locale === 'en' ? 'Checkout Failed' : 'Помилка оформлення',
+                error.message || (locale === 'en' ? 'An error occurred.' : 'Виникла помилка при оформленні замовлення.')
+            );
         } finally {
             setIsLoading(false);
         }
