@@ -26,29 +26,32 @@ export const fetchOrders = createAsyncThunk(
               const statusTranslations = {
                  'created': 'Створено',
                  'accepted': 'Прийнято рестораном 🍽',
-                 'preparing': 'Готується 👨‍🍳',
-                 'ready_for_pickup': 'Готово до видачі 📦',
-                 'delivering': 'Вже в дорозі 🛵',
-                 'delivered': 'Доставлено ✅',
+                 'preparing': 'Готується на кухні 🧑‍🍳',
+                 'ready_for_pickup': 'Очікує курʼєра 🛍️',
+                 'delivering': 'Курʼєр вже поспішає до Вас 🛵',
+                 'delivered': 'Доставлено 🎉',
+                 'canceled': 'Скасовано ❌'
               };
-              const transStatus = statusTranslations[newOrder.status] ?? newOrder.status;
-
+              
+              const currentLang = state.language?.locale ?? 'uk';
+              const text = currentLang === 'en' ? `Order status: ${newOrder.status}` : `Статус замовлення: ${statusTranslations[newOrder.status] || newOrder.status}`;
+              
               Notifications.scheduleNotificationAsync({
                 content: {
-                  title: 'Статус замовлення оновлено!',
-                  body: `Замовлення #${newId} тепер "${transStatus}"`,
-                  data: { orderId: newId }
+                  title: currentLang === 'en' ? 'Order Status Updated' : 'Статус замовлення змінено',
+                  body: text,
+                  data: { orderId: newId },
                 },
-                trigger: null 
+                trigger: null,
               });
-            }).catch(err => console.log('Failed to load expo-notifications', err));
+            }).catch(e => console.log('Notification schedule failed', e));
           }
         });
       }
-
+      
       return { newOrders, page, pageSize };
-    } catch (err) {
-      return rejectWithValue(err.message);
+    } catch (e) {
+      return rejectWithValue(e.message || 'Failed to load orders');
     }
   }
 );
@@ -57,35 +60,34 @@ export const fetchOrderDetails = createAsyncThunk(
   'orders/fetchOrderDetails',
   async (id, { rejectWithValue }) => {
     try {
-      return await OrderService.getOrderById(id);
-    } catch (err) {
-      return rejectWithValue(err.message);
+      const order = await OrderService.getOrderById(id);
+      return order;
+    } catch (e) {
+      return rejectWithValue(e.message || 'Failed to fetch order details');
     }
   }
 );
 
 export const confirmOrder = createAsyncThunk(
   'orders/confirmOrder',
-  async (id, { dispatch, rejectWithValue }) => {
+  async (id, { rejectWithValue }) => {
     try {
-      await userConfirmDelivery(id);
-      dispatch(fetchOrderDetails(id));
-      return id;
-    } catch (err) {
-      return rejectWithValue(err.message);
+      const response = await userConfirmDelivery(id);
+      return { id, response };
+    } catch (e) {
+      return rejectWithValue(e.message || 'Failed to confirm order');
     }
   }
 );
 
-// ── Slice ─────────────────────────────────────────────────────────────────────
 const initialState = {
   orders: [],
-  hiddenOrderIds: [],
   isLoading: false,
   isMoreLoading: false,
   error: null,
   currentPage: 1,
   hasMore: true,
+  hiddenOrderIds: [], // Track locally cleared order IDs
 };
 
 const ordersSlice = createSlice({
@@ -154,14 +156,24 @@ const ordersSlice = createSlice({
 
         const getOrderId = (o) => (o.deliveryId || o.id)?.toString();
 
+        // Preserve locally canceled status to prevent backend overwriting it
+        const processedRemoteOrders = visibleRemoteOrders.map(newOrder => {
+          const oid = getOrderId(newOrder);
+          const existing = state.orders.find(o => getOrderId(o) === oid);
+          if (existing && (existing.status === 'canceled' || existing.status === 'cancelled')) {
+            return { ...newOrder, status: 'canceled' };
+          }
+          return newOrder;
+        });
+
         if (page === 1) {
           // Replace/merge for the first page
-          const remoteIds = new Set(visibleRemoteOrders.map(getOrderId));
+          const remoteIds = new Set(processedRemoteOrders.map(getOrderId));
           const localOnly = state.orders.filter((o) => {
             const oid = getOrderId(o);
             return oid && oid !== 'undefined' && !remoteIds.has(oid) && !hiddenIds.has(oid);
           });
-          const merged = [...visibleRemoteOrders, ...localOnly];
+          const merged = [...processedRemoteOrders, ...localOnly];
           merged.sort((a, b) => {
             const dateA = new Date(a.createdAt || a.date || 0).getTime();
             const dateB = new Date(b.createdAt || b.date || 0).getTime();
@@ -173,7 +185,7 @@ const ordersSlice = createSlice({
         } else {
           // Append for subsequent pages
           const existingIds = new Set(state.orders.map(getOrderId));
-          const uniqueNewOrders = visibleRemoteOrders.filter(o => {
+          const uniqueNewOrders = processedRemoteOrders.filter(o => {
             const oid = getOrderId(o);
             return oid && !existingIds.has(oid);
           });
@@ -192,20 +204,21 @@ const ordersSlice = createSlice({
         state.isLoading = false;
         state.isMoreLoading = false;
         state.error = action.payload ?? 'Failed to load orders';
-        // Keep existing orders in state
       })
       .addCase(fetchOrderDetails.fulfilled, (state, action) => {
         const updated = action.payload;
         const id = updated?.deliveryId || updated?.id;
         const idx = state.orders.findIndex((o) => String(o.deliveryId || o.id) === String(id));
         if (idx !== -1) {
+          const currentStatus = state.orders[idx].status;
           // Merge: keep local fields (timestamps etc.) and overwrite with server data
           state.orders[idx] = { ...state.orders[idx], ...updated };
+          if (currentStatus === 'canceled' || currentStatus === 'cancelled') {
+            state.orders[idx].status = 'canceled';
+          }
         }
       })
-      // Clear entire state on logout to prevent cross-account data leak
       .addCase('auth/logoutUser', () => initialState)
-      // Clear orders when a NEW user logs in — prevents previous user's orders leaking
       .addCase('auth/loginUser', () => initialState);
   },
 });

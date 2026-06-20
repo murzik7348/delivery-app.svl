@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, Image, FlatList, Alert,
-  StyleSheet, Animated, Easing, Dimensions, Linking, Platform
+  StyleSheet, Animated, Easing, Dimensions, Linking, Platform, BackHandler
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -15,13 +15,16 @@ import { BlurView } from 'expo-blur';
 import Colors from '../constants/Colors';
 import { formatUkraineDate } from '../utils/dateUtils';
 import { t } from '../constants/translations';
-import { fetchOrderDetails, confirmOrder } from '../store/ordersSlice';
+import { fetchOrderDetails, confirmOrder, updateOrderStatus } from '../store/ordersSlice';
 import { formatPrice } from '../store/cartSlice';
 import * as Haptics from 'expo-haptics';
+import { restaurantCancelDelivery } from '../src/api';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { safeBack } from '../utils/navigation';
 import { syncLiveActivity, endActivity, startPolling, stopPolling } from '../services/LiveActivityService';
 import { hs, vs, ms, fs, r, hairline } from '../utils/responsive';
+import BackButton from '../components/BackButton';
+import PaymentRetryCard, { isPaidStatus } from '../components/PaymentRetryCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -180,8 +183,6 @@ const progressStyles = StyleSheet.create({
 // ──────────────────────────────────────────────────────────────
 // Premium Order Details Screen
 // ──────────────────────────────────────────────────────────────
-import BackButton from '../components/BackButton';
-
 export default function OrderDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -501,6 +502,15 @@ export default function OrderDetailsScreen() {
 
   const [isConfirming, setIsConfirming] = useState(false);
 
+  const isOnlinePayment = useCallback((method) => {
+    if (!method) return true; // default to card (user stated app is card only)
+    const m = String(method).toLowerCase();
+    if (m.includes('cash') || m.includes('готівк') || m === '1') {
+      return false;
+    }
+    return true;
+  }, []);
+
   const restaurantMarker = useMemo(() => {
     if (!order?.restaurantLatitude || !order?.restaurantLongitude) return null;
     return (
@@ -516,7 +526,24 @@ export default function OrderDetailsScreen() {
         </View>
       </Marker>
     );
-  }, [order?.restaurantLatitude, order?.restaurantLongitude, locale]);
+  }, [order?.restaurantLatitude, order?.restaurantLongitude, locale, theme.primary]);
+
+  const courierMarker = useMemo(() => {
+    if (!liveCourierCoords?.latitude || !liveCourierCoords?.longitude) return null;
+    return (
+      <Marker
+        coordinate={{
+          latitude: liveCourierCoords.latitude,
+          longitude: liveCourierCoords.longitude,
+        }}
+        title={locale === 'en' ? 'Courier' : 'Кур\'єр'}
+      >
+        <View style={[styles.mapPin, { backgroundColor: NEON_BLUE }]}>
+          <Ionicons name="bicycle" size={14} color="white" />
+        </View>
+      </Marker>
+    );
+  }, [liveCourierCoords?.latitude, liveCourierCoords?.longitude, locale]);
 
   const customerMarker = useMemo(() => {
     if (!order?.customerLatitude || !order?.customerLongitude) return null;
@@ -526,27 +553,23 @@ export default function OrderDetailsScreen() {
           latitude: order.customerLatitude,
           longitude: order.customerLongitude,
         }}
-        title={locale === 'en' ? 'Your Address' : 'Ваша адреса'}
+        title={locale === 'en' ? 'You' : 'Ви'}
       >
-        <View style={[styles.mapPin, { backgroundColor: '#3498db' }]}>
+        <View style={[styles.mapPin, { backgroundColor: '#FF2D55' }]}>
           <Ionicons name="home" size={14} color="white" />
         </View>
       </Marker>
     );
   }, [order?.customerLatitude, order?.customerLongitude, locale]);
 
-  const renderItem = useCallback(({ item }) => (
-    <OrderItem item={item} theme={theme} locale={locale} />
-  ), [theme, locale]);
-
   const handleSupportPress = () => {
     Alert.alert(
-      locale === 'en' ? 'Support' : 'Служба підтримки',
-      locale === 'en' ? 'Choose where to contact us:' : 'Оберіть месенджер для зв\'язку:',
+      locale === 'en' ? 'Contact Support' : 'Зв\'язатися з підтримкою',
+      locale === 'en' ? 'Choose communication channel:' : 'Оберіть канал зв\'язку:',
       [
         {
           text: 'Telegram',
-          onPress: () => Linking.openURL(`tg://resolve?domain=@${SUPPORT_CONFIG.telegram}`)
+          onPress: () => Linking.openURL(`https://t.me/${SUPPORT_CONFIG.telegram}`)
         },
         {
           text: 'Viber',
@@ -588,6 +611,10 @@ export default function OrderDetailsScreen() {
     );
   };
 
+  const renderItem = useCallback(({ item }) => (
+    <OrderItem item={item} theme={theme} locale={locale} />
+  ), [theme, locale]);
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
 
@@ -596,7 +623,10 @@ export default function OrderDetailsScreen() {
         <SafeAreaView edges={['top']} style={{ flex: 1, justifyContent: 'space-between' }}>
 
           <View style={styles.headerTop}>
-            <BackButton color={theme.text} />
+            <BackButton 
+              color={theme.text} 
+              onPress={() => safeBack(router)}
+            />
             <View style={styles.headerTitleWrap}>
               <Text style={[styles.hashTitle, { color: theme.text }]}>{formatOrderNumber(order.deliveryId || order.id)}</Text>
             </View>
@@ -639,120 +669,100 @@ export default function OrderDetailsScreen() {
               </View>
             </View>
 
+            {isOnlinePayment(order.paymentMethod) && (
+              <PaymentRetryCard 
+                order={order} 
+                locale={locale} 
+                theme={theme} 
+                currentStep={currentStep}
+              />
+            )}
+
             {/* Courier Glassmorphism Card — visible from 'accepted' onwards */}
             {(currentStep >= 1 || courierPhoto) && (
               <View style={styles.blurWrapper}>
-                <BlurView intensity={colorScheme === 'dark' ? 30 : 60} tint={colorScheme} style={styles.glassCard}>
+                <BlurView intensity={Platform.OS === 'ios' ? 25 : 100} style={[styles.glassCard, { backgroundColor: theme.card + '20' }]}>
                   <View style={styles.courierRow}>
                     <View style={styles.courierLeft}>
                       {courierPhoto ? (
-                        <Image source={{ uri: courierPhoto }} style={styles.avatarPremium} />
+                        <Image source={{ uri: courierPhoto }} style={[styles.avatarPremium, { borderColor: theme.border }]} />
                       ) : (
-                        <View style={[styles.avatarPremium, styles.avatarPlaceholder]}>
-                          <Ionicons name="bicycle" size={28} color="white" />
+                        <View style={[styles.avatarPremium, styles.avatarPlaceholder, { borderColor: theme.border }]}>
+                          <Ionicons name="person" size={24} color="white" />
                         </View>
                       )}
-                      <View style={{ marginLeft: 14 }}>
+                      <View style={{ marginLeft: hs(14), flex: 1 }}>
                         <Text style={[styles.courierName, { color: theme.text }]}>{courierName}</Text>
                         <Text style={styles.courierSub}>
-                          {t(locale, 'courier')} {courierRating ? `• ⭐ ${courierRating}` : ''}
+                          {currentStep === 5 
+                            ? (locale === 'en' ? 'Courier' : 'Кур\'єр')
+                            : (locale === 'en' ? 'Biker Courier' : 'Велокур\'єр')}
+                          {courierRating ? `  ★ ${courierRating.toFixed(1)}` : ''}
                         </Text>
                       </View>
                     </View>
-                    <TouchableOpacity
-                      onPress={async () => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        if (courierPhone) {
-                          try {
-                            const url = `tel:${courierPhone.replace(/\s+/g, '')}`;
-                            const supported = await Linking.canOpenURL(url);
-                            if (supported) {
-                              await Linking.openURL(url);
-                            } else {
-                              Alert.alert(t(locale, 'call'), courierPhone);
-                            }
-                          } catch (err) {
-                            console.warn('[Call] Failed to open tel link:', err);
-                            Alert.alert(t(locale, 'call'), courierPhone);
-                          }
-                        }
-                      }}
-                      style={[styles.premiumCallBtn, { backgroundColor: courierPhone ? '#34C759' : '#555' }]}
-                    >
-                      <Ionicons name="call" size={22} color="white" />
-                    </TouchableOpacity>
+                    {courierPhone && currentStep < 5 && (
+                      <TouchableOpacity 
+                        onPress={() => Linking.openURL(`tel:${courierPhone}`)} 
+                        style={[styles.premiumCallBtn, { backgroundColor: theme.primary }]}
+                      >
+                        <Ionicons name="call" size={22} color="white" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </BlurView>
               </View>
             )}
 
-            {order.restaurantLatitude && order.customerLatitude && (
+            {/* Distance Banner for Delivering status */}
+            {(currentStep === 4 && order.navigationStats?.toClientDistance) && (
+              <View style={[styles.distanceBanner, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <Ionicons name="navigate" size={20} color={theme.primary} />
+                <Text style={{ marginLeft: hs(10), fontWeight: '700', color: theme.text }}>
+                  {locale === 'en' ? 'Courier is ' : 'Кур\'єр за '} {order.navigationStats.toClientDistance} {locale === 'en' ? 'away' : 'від вас'}
+                </Text>
+              </View>
+            )}
+
+            {/* Real-time Map section */}
+            {currentStep < 5 && (order.restaurantLatitude || order.customerLatitude) && (
               <View style={[styles.mapContainer, { borderColor: theme.border }]}>
                 <MapView
                   ref={mapRef}
                   style={styles.map}
                   provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
                   initialRegion={{
-                    latitude: (order.restaurantLatitude + order.customerLatitude) / 2,
-                    longitude: (order.restaurantLongitude + order.customerLongitude) / 2,
-                    latitudeDelta: Math.max(Math.abs(order.restaurantLatitude - order.customerLatitude) * 2, 0.015),
-                    longitudeDelta: Math.max(Math.abs(order.restaurantLongitude - order.customerLongitude) * 2, 0.015),
+                    latitude: order.customerLatitude || order.restaurantLatitude || 50.4501,
+                    longitude: order.customerLongitude || order.restaurantLongitude || 30.5234,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
                   }}
                   scrollEnabled={true}
                   zoomEnabled={true}
+                  pitchEnabled={false}
+                  rotateEnabled={false}
                 >
-                  {/* Restaurant Marker */}
                   {restaurantMarker}
-
-                  {/* Customer Marker */}
+                  {courierMarker}
                   {customerMarker}
 
-                  {/* Courier Marker */}
-                  {currentStep >= 1 && currentStep < 5 && liveCourierCoords && (
-                    <Marker
-                      coordinate={liveCourierCoords}
-                      title={locale === 'en' ? 'Courier' : 'Кур\'єр'}
-                    >
-                      <View style={[styles.mapPin, { backgroundColor: '#f1c40f', borderWidth: 2, borderColor: 'white' }]}>
-                        <Ionicons name="bicycle" size={16} color="black" />
-                      </View>
-                    </Marker>
+                  {routeCoords.length > 0 && (
+                    <Polyline
+                      coordinates={routeCoords}
+                      strokeColor={theme.primary}
+                      strokeWidth={4}
+                      lineDashPattern={[0]}
+                    />
                   )}
-
-                  {/* Route Line */}
-                  <Polyline
-                    coordinates={routeCoords.length > 0 ? routeCoords : [
-                      { latitude: liveCourierCoords?.latitude || order.restaurantLatitude, longitude: liveCourierCoords?.longitude || order.restaurantLongitude },
-                      { latitude: order.customerLatitude, longitude: order.customerLongitude },
-                    ]}
-                    strokeColor={theme.primary}
-                    strokeWidth={3}
-                    lineDashPattern={routeCoords.length > 0 ? undefined : [5, 5]}
-                  />
                 </MapView>
               </View>
             )}
 
-            {/* Distance to client banner when delivering */}
-            {currentStep === 4 && order.navigationStats?.toClientDistance && (
-              <View style={[styles.distanceBanner, { backgroundColor: '#3498db12', borderColor: '#3498db30' }]}>
-                <Ionicons name="navigate" size={22} color="#3498db" />
-                <View style={{ marginLeft: 12 }}>
-                  <Text style={{ color: '#3498db', fontWeight: '800', fontSize: 13 }}>
-                    {locale === 'en' ? 'Courier is on the way' : 'Курєр вже їде'}
-                  </Text>
-                  <Text style={{ color: '#3498db', fontWeight: '900', fontSize: 20 }}>
-                    {order.navigationStats.toClientDistance}{order.navigationStats.toClientTime ? `  ·  ${order.navigationStats.toClientTime}` : ''}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* Confirm Delivery Button for User */}
-            {currentStep === 4 && (
+            {/* Awaiting Confirmation button when status is ready/delivered */}
+            {(currentStep === 3 || currentStep === 4 || currentStep === 5) && order.status !== 'completed' && (
               <TouchableOpacity
-                onPress={handleConfirm}
                 disabled={isConfirming}
+                onPress={handleConfirm}
                 style={[
                   styles.confirmBtn,
                   { backgroundColor: theme.primary, shadowColor: theme.primary }
@@ -762,11 +772,10 @@ export default function OrderDetailsScreen() {
                 <Text style={styles.confirmBtnText}>
                   {isConfirming 
                     ? (locale === 'en' ? 'Confirming...' : 'Підтвердження...')
-                    : (locale === 'en' ? 'Confirm Delivery' : 'Підтвердити отримання')}
+                    : (locale === 'en' ? 'I Received My Order' : 'Замовлення отримано')}
                 </Text>
               </TouchableOpacity>
             )}
-
 
             <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'items')}</Text>
           </View>
@@ -783,7 +792,7 @@ export default function OrderDetailsScreen() {
                   {formatUkraineDate(order.createdAt || order.date)}
                 </Text>
               </View>
-              {order.paymentStatus === 'success' && (
+              {isPaidStatus(order.paymentStatus) && (
                 <View style={[styles.summaryRow, { marginTop: 8 }]}>
                   <Text style={styles.summaryLabel}>Статус оплати</Text>
                   <View style={styles.paidBadge}>
