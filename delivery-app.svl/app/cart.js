@@ -42,8 +42,11 @@ import {
   FREE_DELIVERY_THRESHOLD,
   MIN_ORDER_AMOUNT,
   formatPrice,
+  setCustomDeliveryFee,
 } from '../store/cartSlice';
 import AddressBottomSheet from '../components/AddressBottomSheet';
+import { getDeliveryZones } from '../src/api';
+import { getZoneForLocation } from '../utils/deliveryZones';
 import PromoSheet from '../components/PromoSheet';
 import BackButton from '../components/BackButton';
 import { fetchCatalog } from '../store/catalogSlice';
@@ -276,6 +279,43 @@ export default function CartScreen() {
       return true;
     })
     .slice(0, 6);
+
+  const [zones, setZones] = useState([]);
+
+  // Fetch delivery zones on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getDeliveryZones();
+        const items = res?.data || res || [];
+        setZones(items);
+      } catch (e) {
+        console.warn('[Cart] Failed to fetch delivery zones:', e);
+      }
+    })();
+  }, []);
+
+  // Update custom delivery fee when currentLocation or zones change
+  useEffect(() => {
+    if (deliveryType === 'delivery' && currentLocation && zones.length > 0) {
+      const resolvedZone = getZoneForLocation(
+        { latitude: currentLocation.latitude, longitude: currentLocation.longitude },
+        zones
+      );
+      if (resolvedZone) {
+        dispatch(setCustomDeliveryFee(resolvedZone.price));
+      } else {
+        dispatch(setCustomDeliveryFee(null));
+      }
+    } else {
+      dispatch(setCustomDeliveryFee(null));
+    }
+  }, [currentLocation, zones, deliveryType, dispatch]);
+
+  const isDeliveryUnavailable = deliveryType === 'delivery' && currentLocation && zones.length > 0 && getZoneForLocation(
+    { latitude: currentLocation.latitude, longitude: currentLocation.longitude },
+    zones
+  ) === null;
 
   // ── Bottom sheet animation ─────────────────────────────────────────────────
   const translateY = useRef(new Animated.Value(MAX_TRANS)).current;
@@ -731,22 +771,24 @@ export default function CartScreen() {
                 style={[
                   styles.checkoutBtn,
                   { backgroundColor: theme.primary },
-                  (!isMinOrderMet || isLoading || isOffline) && styles.checkoutBtnDisabled,
+                  (!isMinOrderMet || isLoading || isOffline || isDeliveryUnavailable) && styles.checkoutBtnDisabled,
                 ]}
-                activeOpacity={isMinOrderMet && !isLoading && !isOffline ? 0.85 : 1}
+                activeOpacity={isMinOrderMet && !isLoading && !isOffline && !isDeliveryUnavailable ? 0.85 : 1}
                 onPress={handleCheckout}
-                disabled={!isMinOrderMet || isLoading || isOffline}
+                disabled={!isMinOrderMet || isLoading || isOffline || isDeliveryUnavailable}
               >
                 <Text style={styles.checkoutBtnText}>
                   {isOffline
                     ? (locale === 'en' ? 'Offline Mode' : 'Офлайн-режим')
                     : (isLoading
                       ? (locale === 'en' ? 'Processing...' : 'Обробка...')
-                      : (isMinOrderMet
-                        ? t(locale, 'placeOrder')
-                        : (locale === 'en'
-                          ? `Min. order ${MIN_ORDER_AMOUNT} ₴`
-                          : `Мін. замовлення ${MIN_ORDER_AMOUNT} ₴`)))}
+                      : (isDeliveryUnavailable
+                        ? (locale === 'en' ? 'Delivery Unavailable' : 'Доставка недоступна 🚫')
+                        : (isMinOrderMet
+                          ? t(locale, 'placeOrder')
+                          : (locale === 'en'
+                            ? `Min. order ${MIN_ORDER_AMOUNT} ₴`
+                            : `Мін. замовлення ${MIN_ORDER_AMOUNT} ₴`))))}
                 </Text>
               </TouchableOpacity>
             </View>

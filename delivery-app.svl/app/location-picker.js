@@ -20,11 +20,13 @@ import {
   Easing
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Marker, Polygon } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCurrentLocation } from '../store/locationSlice';
 import { fetchAddresses } from '../store/authSlice';
-import { createAddress } from '../src/api';
+import { createAddress, getDeliveryZones } from '../src/api';
+import { getZoneForLocation, getZoneColor } from '../utils/deliveryZones';
+import { setCustomDeliveryFee } from '../store/cartSlice';
 import BackButton from '../components/BackButton';
 
 export default function LocationPickerScreen() {
@@ -43,6 +45,37 @@ export default function LocationPickerScreen() {
     latitudeDelta: 0.005,
     longitudeDelta: 0.005,
   });
+  const [zones, setZones] = useState([]);
+  const [activeZone, setActiveZone] = useState(null);
+  const [zonesLoading, setZonesLoading] = useState(true);
+  const [zonesError, setZonesError] = useState(false);
+  const hasFallback = zonesError || zones.length === 0;
+
+  // Fetch Delivery Zones
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getDeliveryZones();
+        const items = res?.data || res || [];
+        setZones(items);
+        
+        // Check initial zone
+        setRegion(current => {
+          const initialZone = getZoneForLocation(
+            { latitude: current.latitude, longitude: current.longitude },
+            items
+          );
+          setActiveZone(initialZone);
+          return current;
+        });
+      } catch (err) {
+        console.error('[location-picker] Failed to fetch delivery zones:', err);
+        setZonesError(true);
+      } finally {
+        setZonesLoading(false);
+      }
+    })();
+  }, []);
   const [detectedStreet, setDetectedStreet] = useState('Завантаження вулиці...');
   const [mapType, setMapType] = useState('standard');
   const [addressType, setAddressType] = useState('apartment');
@@ -219,6 +252,13 @@ export default function LocationPickerScreen() {
       }).start();
     }
 
+    // Determine delivery zone
+    const resolvedZone = getZoneForLocation(
+      { latitude: newRegion.latitude, longitude: newRegion.longitude },
+      zones
+    );
+    setActiveZone(resolvedZone);
+
     try {
       const results = await Location.reverseGeocodeAsync({
         latitude: newRegion.latitude,
@@ -268,6 +308,10 @@ export default function LocationPickerScreen() {
 
   const handleSaveLocation = async () => {
     if (!validateInputs()) return;
+    if (!activeZone && !hasFallback) {
+      Alert.alert('Помилка', 'Вибрана адреса знаходиться поза зоною доставки.');
+      return;
+    }
 
     if (savedAddresses.length >= 10) {
       Alert.alert(
@@ -318,6 +362,8 @@ export default function LocationPickerScreen() {
           addressName: addressString,
         })
       );
+      // Save custom delivery price to Cart store
+      dispatch(setCustomDeliveryFee(activeZone ? activeZone.price : null));
 
       Alert.alert('Успіх', 'Адресу збережено!', [
         { text: 'OK', onPress: () => router.back() },
@@ -332,6 +378,10 @@ export default function LocationPickerScreen() {
 
   const handleUseOnce = () => {
     if (!validateInputs()) return;
+    if (!activeZone && !hasFallback) {
+      Alert.alert('Помилка', 'Вибрана адреса знаходиться поза зоною доставки.');
+      return;
+    }
 
     let details = `буд. ${houseNumber}`;
     if (addressType === 'apartment') {
@@ -346,6 +396,8 @@ export default function LocationPickerScreen() {
         addressName,
       })
     );
+    // Save custom delivery price to Cart store
+    dispatch(setCustomDeliveryFee(activeZone ? activeZone.price : null));
     router.back();
   };
 
@@ -366,6 +418,24 @@ export default function LocationPickerScreen() {
         showsUserLocation={hasLocationPermission}
         showsMyLocationButton={false}
       >
+        {/* Draw Delivery Zone Polygons */}
+        {zones.map((zone, idx) => {
+          const colors = getZoneColor(zone.name);
+          const coords = (zone.points || []).map((p) => ({
+            latitude: p.lat,
+            longitude: p.lng,
+          }));
+          return (
+            <Polygon
+              key={`zone-${idx}`}
+              coordinates={coords}
+              fillColor={colors.fill}
+              strokeColor={colors.stroke}
+              strokeWidth={2}
+            />
+          );
+        })}
+
         {savedAddresses.map((addr, idx) => {
           const isSelected = currentLocation && 
             (Math.abs(addr.latitude - currentLocation.latitude) < 0.0001 && Math.abs(addr.longitude - currentLocation.longitude) < 0.0001);
@@ -454,6 +524,32 @@ export default function LocationPickerScreen() {
             />
           </View>
 
+          {/* ZONE INFO BAR */}
+          <View style={styles.zoneInfoBar}>
+            {zonesLoading ? (
+              <Text style={styles.zoneInfoTextLoading}>Визначення зони доставки...</Text>
+            ) : activeZone ? (
+              <View style={[styles.zoneBadge, { backgroundColor: getZoneColor(activeZone.name).fill, borderColor: getZoneColor(activeZone.name).stroke }]}>
+                <Text style={[styles.zoneBadgeText, { color: getZoneColor(activeZone.name).text }]}>
+                  {getZoneColor(activeZone.name).displayName} • Доставка {activeZone.price} ₴
+                </Text>
+              </View>
+            ) : hasFallback ? (
+              <View style={[styles.zoneBadge, { backgroundColor: 'rgba(33, 150, 243, 0.1)', borderColor: '#2196F3' }]}>
+                <Text style={[styles.zoneBadgeText, { color: '#1E88E5' }]}>
+                  Стандартний тариф • Доставка 50 ₴
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.zoneBadgeError}>
+                <Ionicons name="warning" size={14} color="#D32F2F" style={{ marginRight: 4 }} />
+                <Text style={styles.zoneBadgeTextError}>
+                  Доставка недоступна за цією адресою 🚫
+                </Text>
+              </View>
+            )}
+          </View>
+
           {/* STREET ROW */}
           <View style={styles.addressRow}>
             <View style={{ flex: 1 }}>
@@ -471,11 +567,14 @@ export default function LocationPickerScreen() {
             </View>
             
             <TouchableOpacity
-              style={[styles.headerConfirmBtn, { backgroundColor: theme.primary }]}
+              style={[
+                styles.headerConfirmBtn,
+                { backgroundColor: (activeZone || hasFallback) ? theme.primary : '#E0E0E0' }
+              ]}
               onPress={handleUseOnce}
-              disabled={loading}
+              disabled={loading || (!activeZone && !hasFallback)}
             >
-              <Text style={styles.headerConfirmBtnText}>Вибрати</Text>
+              <Text style={[styles.headerConfirmBtnText, { color: (activeZone || hasFallback) ? 'white' : '#888' }]}>Вибрати</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -577,9 +676,12 @@ export default function LocationPickerScreen() {
 
           {/* SAVE BUTTONS */}
           <TouchableOpacity
-            style={[styles.btnSave, loading && { opacity: 0.6 }]}
+            style={[
+              styles.btnSave,
+              (loading || (!activeZone && !hasFallback)) && { opacity: 0.5, backgroundColor: '#888' }
+            ]}
             onPress={handleSaveLocation}
-            disabled={loading}
+            disabled={loading || (!activeZone && !hasFallback)}
           >
             <Text style={styles.btnText}>
               {loading ? 'Збереження...' : '💾 Зберегти адресу'}
@@ -788,5 +890,44 @@ const styles = StyleSheet.create({
   btnOnceText: { color: '#000000', fontWeight: 'bold', fontSize: 16 },
   dragHeader: {
     backgroundColor: 'transparent',
+  },
+  zoneInfoBar: {
+    marginBottom: 12,
+    alignItems: 'center',
+    width: '100%',
+  },
+  zoneBadge: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    width: '100%',
+    alignItems: 'center',
+  },
+  zoneBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  zoneBadgeError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(244, 67, 54, 0.08)',
+    borderColor: 'rgba(244, 67, 54, 0.3)',
+    borderWidth: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    width: '100%',
+  },
+  zoneBadgeTextError: {
+    color: '#D32F2F',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  zoneInfoTextLoading: {
+    color: '#888',
+    fontSize: 12,
+    fontWeight: '600',
   }
 });

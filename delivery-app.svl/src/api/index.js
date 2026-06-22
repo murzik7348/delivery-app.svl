@@ -38,7 +38,7 @@ export {
 } from './product';
 
 // ── Delivery ─────────────────────────────────────────────────────────────────
-export { createDelivery, getMyDeliveries, acceptDelivery, userConfirmDelivery } from './delivery';
+export { createDelivery, getMyDeliveries, acceptDelivery, userConfirmDelivery, getDeliveryZones } from './delivery';
 
 // ── Courier ──────────────────────────────────────────────────────────────────
 export {

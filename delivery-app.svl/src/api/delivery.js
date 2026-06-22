@@ -22,3 +22,8 @@ export const acceptDelivery = (id) => client.put(`/deliveries/${id}/accepted`);
  * @param {number} id - Delivery ID
  */
 export const userConfirmDelivery = (id) => client.put(`/deliveries/${id}/confirmations`);
+
+/**
+ * Fetch geographic delivery zones (polygons and prices).
+ */
+export const getDeliveryZones = () => client.get('/deliveries/zones', { _skipRetry: true, _silentErrors: [500] });

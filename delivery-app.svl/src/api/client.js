@@ -128,7 +128,7 @@ client.interceptors.response.use(
         const isGetRequest = originalRequest && originalRequest.method?.toLowerCase() === 'get';
         const isNetworkOr5xxError = !error.response || (error.response.status >= 500 && error.response.status <= 504);
 
-        if (isGetRequest && isNetworkOr5xxError) {
+        if (isGetRequest && isNetworkOr5xxError && !originalRequest?._skipRetry) {
             const MAX_RETRIES = 3;
             const retryCount = originalRequest._retryCount || 0;
             if (retryCount < MAX_RETRIES) {

@@ -88,7 +88,10 @@ const calculateTotals = (state) => {
   state.subtotal = Math.round(rawSubtotal * 100) / 100;
 
   if (state.deliveryType === 'delivery' && state.subtotal > 0) {
-    state.deliveryFee = state.subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : BASE_DELIVERY_FEE;
+    const baseFee = state.customDeliveryFee !== null && state.customDeliveryFee !== undefined
+      ? state.customDeliveryFee
+      : BASE_DELIVERY_FEE;
+    state.deliveryFee = state.subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : baseFee;
   } else {
     state.deliveryFee = 0;
   }
@@ -132,6 +135,7 @@ const initialState = {
   appliedPromo: null,
   deliveryType: 'delivery',
   orderNote: '',
+  customDeliveryFee: null,
 };
 
 // ─── Slice ────────────────────────────────────────────────────────────────────
@@ -257,6 +261,12 @@ const cartSlice = createSlice({
       state.deliveryFee = 0;
       state.appliedPromo = null;
       state.orderNote = '';
+      state.customDeliveryFee = null;
+    },
+
+    setCustomDeliveryFee: (state, action) => {
+      state.customDeliveryFee = action.payload;
+      calculateTotals(state);
     },
 
     applyDiscount: (state, action) => {
@@ -296,6 +306,7 @@ export const {
   removeDiscount,
   setDeliveryType,
   setOrderNote,
+  setCustomDeliveryFee,
 } = cartSlice.actions;
 
 // ─── Selectors ────────────────────────────────────────────────────────────────
