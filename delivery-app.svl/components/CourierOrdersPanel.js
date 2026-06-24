@@ -8,13 +8,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import * as Location from 'expo-location';
 import Colors from '../constants/Colors';
 import CourierOrderSheet from './CourierOrderSheet';
 import { fetchCourierOrders, updateOnlineStatusThunk, fetchShiftStatusThunk } from '../store/courierSlice';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
-import { courierUpdateLocation } from '../src/api';
+import { courierUpdateLocation, getDeliveryCoefficients } from '../src/api';
 import { formatPrice } from '../store/cartSlice';
+
 
 function StatusBadge({ status, locale, theme }) {
   let color = '#8e44ad';
@@ -100,9 +100,23 @@ export default function CourierOrdersPanel() {
     const [lastSync,      setLastSync]      = useState(new Date().toLocaleTimeString());
     const [activeTab,     setActiveTab]     = useState('available');
 
+    const [coefficients, setCoefficients] = useState([]);
+
     const autoSwitched  = useRef(false);
     const locationSub   = useRef(null);
     const pulseAnim     = useRef(new Animated.Value(1)).current;
+
+    const fetchCoefficients = useCallback(async () => {
+        try {
+            const res = await getDeliveryCoefficients();
+            const data = res?.data || res;
+            if (Array.isArray(data)) {
+                setCoefficients(data);
+            }
+        } catch (e) {
+            console.log('Error fetching coefficients:', e);
+        }
+    }, []);
 
     // Pulsing green dot when online
     useEffect(() => {
@@ -158,26 +172,29 @@ export default function CourierOrdersPanel() {
         setRefreshing(true);
         await Promise.all([
             dispatch(fetchCourierOrders()),
-            dispatch(fetchShiftStatusThunk())
+            dispatch(fetchShiftStatusThunk()),
+            fetchCoefficients()
         ]);
         setLastSync(new Date().toLocaleTimeString());
         setRefreshing(false);
-    }, [dispatch]);
+    }, [dispatch, fetchCoefficients]);
 
     // Poll every 15 s
     useEffect(() => {
         dispatch(fetchCourierOrders());
         dispatch(fetchShiftStatusThunk());
+        fetchCoefficients();
         const iv = setInterval(() => {
             dispatch(fetchCourierOrders());
+            fetchCoefficients();
             setLastSync(new Date().toLocaleTimeString());
         }, 15000);
         return () => clearInterval(iv);
-    }, [dispatch]);
-
-    // GPS tracking is managed globally in RootLayout (via useCourierLocation hook)
+    }, [dispatch, fetchCoefficients]);
 
     const todayEarnings = completedOrders.reduce((sum, o) => sum + (Number(o.earnings) || 0), 0);
+    const activeCoeff = (coefficients || []).find(c => c.isActive);
+    const currentCoefficient = activeCoeff ? activeCoeff.multiplier : 1.0;
 
     const TABS = [
         { id: 'active',    label: locale === 'en' ? 'Active'    : 'Активні',  icon: 'flash',        count: activeOrders.length    },
@@ -389,23 +406,32 @@ export default function CourierOrdersPanel() {
             <View style={styles.statsRow}>
                 <View style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                     <Ionicons name="wallet-outline" size={16} color={theme.primary} />
-                    <Text style={[styles.statVal, { color: theme.text }]}>{formatPrice(todayEarnings)} ₴</Text>
-                    <Text style={[styles.statLab, { color: theme.textSecondary }]}>
+                    <Text style={[styles.statVal, { color: theme.text }]} numberOfLines={1}>{formatPrice(todayEarnings)} ₴</Text>
+                    <Text style={[styles.statLab, { color: theme.textSecondary }]} numberOfLines={1}>
                         {locale === 'en' ? 'Earnings' : 'Заробіток'}
                     </Text>
                 </View>
                 <View style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                     <Ionicons name="checkmark-done" size={16} color="#2ECC71" />
-                    <Text style={[styles.statVal, { color: theme.text }]}>{completedOrders.length}</Text>
-                    <Text style={[styles.statLab, { color: theme.textSecondary }]}>
+                    <Text style={[styles.statVal, { color: theme.text }]} numberOfLines={1}>{completedOrders.length}</Text>
+                    <Text style={[styles.statLab, { color: theme.textSecondary }]} numberOfLines={1}>
                         {locale === 'en' ? 'Done' : 'Виконано'}
                     </Text>
                 </View>
                 <View style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                     <Ionicons name="flash" size={16} color="#F39C12" />
-                    <Text style={[styles.statVal, { color: theme.text }]}>{activeOrders.length}</Text>
-                    <Text style={[styles.statLab, { color: theme.textSecondary }]}>
+                    <Text style={[styles.statVal, { color: theme.text }]} numberOfLines={1}>{activeOrders.length}</Text>
+                    <Text style={[styles.statLab, { color: theme.textSecondary }]} numberOfLines={1}>
                         {locale === 'en' ? 'Active' : 'Активні'}
+                    </Text>
+                </View>
+                <View style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                    <Ionicons name="trending-up" size={16} color="#E334E3" />
+                    <Text style={[styles.statVal, { color: theme.text }]} numberOfLines={1}>
+                        {currentCoefficient > 1 ? `${currentCoefficient}x` : '1.0x'}
+                    </Text>
+                    <Text style={[styles.statLab, { color: theme.textSecondary }]} numberOfLines={1}>
+                        {locale === 'en' ? 'Coeff' : 'Коеф'}
                     </Text>
                 </View>
             </View>
@@ -569,17 +595,17 @@ const styles = StyleSheet.create({
     onlineToggleText: { fontSize: 13, fontWeight: '700' },
 
     // Stats
-    statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+    statsRow: { flexDirection: 'row', gap: 6, marginBottom: 16 },
     statCard: {
-        flex: 1, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 10,
+        flex: 1, borderRadius: 20, paddingVertical: 10, paddingHorizontal: 4,
         alignItems: 'center', borderWidth: StyleSheet.hairlineWidth,
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
             android: { elevation: 1 }
         })
     },
-    statVal: { fontSize: 18, fontWeight: '900', marginTop: 6, letterSpacing: -0.4 },
-    statLab: { fontSize: 11, fontWeight: '700', marginTop: 2 },
+    statVal: { fontSize: 14, fontWeight: '900', marginTop: 6, letterSpacing: -0.4 },
+    statLab: { fontSize: 9, fontWeight: '700', marginTop: 2 },
 
     // Tabs
     tabRow: {

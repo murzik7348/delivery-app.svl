@@ -78,7 +78,15 @@ export default function BottomBar() {
   const availableCourierOrders = useSelector((s) => s.courier.availableOrders || []);
   const courierCount = availableCourierOrders.length;
 
-  const isCourier = user?.role?.toLowerCase() === 'courier' || user?.role?.toLowerCase() === 'курєр' || Number(user?.role) === 1;
+  const isCourier = (() => {
+    const role = String(user?.role || '').toLowerCase().trim();
+    return role === 'courier' || 
+           role === 'курєр' || 
+           role === 'кур\'єр' || 
+           role === 'кур’єр' || 
+           role === 'кур`єр' || 
+           Number(user?.role) === 1;
+  })();
 
   // Define tabs
   const tabs = [

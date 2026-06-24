@@ -14,9 +14,15 @@ export default function useCourierLocation() {
     const isOnline = useSelector(s => s.courier?.isOnline);
     const locale = useSelector(s => s.language?.locale ?? 'uk');
 
-    const isCourier = user?.role?.toLowerCase() === 'courier' || 
-                      user?.role?.toLowerCase() === 'курєр' || 
-                      Number(user?.role) === 1;
+    const isCourier = (() => {
+        const role = String(user?.role || '').toLowerCase().trim();
+        return role === 'courier' || 
+               role === 'курєр' || 
+               role === 'кур\'єр' || 
+               role === 'кур’єр' || 
+               role === 'кур`єр' || 
+               Number(user?.role) === 1;
+    })();
 
     const fallbackIntervalId = useRef(null);
 

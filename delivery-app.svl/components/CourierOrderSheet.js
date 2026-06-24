@@ -20,7 +20,7 @@ import {
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { formatPrice } from '../store/cartSlice';
 import SwipeButton from './SwipeButton';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 
 // ── Status journey ──
 const STEPS = [
@@ -626,6 +626,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                             >
                                 <MapView
                                     ref={mapRef}
+                                    provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
                                     style={StyleSheet.absoluteFillObject}
                                     initialRegion={{
                                         latitude:  ((liveOrder.restaurantLatitude  || 50.45) + (liveOrder.customerLatitude  || 50.45)) / 2,

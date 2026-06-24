@@ -6,7 +6,7 @@ import {
 import { useColorScheme } from '../hooks/use-color-scheme';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
-import { getToken } from '../src/api/client';
+import { getToken, getValidToken } from '../src/api/client';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
@@ -25,6 +25,8 @@ import { syncLiveActivity, endActivity, startPolling, stopPolling } from '../ser
 import { hs, vs, ms, fs, r, hairline } from '../utils/responsive';
 import BackButton from '../components/BackButton';
 import PaymentRetryCard, { isPaidStatus } from '../components/PaymentRetryCard';
+
+
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -351,14 +353,17 @@ export default function OrderDetailsScreen() {
 
     const startSignalR = async () => {
       try {
-        const token = await getToken();
+        const token = await getValidToken();
         if (!token) return;
         if (!isMounted) return;
 
         // Force WebSockets transport to prevent fallback to ServerSentEvents (which fails in React Native due to missing EventSource)
         connection = new HubConnectionBuilder()
           .withUrl("https://api.andi.delivery/trackingHub", {
-            accessTokenFactory: () => token,
+            accessTokenFactory: async () => {
+              const freshToken = await getValidToken();
+              return freshToken || "";
+            },
             transport: HttpTransportType.WebSockets
           })
           .withAutomaticReconnect()

@@ -16,6 +16,7 @@ import reducer, {
     makeCartKey,
     selectCartSummary,
     tryAddToCart,
+    setDeliveryCoefficient,
     MIN_ORDER_AMOUNT,
     FREE_DELIVERY_THRESHOLD,
     BASE_DELIVERY_FEE,
@@ -261,5 +262,23 @@ describe('tryAddToCart thunk', () => {
         expect(result).toBe(false);
         expect(dispatch).not.toHaveBeenCalledWith(addToCart(product));
         consoleSpy.mockRestore();
+    });
+});
+
+describe('cartSlice coefficient calculations', () => {
+    test('applies multiplier to deliveryFee when coefficient is active', () => {
+        let state = reducer(baseState(), addToCart(mockProduct));
+        expect(state.deliveryFee).toBe(BASE_DELIVERY_FEE);
+
+        // Apply an active coefficient with a 1.5x multiplier
+        state = reducer(state, setDeliveryCoefficient({ name: 'Surge', multiplier: 1.5, isActive: true }));
+        expect(state.deliveryFee).toBe(BASE_DELIVERY_FEE * 1.5);
+        expect(state.totalAmount).toBe(200 + BASE_DELIVERY_FEE * 1.5);
+    });
+
+    test('does NOT apply multiplier if coefficient is inactive', () => {
+        let state = reducer(baseState(), addToCart(mockProduct));
+        state = reducer(state, setDeliveryCoefficient({ name: 'Surge', multiplier: 1.5, isActive: false }));
+        expect(state.deliveryFee).toBe(BASE_DELIVERY_FEE);
     });
 });

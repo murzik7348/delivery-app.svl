@@ -86,7 +86,6 @@ export default function useCheckoutFlow() {
     const processActualCheckout = async () => {
         console.log('[STEP 1] processActualCheckout starting... isLoading = true;');
         const storeId = cartItems[0]?.store_id || cartItems[0]?.restaurantId || 'N/A';
-        Alert.alert("DEBUG", `Cart Store ID: ${storeId}. Items count: ${cartItems.length}`);
         setIsLoading(true);
 
         const orderPayload = {

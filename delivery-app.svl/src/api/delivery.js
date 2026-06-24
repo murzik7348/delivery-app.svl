@@ -27,3 +27,14 @@ export const userConfirmDelivery = (id) => client.put(`/deliveries/${id}/confirm
  * Fetch geographic delivery zones (polygons and prices).
  */
 export const getDeliveryZones = () => client.get('/deliveries/zones', { _skipRetry: true, _silentErrors: [500] });
+
+/**
+ * Fetch list of delivery coefficients (public).
+ */
+export const getDeliveryCoefficients = () => client.get('/deliveries/coefficient');
+
+/**
+ * Toggle active state of a delivery coefficient (admin).
+ * @param {number} id - Coefficient ID
+ */
+export const toggleDeliveryCoefficientActivityAdmin = (id) => client.post(`/admin/delivery/coefficient/${id}/activity`);

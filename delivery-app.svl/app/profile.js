@@ -260,7 +260,15 @@ export default function ProfileScreen() {
 
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t(locale, 'activity').toUpperCase()}</Text>
           <View style={[styles.section, { backgroundColor: theme.card }]}>
-            {(user?.role?.toLowerCase() === 'courier' || user?.role?.toLowerCase() === 'курєр' || Number(user?.role) === 1) && (
+            {(() => {
+              const role = String(user?.role || '').toLowerCase().trim();
+              return role === 'courier' || 
+                     role === 'курєр' || 
+                     role === 'кур\'єр' || 
+                     role === 'кур’єр' || 
+                     role === 'кур`єр' || 
+                     Number(user?.role) === 1;
+            })() && (
               <MenuItem
                 icon="bicycle-outline"
                 label={locale === 'en' ? 'Courier Delivery' : 'Доставка кур\'єром'}

@@ -18,9 +18,15 @@ export default function CourierDeliveryScreen() {
     const locale      = useSelector((s) => s.language?.locale ?? 'uk');
     const { user, isAuthenticated } = useSelector((s) => s.auth);
 
-    const userRole = user?.role?.toLowerCase();
-    const isCourier =
-        userRole === 'courier' || userRole === 'курєр' || Number(user?.role) === 1;
+    const isCourier = (() => {
+        const role = String(user?.role || '').toLowerCase().trim();
+        return role === 'courier' || 
+               role === 'курєр' || 
+               role === 'кур\'єр' || 
+               role === 'кур’єр' || 
+               role === 'кур`єр' || 
+               Number(user?.role) === 1;
+    })();
 
     if (!isAuthenticated || !isCourier) {
         return (

@@ -43,9 +43,10 @@ import {
   MIN_ORDER_AMOUNT,
   formatPrice,
   setCustomDeliveryFee,
+  setDeliveryCoefficient,
 } from '../store/cartSlice';
 import AddressBottomSheet from '../components/AddressBottomSheet';
-import { getDeliveryZones } from '../src/api';
+import { getDeliveryZones, getAddressTariff } from '../src/api';
 import { getZoneForLocation } from '../utils/deliveryZones';
 import PromoSheet from '../components/PromoSheet';
 import BackButton from '../components/BackButton';
@@ -238,6 +239,11 @@ export default function CartScreen() {
   const paymentMethods = useSelector((s) => s.payment?.methods ?? []);
   const savedAddresses = useSelector((s) => s.auth?.addresses || []);
   const { currentLocation } = useSelector((s) => s.location);
+  const deliveryCoefficient = useSelector((s) => s.cart.deliveryCoefficient);
+
+  const activeAddress = savedAddresses.find(a => a.address === currentLocation?.addressName) 
+    ?? (savedAddresses.length > 0 ? savedAddresses[0] : null);
+  const activeAddressId = activeAddress?.addressId || activeAddress?.id;
 
   // ── Sort cart items: main dishes first, sauces/drinks at bottom ──────────
   const BOTTOM_CATEGORY_KEYWORDS = ['соус', 'sauce', 'напій', 'drink', 'кетчуп', 'кетч', 'вода', 'water', 'напо'];
@@ -295,22 +301,44 @@ export default function CartScreen() {
     })();
   }, []);
 
-  // Update custom delivery fee when currentLocation or zones change
+  // Update custom delivery fee and coefficient when active address or currentLocation or zones change
   useEffect(() => {
-    if (deliveryType === 'delivery' && currentLocation && zones.length > 0) {
-      const resolvedZone = getZoneForLocation(
-        { latitude: currentLocation.latitude, longitude: currentLocation.longitude },
-        zones
-      );
-      if (resolvedZone) {
-        dispatch(setCustomDeliveryFee(resolvedZone.price));
+    if (deliveryType !== 'delivery') {
+      dispatch(setCustomDeliveryFee(null));
+      dispatch(setDeliveryCoefficient(null));
+      return;
+    }
+
+    if (activeAddressId) {
+      (async () => {
+        try {
+          const res = await getAddressTariff(activeAddressId);
+          if (res) {
+            dispatch(setCustomDeliveryFee(res.price));
+            dispatch(setDeliveryCoefficient(res.coefficient || null));
+          }
+        } catch (e) {
+          console.warn('[Cart] Failed to fetch address tariff:', e);
+          fallbackToLocalZone();
+        }
+      })();
+    } else {
+      fallbackToLocalZone();
+    }
+
+    function fallbackToLocalZone() {
+      if (currentLocation && zones.length > 0) {
+        const resolvedZone = getZoneForLocation(
+          { latitude: currentLocation.latitude, longitude: currentLocation.longitude },
+          zones
+        );
+        dispatch(resolvedZone ? setCustomDeliveryFee(resolvedZone.price) : setCustomDeliveryFee(null));
       } else {
         dispatch(setCustomDeliveryFee(null));
       }
-    } else {
-      dispatch(setCustomDeliveryFee(null));
+      dispatch(setDeliveryCoefficient(null));
     }
-  }, [currentLocation, zones, deliveryType, dispatch]);
+  }, [activeAddressId, currentLocation, zones, deliveryType, dispatch]);
 
   const isDeliveryUnavailable = deliveryType === 'delivery' && currentLocation && zones.length > 0 && getZoneForLocation(
     { latitude: currentLocation.latitude, longitude: currentLocation.longitude },
@@ -830,11 +858,18 @@ export default function CartScreen() {
                   <Text style={[styles.priceLabel, { color: 'gray' }]}>
                     {t(locale, 'deliveryFee')}
                   </Text>
-                  <Text style={[styles.priceValue, { color: theme.text }]}>
-                    {deliveryFee === 0
-                      ? locale === 'en' ? 'Free' : 'Безкоштовно'
-                      : `${formatPrice(deliveryFee)} ₴`}
-                  </Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.priceValue, { color: theme.text }]}>
+                      {deliveryFee === 0
+                        ? locale === 'en' ? 'Free' : 'Безкоштовно'
+                        : `${formatPrice(deliveryFee)} ₴`}
+                    </Text>
+                    {deliveryFee > 0 && deliveryCoefficient && deliveryCoefficient.isActive && (
+                      <Text style={{ fontSize: 11, color: theme.primary, fontWeight: '600', marginTop: 2 }}>
+                        {`${deliveryCoefficient.multiplier}x • ${deliveryCoefficient.name || (locale === 'en' ? 'Surge' : 'Коефіцієнт')}`}
+                      </Text>
+                    )}
+                  </View>
                 </View>
               )}
 

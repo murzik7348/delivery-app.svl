@@ -344,3 +344,103 @@ client.interceptors.response.use(
 );
 
 export default client;
+
+// Base64 decoding helper for JWT token decoding
+const b64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+function base64Decode(input) {
+  let str = input.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) {
+    str += '=';
+  }
+  let result = '';
+  for (let i = 0; i < str.length; i += 4) {
+    const w = b64Chars.indexOf(str[i]);
+    const x = b64Chars.indexOf(str[i + 1]);
+    const y = b64Chars.indexOf(str[i + 2]);
+    const z = b64Chars.indexOf(str[i + 3]);
+    if (w < 0 || x < 0) continue;
+    const b1 = (w << 2) | (x >> 4);
+    result += String.fromCharCode(b1);
+    if (y !== -1 && str[i + 2] !== '=') {
+      const b2 = ((x & 15) << 4) | (y >> 2);
+      result += String.fromCharCode(b2);
+      if (z !== -1 && str[i + 3] !== '=') {
+        const b3 = ((y & 3) << 6) | z;
+        result += String.fromCharCode(b3);
+      }
+    }
+  }
+  try {
+    return decodeURIComponent(escape(result));
+  } catch (e) {
+    return result;
+  }
+}
+
+export function isTokenExpired(token) {
+  if (!token) return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const payloadStr = base64Decode(parts[1]);
+    const payload = JSON.parse(payloadStr);
+    if (!payload || !payload.exp) return true;
+    const currentTime = Math.floor(Date.now() / 1000);
+    // Buffer of 30 seconds to refresh slightly before expiration
+    return payload.exp < currentTime + 30;
+  } catch (e) {
+    return true;
+  }
+}
+
+export const getValidToken = async () => {
+  let token = await getToken();
+  if (!token) return null;
+
+  if (isTokenExpired(token)) {
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      })
+      .then(t => t)
+      .catch(() => null);
+    }
+
+    isRefreshing = true;
+    const refreshToken = await getRefreshToken();
+    if (refreshToken) {
+      try {
+        console.log('🔄 [Auth Client] Refreshing token synchronously...');
+        const response = await axios.post(`${BASE_URL}/auth/refresh`, 
+          { refreshToken },
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+        const newToken = typeof response.data === 'string'
+          ? response.data
+          : (response.data.accessToken || response.data.token);
+        const newRefreshToken = response.data.refreshToken || response.data.refresh_token || refreshToken;
+
+        if (newToken) {
+          await saveToken(newToken, newRefreshToken);
+          client.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+          processQueue(null, newToken);
+          return newToken;
+        }
+      } catch (err) {
+        console.error('❌ [Auth Client] Synchronous token refresh failed:', err);
+        processQueue(err, null);
+        // Trigger logout
+        await removeToken().catch(() => {});
+        const store = getStore();
+        if (store) {
+          const { logoutUser } = require('../../store/authSlice');
+          store.dispatch(logoutUser());
+        }
+      } finally {
+        isRefreshing = false;
+      }
+    }
+    return null;
+  }
+  return token;
+};

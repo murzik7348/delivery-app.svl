@@ -22,6 +22,7 @@ export {
     setDefaultAddress,
     deleteAddress,
     getDeliveryAddress,
+    getAddressTariff,
 } from './address';
 
 // ── Category ─────────────────────────────────────────────────────────────────
@@ -38,7 +39,15 @@ export {
 } from './product';
 
 // ── Delivery ─────────────────────────────────────────────────────────────────
-export { createDelivery, getMyDeliveries, acceptDelivery, userConfirmDelivery, getDeliveryZones } from './delivery';
+export {
+    createDelivery,
+    getMyDeliveries,
+    acceptDelivery,
+    userConfirmDelivery,
+    getDeliveryZones,
+    getDeliveryCoefficients,
+    toggleDeliveryCoefficientActivityAdmin,
+} from './delivery';
 
 // ── Courier ──────────────────────────────────────────────────────────────────
 export {

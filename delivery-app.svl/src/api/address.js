@@ -30,3 +30,10 @@ export const deleteAddress = (id) => client.delete(`/address/${id}`);
  */
 export const getDeliveryAddress = (id) => client.get(`/admin/delivery/${id}/address`);
 
+/**
+ * Get delivery tariff and coefficient for an address.
+ * @param {number} id - Address ID
+ */
+export const getAddressTariff = (id) => client.get(`/address/tarif/${id}`);
+
+

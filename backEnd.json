@@ -618,6 +618,29 @@
         }
       }
     },
+    "/admin/delivery/coefficient/{id}/activity": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/auth/start": {
       "post": {
         "tags": [
@@ -1916,6 +1939,44 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/DeliveryZonesRequest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deliveries/coefficient": {
+      "get": {
+        "tags": [
+          "Delivery"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryCoefficientAdmin"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryCoefficientAdmin"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeliveryCoefficientAdmin"
                   }
                 }
               }
@@ -3600,6 +3661,27 @@
         },
         "additionalProperties": false
       },
+      "DeliveryCoefficientAdmin": {
+        "type": "object",
+        "properties": {
+          "coefficientId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "multiplier": {
+            "type": "number",
+            "format": "double"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "DeliveryCourierItem": {
         "type": "object",
         "properties": {
@@ -3758,6 +3840,23 @@
         },
         "additionalProperties": false
       },
+      "DeliveryPriceCoefficient": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "multiplier": {
+            "type": "number",
+            "format": "double"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "DeliveryPriceResult": {
         "type": "object",
         "properties": {
@@ -3768,6 +3867,9 @@
           "price": {
             "type": "number",
             "format": "double"
+          },
+          "coefficient": {
+            "$ref": "#/components/schemas/DeliveryPriceCoefficient"
           }
         },
         "additionalProperties": false
@@ -3894,6 +3996,9 @@
               "$ref": "#/components/schemas/DeliveryZonesPoints"
             },
             "nullable": true
+          },
+          "coefficient": {
+            "$ref": "#/components/schemas/DeliveryPriceCoefficient"
           }
         },
         "additionalProperties": false

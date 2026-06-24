@@ -88,9 +88,12 @@ const calculateTotals = (state) => {
   state.subtotal = Math.round(rawSubtotal * 100) / 100;
 
   if (state.deliveryType === 'delivery' && state.subtotal > 0) {
-    const baseFee = state.customDeliveryFee !== null && state.customDeliveryFee !== undefined
+    let baseFee = state.customDeliveryFee !== null && state.customDeliveryFee !== undefined
       ? state.customDeliveryFee
       : BASE_DELIVERY_FEE;
+    if (state.deliveryCoefficient && state.deliveryCoefficient.isActive) {
+      baseFee = baseFee * safeNum(state.deliveryCoefficient.multiplier);
+    }
     state.deliveryFee = state.subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : baseFee;
   } else {
     state.deliveryFee = 0;
@@ -136,6 +139,7 @@ const initialState = {
   deliveryType: 'delivery',
   orderNote: '',
   customDeliveryFee: null,
+  deliveryCoefficient: null,
 };
 
 // ─── Slice ────────────────────────────────────────────────────────────────────
@@ -262,10 +266,16 @@ const cartSlice = createSlice({
       state.appliedPromo = null;
       state.orderNote = '';
       state.customDeliveryFee = null;
+      state.deliveryCoefficient = null;
     },
 
     setCustomDeliveryFee: (state, action) => {
       state.customDeliveryFee = action.payload;
+      calculateTotals(state);
+    },
+
+    setDeliveryCoefficient: (state, action) => {
+      state.deliveryCoefficient = action.payload;
       calculateTotals(state);
     },
 
@@ -307,6 +317,7 @@ export const {
   setDeliveryType,
   setOrderNote,
   setCustomDeliveryFee,
+  setDeliveryCoefficient,
 } = cartSlice.actions;
 
 // ─── Selectors ────────────────────────────────────────────────────────────────

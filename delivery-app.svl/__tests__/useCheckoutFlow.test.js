@@ -62,7 +62,8 @@ describe('useCheckoutFlow Hook', () => {
                 totalAmount: 100,
                 deliveryType: 'delivery'
             },
-            language: { locale: 'en' }
+            language: { locale: 'en' },
+            location: { currentLocation: null }
         };
 
         reactRedux.useSelector.mockImplementation((selector) => selector(mockState));

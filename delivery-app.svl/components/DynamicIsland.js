@@ -47,8 +47,15 @@ export default function DynamicIsland() {
 
     // Active order tracking (for persistent pill)
     const { user } = useSelector((state) => state.auth);
-    const userRole = user?.role?.toLowerCase();
-    const isUserCourier = userRole === 'courier' || userRole === 'курєр' || Number(user?.role) === 1;
+    const isUserCourier = (() => {
+        const role = String(user?.role || '').toLowerCase().trim();
+        return role === 'courier' || 
+               role === 'курєр' || 
+               role === 'кур\'єр' || 
+               role === 'кур’єр' || 
+               role === 'кур`єр' || 
+               Number(user?.role) === 1;
+    })();
 
     const courierActiveOrders = useSelector((state) => state.courier?.activeOrders || []);
     const clientOrders = useSelector((state) => state.orders?.orders || []);
