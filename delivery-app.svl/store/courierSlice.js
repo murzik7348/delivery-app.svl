@@ -175,6 +175,7 @@ const mapDeliveryToCourierOrder = (d, currentUserId) => {
       23.000707 + (Number(d.deliveryId || d.id || 0) % 9) * 0.0002
     ),
     cookingTimeMinutes: d.cookingTimeMinutes || d.prepTime || null,
+    description: d.description || d.note || null,
     items: d.items?.map(i => ({
       name: i.productName || i.name || `Product #${i.productId ?? ''}`,
       quantity: i.quantity || i.qty || 1,
@@ -241,7 +242,12 @@ export const fetchCourierOrders = createAsyncThunk(
 
       // Map available orders (not mine)
       const availableMapped = availableItems
-        .filter(item => (item.deliveryId || item.id))
+        .filter(item => {
+          const idValid = !!(item.deliveryId || item.id);
+          const desc = (item.description || '').toUpperCase();
+          const isPickup = desc.includes('[САМОВИВІЗ]') || desc.includes('[PICKUP]');
+          return idValid && !isPickup;
+        })
         .map(item => mapDeliveryToCourierOrder({ ...item, _fromMy: false }, currentUserId))
         .filter(o => o.status !== 'completed' && o.status !== 'canceled');
 

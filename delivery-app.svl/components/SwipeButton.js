@@ -16,10 +16,16 @@ export default function SwipeButton({ onSwipeSuccess, title, icon = "arrow-forwa
     const successCallbackRef = useRef(onSwipeSuccess);
     successCallbackRef.current = onSwipeSuccess;
 
+    const isLoadingRef = useRef(isLoading);
+    isLoadingRef.current = isLoading;
+
+    const swipedRef = useRef(swiped);
+    swipedRef.current = swiped;
+
     const panResponder = useRef(
         PanResponder.create({
-            onStartShouldSetPanResponder: () => !swiped && !isLoading,
-            onMoveShouldSetPanResponder: (e, gesture) => !swiped && !isLoading && Math.abs(gesture.dx) > 10,
+            onStartShouldSetPanResponder: () => !swipedRef.current && !isLoadingRef.current,
+            onMoveShouldSetPanResponder: (e, gesture) => !swipedRef.current && !isLoadingRef.current && Math.abs(gesture.dx) > 10,
             onPanResponderTerminationRequest: () => false,
             onPanResponderMove: (e, gesture) => {
                 if (gesture.dx > 0 && gesture.dx < BUTTON_WIDTH - BUTTON_HEIGHT) {

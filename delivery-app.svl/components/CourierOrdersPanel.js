@@ -170,13 +170,18 @@ export default function CourierOrdersPanel() {
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        await Promise.all([
-            dispatch(fetchCourierOrders()),
-            dispatch(fetchShiftStatusThunk()),
-            fetchCoefficients()
-        ]);
-        setLastSync(new Date().toLocaleTimeString());
-        setRefreshing(false);
+        try {
+            await Promise.all([
+                dispatch(fetchCourierOrders()),
+                dispatch(fetchShiftStatusThunk()),
+                fetchCoefficients()
+            ]);
+            setLastSync(new Date().toLocaleTimeString());
+        } catch (error) {
+            console.error('Courier panel refresh failed:', error);
+        } finally {
+            setRefreshing(false);
+        }
     }, [dispatch, fetchCoefficients]);
 
     // Poll every 15 s

@@ -934,6 +934,21 @@ export default function CartScreen() {
                 )
               )}
 
+              {/* Pickup row */}
+              {deliveryType === 'pickup' && (
+                <View style={[styles.actionRow, { backgroundColor: theme.input }]}>
+                  <View style={[styles.actionRowLeft, { flex: 1 }]}>
+                    <Ionicons name="storefront-outline" size={20} color={theme.text} />
+                    <Text
+                      style={[styles.actionRowText, { color: theme.text, flex: 1 }]}
+                      numberOfLines={1}
+                    >
+                      {locale === 'en' ? 'Pickup (from restaurant)' : 'Самовивіз (з ресторану)'}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
               {/* Payment row */}
               <TouchableOpacity
                 style={[styles.actionRow, { backgroundColor: theme.input }]}

@@ -306,6 +306,17 @@ class OrderService {
             addressString = 'Address N/A';
         }
 
+        const isPickupOrder = 
+            (item.description && (item.description.includes('[САМОВИВІЗ]') || item.description.includes('[PICKUP]'))) ||
+            (item.note && (item.note.includes('[САМОВИВІЗ]') || item.note.includes('[PICKUP]'))) ||
+            (item.type === 'pickup') ||
+            (addressString && addressString.includes('[САМОВИВІЗ]')) ||
+            (matchedAddr && (matchedAddr.title?.includes('[САМОВИВІЗ]') || matchedAddr.address?.includes('[САМОВИВІЗ]')));
+
+        if (isPickupOrder) {
+            addressString = 'Самовивіз (з ресторану)';
+        }
+
         const courierObj = item.courier_Information || item.courier_information || item.courierInformation || item.courier || item.courierUser || item.driver || item.courierInfo || item.courierDto || item.assignedCourier || item.courierDetails;
         let parsedCourierName = null;
         let parsedCourierPhone = null;

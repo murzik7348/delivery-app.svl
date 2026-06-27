@@ -4,9 +4,10 @@ import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import OrderService from '../services/OrderService';
-import { getLiqPayCheckout } from '../src/api';
+import { getLiqPayCheckout, createAddress, getDeliveryZones } from '../src/api';
 import { addOrder } from '../store/ordersSlice';
 import { clearCart } from '../store/cartSlice';
+import { fetchAddresses } from '../store/authSlice';
 
 /**
  * useCheckoutFlow manages the complex state and validation rules for submitting an order.
@@ -54,7 +55,7 @@ export default function useCheckoutFlow() {
 
         // 2. Validate Delivery Address
         // Backend currently requires an addressId for ALL orders (even pickup)
-        if (!activeAddress) {
+        if (deliveryType === 'delivery' && !activeAddress) {
             if (openAddressSheetCallback) openAddressSheetCallback();
             Alert.alert(
                 locale === 'en' ? 'Address required' : 'Потрібна адреса',
@@ -88,15 +89,51 @@ export default function useCheckoutFlow() {
         const storeId = cartItems[0]?.store_id || cartItems[0]?.restaurantId || 'N/A';
         setIsLoading(true);
 
+        let targetAddress = activeAddress;
+        let finalNote = orderNote;
+
+        if (deliveryType === 'pickup') {
+            finalNote = `[САМОВИВІЗ] ${orderNote || ''}`.trim().slice(0, 100);
+            
+            let pickupAddr = savedAddresses.find(a => a.title === '[САМОВИВІЗ]' || a.address?.includes('[САМОВИВІЗ]'));
+            if (!pickupAddr) {
+                try {
+                    console.log('[useCheckoutFlow] Creating dummy address for pickup...');
+                    const zones = await getDeliveryZones().catch(() => []);
+                    const zonePoint = zones?.[0]?.points?.[0];
+                    const latitude = zonePoint ? Number(zonePoint.lat || zonePoint.latitude) : 48.5469;
+                    const longitude = zonePoint ? Number(zonePoint.lng || zonePoint.longitude) : 22.9863;
+
+                    await createAddress({
+                        title: '[САМОВИВІЗ]',
+                        latitude,
+                        longitude,
+                        house: 'null',
+                        apartment: 'null',
+                        entrance: 'null',
+                        is_default: false
+                    });
+                    
+                    const updatedAddresses = await dispatch(fetchAddresses()).unwrap();
+                    pickupAddr = updatedAddresses.find(a => a.title === '[САМОВИВІЗ]' || a.address?.includes('[САМОВИВІЗ]'));
+                } catch (addrErr) {
+                    console.error('[useCheckoutFlow] Failed to create dummy pickup address:', addrErr);
+                }
+            }
+            if (pickupAddr) {
+                targetAddress = pickupAddr;
+            }
+        }
+
         const orderPayload = {
             items: cartItems,
             total: totalAmount,
             discount: discountAmount,
             delivery: deliveryFee,
             promo: appliedPromo?.code ?? null,
-            note: orderNote,
+            note: finalNote,
             type: deliveryType,
-            address: activeAddress ?? { type: 'Pickup' },
+            address: targetAddress ?? { type: 'Pickup' },
             paymentInfo: activePayment,
             userId: user?.userId || user?.id || 'guest'
         };

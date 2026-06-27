@@ -207,7 +207,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
             onStartShouldSetPanResponder: (evt, gestureState) => {
                 const { locationY } = evt.nativeEvent;
                 const isTouchInHeader = locationY < 80;
-                return isTouchInHeader || scrollOffset.current <= 0;
+                return isTouchInHeader;
             },
             onMoveShouldSetPanResponder: (evt, gestureState) => {
                 const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 1.5;
@@ -383,7 +383,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                 locale === 'en' ? 'Order is now assigned to you.' : 'Замовлення закріплено за вами.'
             );
         } else {
-            Alert.alert('Error', String(res.payload || ''));
+            Alert.alert(locale === 'en' ? 'Error' : 'Помилка', String(res.payload || ''));
         }
         dispatch(fetchCourierOrders());
     };
@@ -396,7 +396,7 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
             Alert.alert(locale === 'en' ? 'Picked up!' : 'Забрано!', locale === 'en' ? 'Head to client.' : 'Прямуйте до клієнта.');
             dispatch(fetchCourierOrders());
         } else {
-            Alert.alert('Error', String(res.payload || ''));
+            Alert.alert(locale === 'en' ? 'Error' : 'Помилка', String(res.payload || ''));
         }
     };
 
@@ -408,7 +408,14 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
             Alert.alert(locale === 'en' ? 'Delivered!' : 'Доставлено!', locale === 'en' ? 'Order completed.' : 'Замовлення виконано.');
             onClose();
         } else {
-            Alert.alert('Error', String(res.payload || ''));
+            const rawError = String(res.payload || '');
+            let errorMsg = rawError;
+            if (rawError === 'CANNOT_COMPLATE_HOLD' || rawError.toLowerCase().includes('complate hold')) {
+                errorMsg = locale === 'en'
+                    ? 'Cannot complete delivery due to payment hold. Please contact support/admins.'
+                    : 'Не вдалося завершити доставку через утримання оплати. Будь ласка, зв\'яжіться з адміністратором.';
+            }
+            Alert.alert(locale === 'en' ? 'Error' : 'Помилка', errorMsg);
         }
         dispatch(fetchCourierOrders());
     };
@@ -735,7 +742,14 @@ export default function CourierOrderSheet({ visible, onClose, order }) {
                     </ScrollView>
 
                     {/* Footer actions */}
-                    <View style={[s.footer, { backgroundColor: theme.card, borderTopColor: theme.separator }]}>
+                    <View style={[
+                        s.footer, 
+                        { 
+                            backgroundColor: theme.card, 
+                            borderTopColor: theme.separator,
+                            paddingBottom: (Platform.OS === 'android' ? Math.max(insets.bottom, 48) : (insets.bottom || 16)) + 10
+                        }
+                    ]}>
                         {(!liveOrder.address || liveOrder.address === 'Address N/A') && step >= 4 && (
                             <View style={[s.warnRow, { backgroundColor: '#F39C1212', borderColor: '#F39C1230' }]}>
                                 <Ionicons name="warning-outline" size={14} color="#F39C12" />

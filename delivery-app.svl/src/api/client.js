@@ -297,6 +297,10 @@ client.interceptors.response.use(
                 'payment_failed': 'Оплата не пройшла. Перевірте баланс картки або спробуйте інший спосіб оплати.',
                 'order already processed': 'Це замовлення вже оброблено.',
                 'order_already_processed': 'Це замовлення вже оброблено.',
+                'alredy confirmed': 'Це замовлення вже підтверджено.',
+                'already confirmed': 'Це замовлення вже підтверджено.',
+                'cannot complate hold': 'Не вдалося завершити доставку через утримання оплати. Будь ласка, зв\'яжіться з адміністратором.',
+                'cannot complete hold': 'Не вдалося завершити доставку через утримання оплати. Будь ласка, зв\'яжіться з адміністратором.',
             };
 
             const cleanMsg = apiMessage.toLowerCase().trim();
@@ -320,12 +324,22 @@ client.interceptors.response.use(
             if (store) {
                 const { showDynamicIsland, setOffline } = require('../../store/uiSlice');
                 store.dispatch(setOffline(true));
-                store.dispatch(showDynamicIsland({
-                    type: 'error',
-                    title: 'Помилка з\'єднання',
-                    message: 'Перевірте інтернет та спробуйте ще раз.',
-                    icon: 'wifi-outline',
-                }));
+                
+                const Device = require('expo-device');
+                const isIphoneXR = Platform.OS === 'ios' && (
+                    Device.modelName === 'iPhone XR' ||
+                    Device.modelId === 'iPhone11,8' ||
+                    String(Device.modelName || '').toLowerCase().includes('iphone xr')
+                );
+                
+                if (!isIphoneXR) {
+                    store.dispatch(showDynamicIsland({
+                        type: 'error',
+                        title: 'Помилка з\'єднання',
+                        message: 'Перевірте інтернет та спробуйте ще раз.',
+                        icon: 'wifi-outline',
+                    }));
+                }
             }
 
             if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {

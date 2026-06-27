@@ -8,6 +8,8 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatPrice } from '../store/cartSlice';
 import { GUIDELINE_BASE_DIAGONAL } from '../utils/scaling';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import Colors from '../constants/Colors';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SCREEN_DIAGONAL = Math.sqrt(SCREEN_WIDTH * SCREEN_WIDTH + SCREEN_HEIGHT * SCREEN_HEIGHT);
@@ -21,6 +23,8 @@ export default function CartBottomSheet({
   appliedPromo, userAddress, paymentInfo, orderNote,
   onOrder, onOpenPromo, onOpenAddress, onOpenPayment, onNoteChange
 }) {
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const maxOffset = OPEN_HEIGHT - CLOSED_HEIGHT;
   const panY = useRef(new Animated.Value(maxOffset)).current;
@@ -100,6 +104,7 @@ export default function CartBottomSheet({
         styles.container,
         {
           height: OPEN_HEIGHT,
+          bottom: Platform.OS === 'android' ? Math.max(insets.bottom, 48) : 0,
           transform: [{
             translateY: panY.interpolate({
               inputRange: [-200, 0, maxOffset, maxOffset + 200],

@@ -606,7 +606,14 @@ export default function OrderDetailsScreen() {
                 locale === 'en' ? 'Thank you for your confirmation!' : 'Дякуємо за підтвердження!'
               );
             } catch (e) {
-              Alert.alert('Error', e);
+              const rawError = String(e || '');
+              let errorMsg = rawError;
+              if (rawError.toLowerCase().includes('alredy confirmed') || rawError.toLowerCase().includes('already confirmed')) {
+                errorMsg = locale === 'en'
+                  ? 'This order has already been confirmed.'
+                  : 'Це замовлення вже підтверджено.';
+              }
+              Alert.alert(locale === 'en' ? 'Error' : 'Помилка', errorMsg);
             } finally {
               setIsConfirming(false);
             }
