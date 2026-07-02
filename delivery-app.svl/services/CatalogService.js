@@ -3,9 +3,85 @@ import { resolveImageUrl } from '../src/api/client';
 
 /**
  * CatalogService — fetches real product/category data from the backend API.
- * Falls back to empty arrays if the API is unreachable (mock data removed).
+ * Falls back to empty arrays if the API is unreachable.
  */
 class CatalogService {
+
+    /**
+     * Helper to fetch all pages of products from the paginated API
+     */
+    static async fetchAllProducts(params = {}) {
+        let page = 1;
+        let allItems = [];
+        while (true) {
+            const response = await getProducts({ ...params, page, pageSize: 50 });
+            const items = response?.items ?? response ?? [];
+            if (!Array.isArray(items) || items.length === 0) break;
+            allItems = allItems.concat(items);
+            if (items.length < 20) break;
+            page++;
+        }
+        return allItems;
+    }
+
+    /**
+     * Helper to get categories list
+     */
+    static async getCategoriesList() {
+        try {
+            const apiCategories = await getCategories();
+            return (Array.isArray(apiCategories) ? apiCategories : []).map(c => ({
+                ...c,
+                category_id: c.categoryId || c.id
+            }));
+        } catch {
+            return [];
+        }
+    }
+
+    /**
+     * Helper to filter out unwanted drinks and deduplicate products by name
+     */
+    static async filterProducts(productsList, categories) {
+        const ALLOWED_DRINKS = ['пепсі', 'pepsi', 'фанта', 'fanta', 'сандора', 'sandora', 'соки'];
+        
+        // 1. Фільтруємо напої (залишаємо тільки Pepsi, Fanta, Sandora)
+        const filteredDrinks = productsList.filter(p => {
+            const cat = categories.find(c => Number(c.category_id || c.id) === Number(p.category_id));
+            const catName = (cat?.name || '').toLowerCase();
+            
+            const isDrink = catName.includes('напої') || 
+                            catName.includes('фреш') || 
+                            catName.includes('коктейл') || 
+                            catName.includes('пиво') || 
+                            catName.includes('горілк') || 
+                            catName.includes('бар') ||
+                            catName.includes('настоянк') ||
+                            catName.includes('міцні') ||
+                            catName.includes('вино') ||
+                            catName.includes('кава') ||
+                            catName.includes('чай');
+                            
+            if (isDrink) {
+                const nameLower = p.name.toLowerCase();
+                return ALLOWED_DRINKS.some(allowed => nameLower.includes(allowed));
+            }
+            return true;
+        });
+
+        // 2. Прибираємо дублікати за назвою в межах кожного закладу (store_id)
+        const seen = new Set();
+        const uniqueProducts = [];
+        filteredDrinks.forEach(p => {
+            const key = `${p.store_id}_${p.name.trim().toLowerCase()}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueProducts.push(p);
+            }
+        });
+
+        return uniqueProducts;
+    }
 
     /**
      * Fetches the full catalog: categories + products + restaurants from the real backend.
@@ -13,20 +89,11 @@ class CatalogService {
      */
     static async fetchFullCatalog() {
         try {
-            const [apiCategories, apiProductsResponse, apiRestaurants] = await Promise.all([
+            const [apiCategories, rawProducts, apiRestaurants] = await Promise.all([
                 getCategories(),
-                getProducts({ page: 1, pageSize: 300 }), // Increased limit for global catalog
+                CatalogService.fetchAllProducts(),
                 getRestaurants(),
             ]);
-
-            // Products from the backend come with `id` instead of `product_id` but the UI uses `product_id` everywhere.
-            const apiProducts = (apiProductsResponse?.items ?? apiProductsResponse ?? []).map(p => ({
-                ...p,
-                product_id: p.id,
-                store_id: p.restaurantId,
-                category_id: p.categoryId, // Backend uses categoryId
-                image: resolveImageUrl(p.urlBase || p.imageUrl) || "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=500" // Fallback image
-            }));
 
             // Map categories to ensure category_id is set
             const STICKER_MAP = {
@@ -37,6 +104,7 @@ class CatalogService {
                 'бургери': '🍔',
                 'бургер': '🍔',
                 'напої': '🥤',
+                'безалкогольні напої': '🥤',
                 'десерти': '🍰',
                 'салати': '🥗',
                 'м\'ясо': '🥩',
@@ -55,21 +123,30 @@ class CatalogService {
                     ...c,
                     category_id: c.categoryId || c.id,
                     sticker: sticker,
-                    image: resolveImageUrl(c.urlBase || c.imageUrl) || null // Use null if no image, UI will handle sticker
+                    image: resolveImageUrl(c.urlBase || c.imageUrl) || null
                 };
             });
+
+            // Map products
+            const allProductsMapped = (rawProducts || []).map(p => ({
+                ...p,
+                product_id: p.id,
+                store_id: p.restaurantId,
+                category_id: p.categoryId,
+                image: resolveImageUrl(p.urlBase || p.imageUrl) || "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=500"
+            }));
+
+            // Filter and deduplicate
+            const apiProducts = await CatalogService.filterProducts(allProductsMapped, apiCategoryList);
 
             const apiRestaurantList = Array.isArray(apiRestaurants) ? apiRestaurants : [];
 
             // Map backend restaurants to 'stores' structure expected by UI
             const stores = apiRestaurantList.map((r, index) => {
                 const isString = typeof r === 'string';
-                // Strictly use restaurantId from backend to avoid mix-ups with generic 'id' fields
                 const id = isString ? (index + 1) : (r.restaurantId || r.id);
                 const name = isString ? r : (r.name || 'Без назви');
                 
-                // Collect category names from products belonging to this restaurant
-                // to use as tags for filtering on the Home screen.
                 const restaurantCategoryNames = apiProducts
                     .filter(p => p.store_id == id)
                     .map(p => apiCategoryList.find(c => c.category_id == p.category_id)?.name)
@@ -80,7 +157,7 @@ class CatalogService {
                 return {
                     store_id: id,
                     name: name,
-                    image: resolveImageUrl(r.urlBase || r.imageUrl) || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800", // Fallback image wrapper
+                    image: resolveImageUrl(r.urlBase || r.imageUrl) || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800",
                     rating: r.rating || 4.5,
                     delivery_time: "20-40 хв",
                     tags: tags,
@@ -91,13 +168,11 @@ class CatalogService {
             return {
                 categories: apiCategoryList,
                 products: apiProducts,
-                // promotions not in the current Swagger; keep empty until backend supports them
                 promotions: [],
                 stores,
             };
         } catch (err) {
             console.warn('[CatalogService] API unavailable:', err.message);
-            // Graceful fallback — app stays functional without a backend but with empty data
             return { categories: [], promotions: [], stores: [], products: [] };
         }
     }
@@ -108,15 +183,16 @@ class CatalogService {
      */
     static async fetchProducts(categoryId = null) {
         try {
-            const response = await getProducts({ categoryId, pageSize: 100 });
-            const items = response?.items ?? response ?? [];
-            return items.map(p => ({
+            const items = await CatalogService.fetchAllProducts({ categoryId });
+            const mappedItems = items.map(p => ({
                 ...p,
                 product_id: p.id,
                 store_id: p.restaurantId,
                 category_id: p.categoryId,
                 image: resolveImageUrl(p.urlBase || p.imageUrl) || "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=500"
             }));
+            const categories = await CatalogService.getCategoriesList();
+            return CatalogService.filterProducts(mappedItems, categories);
         } catch {
             return [];
         }
@@ -128,15 +204,16 @@ class CatalogService {
      */
     static async fetchProductsByRestaurant(restaurantId) {
         try {
-            const response = await getProducts({ restaurantId, pageSize: 200 });
-            const items = response?.items ?? response ?? [];
-            return items.map(p => ({
+            const items = await CatalogService.fetchAllProducts({ restaurantId });
+            const mappedItems = items.map(p => ({
                 ...p,
                 product_id: p.id,
                 store_id: p.restaurantId,
                 category_id: p.categoryId,
                 image: resolveImageUrl(p.urlBase || p.imageUrl) || "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=500"
             }));
+            const categories = await CatalogService.getCategoriesList();
+            return CatalogService.filterProducts(mappedItems, categories);
         } catch {
             return [];
         }

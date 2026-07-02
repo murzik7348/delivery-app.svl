@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, Image, FlatList, Alert,
-  StyleSheet, Animated, Easing, Dimensions, Linking, Platform, BackHandler
+  StyleSheet, Animated, Easing, Dimensions, Linking, Platform, BackHandler,
+  ActivityIndicator
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -25,6 +26,7 @@ import { syncLiveActivity, endActivity, startPolling, stopPolling } from '../ser
 import { hs, vs, ms, fs, r, hairline } from '../utils/responsive';
 import BackButton from '../components/BackButton';
 import PaymentRetryCard, { isPaidStatus } from '../components/PaymentRetryCard';
+import ReceiptService from '../services/ReceiptService';
 
 
 
@@ -214,6 +216,28 @@ export default function OrderDetailsScreen() {
   const order = useSelector(state =>
     state.orders.orders.find(o => String(o.deliveryId || o.id) === String(id))
   );
+
+  const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
+
+  const handleDownloadReceipt = useCallback(async () => {
+    if (!order) return;
+    try {
+      setIsGeneratingReceipt(true);
+      if (Platform.OS !== 'web') {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+      await ReceiptService.generateAndShareReceipt(order, locale);
+    } catch (e) {
+      Alert.alert(
+        locale === 'en' ? 'Error' : 'Помилка',
+        locale === 'en' 
+          ? 'Failed to generate receipt: ' + e.message 
+          : 'Не вдалося згенерувати чек: ' + e.message
+      );
+    } finally {
+      setIsGeneratingReceipt(false);
+    }
+  }, [order, locale]);
 
   const hasWeightedItems = useMemo(() => 
     order?.items?.some(i => i.pricingType === 'piece_variable') ?? false
@@ -830,6 +854,24 @@ export default function OrderDetailsScreen() {
                 </Text>
               </View>
             </View>
+            
+            <TouchableOpacity 
+              style={[styles.receiptBtn, { borderColor: theme.primary }]}
+              onPress={handleDownloadReceipt}
+              disabled={isGeneratingReceipt}
+              activeOpacity={0.7}
+            >
+              {isGeneratingReceipt ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <>
+                  <Ionicons name="document-text-outline" size={18} color={theme.primary} style={{ marginRight: 8 }} />
+                  <Text style={[styles.receiptBtnText, { color: theme.primary }]}>
+                    {locale === 'en' ? 'Download PDF Receipt' : 'Завантажити чек PDF'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         }
       />
@@ -944,6 +986,21 @@ const styles = StyleSheet.create({
   divider: { height: hairline(), marginVertical: vs(16), opacity: 0.5 },
   summaryLabelTotal: { fontSize: fs(18), fontWeight: '800', color: '#888' },
   summaryTotalVal: { fontSize: fs(26), fontWeight: '900', color: '#000000' },
+  
+  receiptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderRadius: r(24),
+    paddingVertical: vs(14),
+    marginTop: vs(16),
+    marginBottom: vs(10),
+  },
+  receiptBtnText: {
+    fontSize: fs(16),
+    fontWeight: '700',
+  },
 
   paidBadge: { backgroundColor: '#2ecc71', paddingHorizontal: hs(12), paddingVertical: vs(4), borderRadius: r(8) },
   paidBadgeText: { color: 'white', fontWeight: '800', fontSize: fs(12), textTransform: 'uppercase' },

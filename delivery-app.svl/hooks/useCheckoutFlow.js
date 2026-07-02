@@ -92,39 +92,6 @@ export default function useCheckoutFlow() {
         let targetAddress = activeAddress;
         let finalNote = orderNote;
 
-        if (deliveryType === 'pickup') {
-            finalNote = `[САМОВИВІЗ] ${orderNote || ''}`.trim().slice(0, 100);
-            
-            let pickupAddr = savedAddresses.find(a => a.title === '[САМОВИВІЗ]' || a.address?.includes('[САМОВИВІЗ]'));
-            if (!pickupAddr) {
-                try {
-                    console.log('[useCheckoutFlow] Creating dummy address for pickup...');
-                    const zones = await getDeliveryZones().catch(() => []);
-                    const zonePoint = zones?.[0]?.points?.[0];
-                    const latitude = zonePoint ? Number(zonePoint.lat || zonePoint.latitude) : 48.5469;
-                    const longitude = zonePoint ? Number(zonePoint.lng || zonePoint.longitude) : 22.9863;
-
-                    await createAddress({
-                        title: '[САМОВИВІЗ]',
-                        latitude,
-                        longitude,
-                        house: 'null',
-                        apartment: 'null',
-                        entrance: 'null',
-                        is_default: false
-                    });
-                    
-                    const updatedAddresses = await dispatch(fetchAddresses()).unwrap();
-                    pickupAddr = updatedAddresses.find(a => a.title === '[САМОВИВІЗ]' || a.address?.includes('[САМОВИВІЗ]'));
-                } catch (addrErr) {
-                    console.error('[useCheckoutFlow] Failed to create dummy pickup address:', addrErr);
-                }
-            }
-            if (pickupAddr) {
-                targetAddress = pickupAddr;
-            }
-        }
-
         const orderPayload = {
             items: cartItems,
             total: totalAmount,
@@ -133,7 +100,7 @@ export default function useCheckoutFlow() {
             promo: appliedPromo?.code ?? null,
             note: finalNote,
             type: deliveryType,
-            address: targetAddress ?? { type: 'Pickup' },
+            address: targetAddress,
             paymentInfo: activePayment,
             userId: user?.userId || user?.id || 'guest'
         };

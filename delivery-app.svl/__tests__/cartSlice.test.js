@@ -184,12 +184,12 @@ describe('cartSlice reducer', () => {
         expect(state.totalAmount).toBe(200 + BASE_DELIVERY_FEE - 40);
     });
 
-    // ── Free delivery threshold ───────────────────────────────────────────────
-    test('deliveryFee is 0 when subtotal >= FREE_DELIVERY_THRESHOLD', () => {
+    // ── Free delivery threshold (Now disabled) ────────────────────────────────
+    test('deliveryFee remains BASE_DELIVERY_FEE even when subtotal >= FREE_DELIVERY_THRESHOLD', () => {
         const bigProduct = { product_id: 'p2', price: FREE_DELIVERY_THRESHOLD, name: 'Combo' };
         const state = reducer(baseState(), addToCart(bigProduct));
-        expect(state.deliveryFee).toBe(0);
-        expect(state.totalAmount).toBe(FREE_DELIVERY_THRESHOLD);
+        expect(state.deliveryFee).toBe(BASE_DELIVERY_FEE);
+        expect(state.totalAmount).toBe(FREE_DELIVERY_THRESHOLD + BASE_DELIVERY_FEE);
     });
 });
 
@@ -201,7 +201,7 @@ describe('selectCartSummary selector', () => {
         const summary = selectCartSummary(storeState(baseState()));
         expect(summary.isMinOrderMet).toBe(false);
         expect(summary.freeDeliveryProgress).toBe(0);
-        expect(summary.amountToFreeDelivery).toBe(FREE_DELIVERY_THRESHOLD);
+        expect(summary.amountToFreeDelivery).toBe(0);
     });
 
     test('isMinOrderMet is true when subtotal >= MIN_ORDER_AMOUNT', () => {
@@ -210,10 +210,10 @@ describe('selectCartSummary selector', () => {
         expect(summary.isMinOrderMet).toBe(true);
     });
 
-    test('freeDeliveryProgress clamps to 1 when subtotal >= FREE_DELIVERY_THRESHOLD', () => {
+    test('freeDeliveryProgress remains 0 even when subtotal >= FREE_DELIVERY_THRESHOLD', () => {
         const cartState = reducer(baseState(), addToCart({ product_id: 'x', price: FREE_DELIVERY_THRESHOLD, name: 'X' }));
         const summary = selectCartSummary(storeState(cartState));
-        expect(summary.freeDeliveryProgress).toBe(1);
+        expect(summary.freeDeliveryProgress).toBe(0);
         expect(summary.amountToFreeDelivery).toBe(0);
     });
 

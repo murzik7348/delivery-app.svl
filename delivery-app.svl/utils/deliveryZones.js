@@ -77,34 +77,86 @@ export function getZoneForLocation(location, zones) {
  * Supports green/greenish/1 (salad green), yellow/2 (yellow), and red/3 (red) zones.
  * @param {string} name - Zone name
  */
-export function getZoneColor(name) {
+export function getZoneColor(zone) {
+  const name = typeof zone === 'string' ? zone : (zone?.name || '');
+  const priority = typeof zone === 'object' ? zone?.priority : null;
+  const price = typeof zone === 'object' ? zone?.price : null;
+  
   const lowerName = String(name || '').toLowerCase();
   
-  if (lowerName.includes('зелен') || lowerName.includes('green') || lowerName.includes('1')) {
+  // Green Zone detection (Green, 1, First, "перша", or priority=1)
+  if (
+    lowerName.includes('зелен') || 
+    lowerName.includes('green') || 
+    lowerName.includes('1') || 
+    lowerName.includes('перш') || 
+    priority === 1
+  ) {
     return {
       fill: 'rgba(139, 195, 74, 0.25)', // Salad Green
       stroke: '#8BC34A',
       text: '#558B2F',
-      displayName: 'Зелена зона'
+      displayName: name || 'Зелена зона'
     };
   }
   
-  if (lowerName.includes('жовт') || lowerName.includes('yellow') || lowerName.includes('2')) {
+  // Yellow Zone detection (Yellow, 2, Second, "друга", or priority=2)
+  if (
+    lowerName.includes('жовт') || 
+    lowerName.includes('yellow') || 
+    lowerName.includes('2') || 
+    lowerName.includes('друг') || 
+    priority === 2
+  ) {
     return {
       fill: 'rgba(255, 202, 40, 0.25)', // Yellow
       stroke: '#FFCA28',
       text: '#F57F17',
-      displayName: 'Жовта зона'
+      displayName: name || 'Жовта зона'
     };
   }
   
-  if (lowerName.includes('червон') || lowerName.includes('red') || lowerName.includes('3')) {
+  // Red Zone detection (Red, 3, Third, "третя", or priority=3)
+  if (
+    lowerName.includes('червон') || 
+    lowerName.includes('red') || 
+    lowerName.includes('3') || 
+    lowerName.includes('трет') || 
+    priority === 3
+  ) {
     return {
       fill: 'rgba(244, 67, 54, 0.25)', // Red
       stroke: '#F44336',
       text: '#C62828',
-      displayName: 'Червона зона'
+      displayName: name || 'Червона зона'
     };
+  }
+  
+  // Fallback to price-based dynamic color assignment if no keyword/priority matches
+  if (price !== null && price !== undefined) {
+    const numPrice = Number(price);
+    if (numPrice <= 50) {
+      return {
+        fill: 'rgba(139, 195, 74, 0.25)',
+        stroke: '#8BC34A',
+        text: '#558B2F',
+        displayName: name || 'Зелена зона'
+      };
+    } else if (numPrice <= 120) {
+      return {
+        fill: 'rgba(255, 202, 40, 0.25)',
+        stroke: '#FFCA28',
+        text: '#F57F17',
+        displayName: name || 'Жовта зона'
+      };
+    } else {
+      return {
+        fill: 'rgba(244, 67, 54, 0.25)',
+        stroke: '#F44336',
+        text: '#C62828',
+        displayName: name || 'Червона зона'
+      };
+    }
   }
   
   return {

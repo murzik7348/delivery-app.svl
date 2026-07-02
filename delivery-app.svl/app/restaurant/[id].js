@@ -169,6 +169,27 @@ export default function RestaurantScreen() {
     return pStoreId === targetId;
   });
 
+  const allCategories = useSelector(state => state.catalog.categories);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+
+  const restaurantCategories = allCategories.filter(cat => {
+    const catId = cat.category_id || cat.id;
+    return restaurantProducts.some(p => Number(p.category_id) === Number(catId));
+  });
+
+  const categoriesToRender = [
+    { category_id: null, name: locale === 'uk' ? 'Усі' : 'All', sticker: '🍽️' },
+    ...restaurantCategories.map(c => ({
+      category_id: c.category_id || c.id,
+      name: c.name,
+      sticker: c.sticker || '🍽️'
+    }))
+  ];
+
+  const filteredProducts = selectedCategoryId
+    ? restaurantProducts.filter(p => Number(p.category_id) === Number(selectedCategoryId))
+    : restaurantProducts;
+
   const getQty = (prodId) => {
     const item = cartItems.find(i => i.product_id === prodId);
     return item ? item.quantity : 0;
@@ -225,10 +246,47 @@ export default function RestaurantScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.metaText}>{restaurant.tags.join(' • ')} • {restaurant.delivery_time}</Text>
+          <Text style={styles.metaText}>{restaurant.delivery_time}</Text>
         </View>
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'restaurantMenu')}</Text>
+
+        {/* Горизонтальний повзунок категорій */}
+        {restaurantCategories.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesContainer}
+            style={styles.categoriesScroll}
+          >
+            {categoriesToRender.map(cat => {
+              const isSelected = selectedCategoryId === cat.category_id;
+              return (
+                <TouchableOpacity
+                  key={cat.category_id ?? 'all'}
+                  style={[
+                    styles.categoryBtn,
+                    { backgroundColor: isSelected ? theme.primary : theme.card }
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSelectedCategoryId(cat.category_id);
+                  }}
+                >
+                  <Text style={styles.categorySticker}>{cat.sticker}</Text>
+                  <Text
+                    style={[
+                      styles.categoryBtnText,
+                      { color: isSelected ? 'white' : theme.text }
+                    ]}
+                  >
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
 
         {/* Список товарів */}
         {isLoading && restaurantProducts.length === 0 ? (
@@ -238,48 +296,69 @@ export default function RestaurantScreen() {
           </View>
         ) : null}
 
-        {restaurantProducts.length === 0 && !isLoading ? (
+        {filteredProducts.length === 0 && !isLoading ? (
           <View style={{ padding: 40, alignItems: 'center' }}>
             <Ionicons name="fast-food-outline" size={48} color="gray" />
             <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'noProducts') || 'Товарів не знайдено'}</Text>
           </View>
         ) : null}
 
-        {restaurantProducts.map((product) => {
-          const qty = getQty(product.product_id);
-          const isFavProd = favoriteProductIds.includes(product.product_id);
+        {restaurantCategories.map((cat, index) => {
+          const catId = cat.category_id || cat.id;
+          const catProducts = filteredProducts.filter(p => Number(p.category_id) === Number(catId));
+          if (catProducts.length === 0) return null;
 
           return (
-            <ProductCardItem
-              key={product.product_id}
-              product={product}
-              theme={theme}
-              locale={locale}
-              qty={qty}
-              isFavProd={isFavProd}
-              onSelect={setSelectedProduct}
-              onAddToCart={(p) => {
-                if (isClosed) {
-                  Alert.alert(
-                    'Ресторан зачинено',
-                    'Цей ресторан наразі зачинений і не приймає замовлень.'
-                  );
-                  return;
-                }
-                dispatch(tryAddToCart(p));
-              }}
-              onRemoveFromCart={(productId) => {
-                const itemInCart = cartItems.find(i => i.product_id === productId);
-                if (itemInCart) {
-                  if (itemInCart.quantity > 1) {
-                    dispatch(decrementItem(itemInCart.cartKey));
-                  } else {
-                    dispatch(removeFromCart(productId));
-                  }
-                }
-              }}
-              onToggleFav={(id) => dispatch(toggleFavoriteProduct(id))}
-            />
+            <View key={catId} style={styles.categorySection}>
+              {selectedCategoryId === null && index > 0 && (
+                <View style={[styles.categoryDivider, { backgroundColor: theme.input }]} />
+              )}
+
+              <View style={styles.categoryHeaderRow}>
+                <Text style={styles.categoryHeaderSticker}>{cat.sticker || '🍽️'}</Text>
+                <Text style={[styles.categoryHeaderTitle, { color: theme.text }]}>
+                  {cat.name}
+                </Text>
+              </View>
+
+              {catProducts.map((product) => {
+                const qty = getQty(product.product_id);
+                const isFavProd = favoriteProductIds.includes(product.product_id);
+
+                return (
+                  <ProductCardItem
+                    key={product.product_id}
+                    product={product}
+                    theme={theme}
+                    locale={locale}
+                    qty={qty}
+                    isFavProd={isFavProd}
+                    onSelect={setSelectedProduct}
+                    onAddToCart={(p) => {
+                      if (isClosed) {
+                        Alert.alert(
+                          'Ресторан зачинено',
+                          'Цей ресторан наразі зачинений і не приймає замовлень.'
+                        );
+                        return;
+                      }
+                      dispatch(tryAddToCart(p));
+                    }}
+                    onRemoveFromCart={(productId) => {
+                      const itemInCart = cartItems.find(i => i.product_id === productId);
+                      if (itemInCart) {
+                        if (itemInCart.quantity > 1) {
+                          dispatch(decrementItem(itemInCart.cartKey));
+                        } else {
+                          dispatch(removeFromCart(productId));
+                        }
+                      }
+                    }}
+                    onToggleFav={(id) => dispatch(toggleFavoriteProduct(id))}
+                  />
+                );
+              })}
+            </View>
           );
         })}
       </ScrollView>
@@ -449,5 +528,58 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.3,
+  },
+  categoriesScroll: {
+    marginBottom: 16,
+  },
+  categoriesContainer: {
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  categoryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  categorySticker: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  categoryBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  categorySection: {
+    marginBottom: 20,
+  },
+  categoryHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  categoryHeaderSticker: {
+    fontSize: 22,
+    marginRight: 8,
+  },
+  categoryHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+    textTransform: 'uppercase',
+  },
+  categoryDivider: {
+    height: 1,
+    marginHorizontal: 20,
+    marginTop: 15,
+    marginBottom: 25,
   },
 });

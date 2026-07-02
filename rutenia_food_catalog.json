@@ -1,0 +1,1372 @@
+[
+    {
+        "id": 281,
+        "name": "Стейк \" Ribeye",
+        "price": 220,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/99842f7e-a03b-4580-8ec9-482ce8ca3120/thumb.jpg"
+    },
+    {
+        "id": 280,
+        "name": "Котлета фірмова",
+        "price": 80,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/f6ac0c5a-520a-4ac4-a90d-b94d5b2a53de/thumb.jpg"
+    },
+    {
+        "id": 279,
+        "name": "Хек смажений",
+        "price": 55,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/b2037094-bdf5-4ce5-8762-8018c61be913/thumb.jpg"
+    },
+    {
+        "id": 278,
+        "name": "Теплий салат з телятини",
+        "price": 290,
+        "weightGrams": 200,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/2c7feff9-a036-433a-9ffd-bc92b58d8ec2/thumb.jpg"
+    },
+    {
+        "id": 277,
+        "name": "Квашена капуста",
+        "price": 55,
+        "weightGrams": 200,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/8e69bdfb-ad83-45cc-8dbf-c35ca4717615/thumb.jpg"
+    },
+    {
+        "id": 276,
+        "name": "Котлета по-київський",
+        "price": 80,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/513e0c2b-4bf2-4582-92e4-7f61a9ec91da/thumb.jpg"
+    },
+    {
+        "id": 275,
+        "name": "Короп смажений",
+        "price": 65,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/be5d50ec-aa2a-478e-9575-d19f98b57fad/thumb.jpg"
+    },
+    {
+        "id": 274,
+        "name": "Завиванець по-закарпатськи",
+        "price": 95,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "філе куряче, сир твердий, зелень, бекон",
+        "image": "https://api.andi.delivery/images/products/a866814d-d94f-4002-88bf-4aad0cc13a7d/thumb.jpg"
+    },
+    {
+        "id": 273,
+        "name": "Стейк форелі морської",
+        "price": 190,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/bdc320b1-600a-4c95-893a-082a5fcdd945/thumb.jpg"
+    },
+    {
+        "id": 272,
+        "name": "Салат \"Венеція\"",
+        "price": 250,
+        "weightGrams": 200,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/7e3b2d35-4774-4a5a-9338-00c424485af6/thumb.jpg"
+    },
+    {
+        "id": 271,
+        "name": "Морозиво з фруктами",
+        "price": 95,
+        "weightGrams": 200,
+        "categoryId": 15,
+        "categoryName": "ДЕСЕРТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/64730d8c-89e5-4c7f-8044-84a4cabc8d3c/thumb.jpg"
+    },
+    {
+        "id": 270,
+        "name": "Відбивна куряча",
+        "price": 85,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/dab331d8-2fbd-460e-9c17-975f84d4fcfa/thumb.jpg"
+    },
+    {
+        "id": 269,
+        "name": "Форель річкова",
+        "price": 100,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/9fb79690-ecc3-4e85-8e05-0140277df85c/thumb.jpg"
+    },
+    {
+        "id": 268,
+        "name": "Салат з куркою та авокадо",
+        "price": 250,
+        "weightGrams": 200,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/6e78e134-7b75-4b0d-9378-f8d2b09e81d3/thumb.jpg"
+    },
+    {
+        "id": 267,
+        "name": "Грінки з часником",
+        "price": 50,
+        "weightGrams": 100,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/2d7bbd60-ac81-4b9e-9cef-c2ad5103c1f8/thumb.jpg"
+    },
+    {
+        "id": 266,
+        "name": "Морозиво",
+        "price": 80,
+        "weightGrams": 100,
+        "categoryId": 15,
+        "categoryName": "ДЕСЕРТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/fabc01e5-20ba-4b0e-8853-764b5a9ce610/thumb.jpg"
+    },
+    {
+        "id": 265,
+        "name": "Гарбузовий крем-суп",
+        "price": 130,
+        "weightGrams": 300,
+        "categoryId": 17,
+        "categoryName": "ПЕРШІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/39eaf22b-b702-4c66-a0e0-82b065d2821a/thumb.jpg"
+    },
+    {
+        "id": 264,
+        "name": "Відбивна з свинини",
+        "price": 85,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/645e7cae-d219-4eb3-b173-edb14ec2499e/thumb.jpg"
+    },
+    {
+        "id": 263,
+        "name": "Овочі гриль",
+        "price": 90,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/792d2df0-2403-44a2-a247-2297c654fa7a/thumb.jpg"
+    },
+    {
+        "id": 262,
+        "name": "Карбонара",
+        "price": 230,
+        "weightGrams": 250,
+        "categoryId": 12,
+        "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/4deb931b-e4b8-41bf-9b00-896f7090eba5/thumb.jpg"
+    },
+    {
+        "id": 261,
+        "name": "Ньоки з куркою та шпинатом",
+        "price": 200,
+        "weightGrams": 350,
+        "categoryId": 10,
+        "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/e87c1aa8-eb3c-4e1f-9ba2-0ac3def2df8c/thumb.jpg"
+    },
+    {
+        "id": 260,
+        "name": "Салат з лососем",
+        "price": 280,
+        "weightGrams": 200,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/8c4b0cfb-f0f6-4802-a42b-bbd3bf21512d/thumb.jpg"
+    },
+    {
+        "id": 259,
+        "name": "Сало домашнє",
+        "price": 80,
+        "weightGrams": 100,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/876d6630-9e0b-47ce-90ca-a59009cfbbee/thumb.jpg"
+    },
+    {
+        "id": 258,
+        "name": "Фондан шоколадний з морозивом",
+        "price": 150,
+        "weightGrams": 150,
+        "categoryId": 15,
+        "categoryName": "ДЕСЕРТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/43863654-7fc6-48ce-8b3d-75dca7490c42/thumb.jpg"
+    },
+    {
+        "id": 257,
+        "name": "Рис з овочами",
+        "price": 85,
+        "weightGrams": 200,
+        "categoryId": 16,
+        "categoryName": "ГАРНІРИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/f8b321a9-1a96-45bf-bdd0-3a7d372e64fb/thumb.jpg"
+    },
+    {
+        "id": 256,
+        "name": "Бульйон грибний",
+        "price": 150,
+        "weightGrams": 300,
+        "categoryId": 17,
+        "categoryName": "ПЕРШІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/1557df66-0809-4f92-a9c0-39201ff37f1c/thumb.jpg"
+    },
+    {
+        "id": 255,
+        "name": "№6 Крила в медовому соусі, чіпи, соус",
+        "price": 200,
+        "weightGrams": 350,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/1b56c29a-18ec-4a57-bc6c-f93268c6fa9a/thumb.jpg"
+    },
+    {
+        "id": 254,
+        "name": "Ребра свинні",
+        "price": 100,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/b404dbbc-28db-49bd-99bc-43b8cb790103/thumb.jpg"
+    },
+    {
+        "id": 253,
+        "name": "Паста з куркою та грибами",
+        "price": 230,
+        "weightGrams": 250,
+        "categoryId": 12,
+        "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/851bc184-49c0-4d87-af94-ef18e79c02f9/thumb.jpg"
+    },
+    {
+        "id": 252,
+        "name": "Банош з бринзою та шкварками",
+        "price": 200,
+        "weightGrams": 400,
+        "categoryId": 10,
+        "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/17521ce6-5985-40a7-99db-e89ab6147688/thumb.jpg"
+    },
+    {
+        "id": 251,
+        "name": "Салат \" Цезар\"",
+        "price": 200,
+        "weightGrams": 200,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/ac001e77-1003-42ee-b43c-b33d56036662/thumb.jpg"
+    },
+    {
+        "id": 250,
+        "name": "Махан/Бастурма",
+        "price": 200,
+        "weightGrams": 100,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/4de9d6a5-fa90-4294-8ced-881ceafcbfbe/thumb.jpg"
+    },
+    {
+        "id": 249,
+        "name": "Чорнослив з гущеним молоком та горіхами",
+        "price": 120,
+        "weightGrams": 200,
+        "categoryId": 15,
+        "categoryName": "ДЕСЕРТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/71e6e548-5e68-4072-955d-30086c953cae/thumb.jpg"
+    },
+    {
+        "id": 248,
+        "name": "Картопля печена на мангалі",
+        "price": 75,
+        "weightGrams": 200,
+        "categoryId": 16,
+        "categoryName": "ГАРНІРИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/99c465e3-3f46-4f75-b1ca-cf925278dafb/thumb.jpg"
+    },
+    {
+        "id": 247,
+        "name": "Солянка",
+        "price": 130,
+        "weightGrams": 320,
+        "categoryId": 17,
+        "categoryName": "ПЕРШІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/f03a6fa7-73a9-43b7-ac38-6974f34fdaf7/thumb.jpg"
+    },
+    {
+        "id": 246,
+        "name": "№5 На велику компанію",
+        "price": 1500,
+        "weightGrams": 2000,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "крила курячі, 2 вида ковбасок, огірки солені,  2 види соуса",
+        "image": "https://api.andi.delivery/images/products/a815f865-2a34-48ec-ac6c-68679a4bcfcf/thumb.jpg"
+    },
+    {
+        "id": 245,
+        "name": "Ковбаски гриль",
+        "price": 85,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/48454361-e603-49bf-9c4f-1f6e0fa813b2/thumb.jpg"
+    },
+    {
+        "id": 244,
+        "name": "Паста з креветками",
+        "price": 250,
+        "weightGrams": 250,
+        "categoryId": 12,
+        "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/a6149acc-c0c8-4f86-a931-04f19389f646/thumb.jpg"
+    },
+    {
+        "id": 243,
+        "name": "Ньокі з лісовими грибами",
+        "price": 200,
+        "weightGrams": 350,
+        "categoryId": 10,
+        "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/b962e52c-5cf0-4b57-8fb1-8ee662874ca6/thumb.jpg"
+    },
+    {
+        "id": 242,
+        "name": "Салат \"Шопський\"",
+        "price": 150,
+        "weightGrams": 150,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/fc6ed9ad-9df2-48c8-96b7-fe0c40dcbeae/thumb.jpg"
+    },
+    {
+        "id": 241,
+        "name": "Млинці з нутелою та фруктами",
+        "price": 150,
+        "weightGrams": 200,
+        "categoryId": 15,
+        "categoryName": "ДЕСЕРТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/c0825461-4ab9-4d8b-a51e-c240099166a7/thumb.jpg"
+    },
+    {
+        "id": 240,
+        "name": "Картопляне пюре",
+        "price": 65,
+        "weightGrams": 200,
+        "categoryId": 16,
+        "categoryName": "ГАРНІРИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/9f84353e-a330-404a-9678-c22b33b51b90/thumb.jpg"
+    },
+    {
+        "id": 239,
+        "name": "Сирний крем-суп",
+        "price": 150,
+        "weightGrams": 335,
+        "categoryId": 17,
+        "categoryName": "ПЕРШІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/7e32ab45-490b-4572-b9bf-22f2b6e985f8/thumb.jpg"
+    },
+    {
+        "id": 238,
+        "name": "№4 Нагетси курячі, картопля фрі, соус",
+        "price": 170,
+        "weightGrams": 250,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/ab1157e2-fba6-4c38-b67c-65df87846273/thumb.jpg"
+    },
+    {
+        "id": 237,
+        "name": "Стейк телячий",
+        "price": 160,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/1fe01ef5-96ee-4df3-90aa-54b50e8ea1ee/thumb.jpg"
+    },
+    {
+        "id": 236,
+        "name": "Сир фрі з шинкою",
+        "price": 90,
+        "weightGrams": 100,
+        "categoryId": 12,
+        "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/2d29bd36-73d0-469a-bb90-5735d8b6d493/thumb.jpg"
+    },
+    {
+        "id": 235,
+        "name": "Деруни фаршировані з мʼясом в горшечку з лісови...",
+        "price": 200,
+        "weightGrams": 350,
+        "categoryId": 10,
+        "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/9c4618cb-b472-4667-9d29-e738df75ad71/thumb.jpg"
+    },
+    {
+        "id": 234,
+        "name": "Салат \"Грецький\"",
+        "price": 150,
+        "weightGrams": 150,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/d7cda88c-720d-49c3-840f-78bcdd9f0ec0/thumb.jpg"
+    },
+    {
+        "id": 233,
+        "name": "Бургер CHICKEN",
+        "price": 230,
+        "weightGrams": 430,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "курка гриль, сир Чеддер, помідор, огірок свіжий, салат, соус, картопля фрі, кетчуп",
+        "image": "https://api.andi.delivery/images/products/c871fb64-db64-4ba1-a5ec-2c6041a46d32/thumb.jpg"
+    },
+    {
+        "id": 232,
+        "name": "No1 Омлет з беконом, грінки, овочі, масло вершкове",
+        "price": 200,
+        "weightGrams": 100,
+        "categoryId": 20,
+        "categoryName": "СНІДАНКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/c479996a-ef71-47e8-8bb3-5499accc45f6/thumb.jpg"
+    },
+    {
+        "id": 231,
+        "name": "Тарілочка до горілочки",
+        "price": 450,
+        "weightGrams": 250,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "сало солене, сало попрігаш, шкварки молені, грінки",
+        "image": "https://api.andi.delivery/images/products/1ecf3ed8-8ce6-44a8-b4d1-7b8b05704b5a/thumb.jpg"
+    },
+    {
+        "id": 230,
+        "name": "Рутелла",
+        "price": 180,
+        "weightGrams": 200,
+        "categoryId": 15,
+        "categoryName": "ДЕСЕРТИ",
+        "description": "нутелла, тісто, горіхи, фрукти",
+        "image": "https://api.andi.delivery/images/products/b28ec76c-5bfb-435c-a2dd-f49a39889ec9/thumb.jpg"
+    },
+    {
+        "id": 229,
+        "name": "Лаваш мʼясний",
+        "price": 170,
+        "weightGrams": 200,
+        "categoryId": 21,
+        "categoryName": "ЛАВАШІ",
+        "description": "м’ясо куряче, капуста, соус, кетчуп, сир твердий, зелень",
+        "image": "https://api.andi.delivery/images/products/5d0df9b9-1efb-47a5-89f5-904379799eb5/thumb.jpg"
+    },
+    {
+        "id": 228,
+        "name": "З фермерськими ковбасками",
+        "price": 195,
+        "weightGrams": 250,
+        "categoryId": 18,
+        "categoryName": "СКОВОРІДКИ",
+        "description": "домашня ковбаска, картопля, цибуля, ерош\r\nпішто, сир, соус вершковий, зелень",
+        "image": "https://api.andi.delivery/images/products/69cab892-2031-44cf-a7d3-4fe5530a2a95/thumb.jpg"
+    },
+    {
+        "id": 227,
+        "name": "Картопля фрі",
+        "price": 90,
+        "weightGrams": 200,
+        "categoryId": 16,
+        "categoryName": "ГАРНІРИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/2ee4fc4e-012b-425f-b39f-6d02a9dc8ae0/thumb.jpg"
+    },
+    {
+        "id": 226,
+        "name": "Бульйон курячий",
+        "price": 95,
+        "weightGrams": 350,
+        "categoryId": 17,
+        "categoryName": "ПЕРШІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/bfaa2faa-22db-4657-9edb-4d9cdecb4bcc/thumb.jpg"
+    },
+    {
+        "id": 225,
+        "name": "№1 Сир фрі, картопля фрі, грінки",
+        "price": 195,
+        "weightGrams": 300,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/bad73e73-e46e-4a8c-8e5a-ae57445be291/thumb.jpg"
+    },
+    {
+        "id": 224,
+        "name": "Фірмова страва \"Рутенія\"",
+        "price": 450,
+        "weightGrams": 775,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "три види мʼяса: теляе, куряче, свинне, гриби лісові, картопля смажена",
+        "image": "https://api.andi.delivery/images/products/92d29130-701d-4118-b61a-c8084031b543/thumb.jpg"
+    },
+    {
+        "id": 223,
+        "name": "Шашлик свинний",
+        "price": 110,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/dc532dcb-1f60-40c7-bbc4-08c6ecd47fc0/thumb.jpg"
+    },
+    {
+        "id": 222,
+        "name": "Пельмені з свинини",
+        "price": 95,
+        "weightGrams": 200,
+        "categoryId": 12,
+        "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/71907c90-c6d4-49d1-912b-3e97f9f9ad59/thumb.jpg"
+    },
+    {
+        "id": 221,
+        "name": "Деруни з сметаною",
+        "price": 95,
+        "weightGrams": 250,
+        "categoryId": 10,
+        "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/91ebb853-e6f2-4b10-b433-9f2c7bbb0f16/thumb.jpg"
+    },
+    {
+        "id": 220,
+        "name": "Салат \"Асорті\"",
+        "price": 120,
+        "weightGrams": 200,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/319b2711-c1fd-45a9-ae90-c0707caa792a/thumb.jpg"
+    },
+    {
+        "id": 219,
+        "name": "Бургер NEW YORK",
+        "price": 250,
+        "weightGrams": 430,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "біфштекс із яловичини, сир Чеддер, салат, помідор, цибуля, солений огірок, соус, картопля фрі, кетчуп",
+        "image": "https://api.andi.delivery/images/products/7cc59f47-a70b-4729-8bd9-759d49d2c003/thumb.jpg"
+    },
+    {
+        "id": 218,
+        "name": "Піца \"Папероні\" (дитяча)",
+        "price": 200,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус, сир, ковбаса, кукурудза",
+        "image": "https://api.andi.delivery/images/products/b45e60c8-df66-4296-9b7b-2b5ee68533bb/thumb.jpg"
+    },
+    {
+        "id": 217,
+        "name": "Піца \"Гавайська\"",
+        "price": 220,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус, сир, кукурудза, ананас, шинка, орегано",
+        "image": "https://api.andi.delivery/images/products/6a2141a1-647c-4d56-b4f4-6356f0e29282/thumb.jpg"
+    },
+    {
+        "id": 216,
+        "name": "Піца \"ITALIANO\"",
+        "price": 290,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус, сир, пармезан, ковбаса Чорісо, куряче філе, томати вʼялені",
+        "image": "https://api.andi.delivery/images/products/5d931e18-52a9-469d-a2d8-9d52c7989052/thumb.jpg"
+    },
+    {
+        "id": 215,
+        "name": "Піца \"Рутенія\"",
+        "price": 250,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус, бекон, ковбаса, сир, яйце, помідор, сметана",
+        "image": "https://api.andi.delivery/images/products/68b2b480-fbf4-4bfe-9347-1b2abb7a2545/thumb.jpg"
+    },
+    {
+        "id": 214,
+        "name": "Піца \"Мʼясна\"",
+        "price": 250,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус, сир, ковбаса, шинка, бекон, орегано",
+        "image": "https://api.andi.delivery/images/products/2fa0c47a-0cdc-41cd-a538-e176c72b2627/thumb.jpg"
+    },
+    {
+        "id": 213,
+        "name": "Піца \"Бʼянка пивна\"",
+        "price": 170,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "Сир, орегано",
+        "image": "https://api.andi.delivery/images/products/e1978e19-106c-4b4d-823c-f679baf864a9/thumb.jpg"
+    },
+    {
+        "id": 212,
+        "name": "Піца \" 4 сезони\"",
+        "price": 250,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус, сир, шинка,  ковбаса, шампіньйони, бекон, кукурудза",
+        "image": "https://api.andi.delivery/images/products/fed7eb5f-6fbc-4608-a7ba-2e00d7d8bc11/thumb.jpg"
+    },
+    {
+        "id": 211,
+        "name": "Піца \"Кальцоне Фунгі\"",
+        "price": 210,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус, сир, шинка, ковбаса, шампіньйони, орегано",
+        "image": "https://api.andi.delivery/images/products/9324e508-a22a-4a1b-951d-c761b427752a/thumb.jpg"
+    },
+    {
+        "id": 210,
+        "name": "Піца\"Поло\"",
+        "price": 210,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус, сир, куряче філе, кукурудза",
+        "image": "https://api.andi.delivery/images/products/3d879311-d644-47cf-a2e4-fe4efc9cc749/thumb.jpg"
+    },
+    {
+        "id": 209,
+        "name": "Піца \"Пепіно\"",
+        "price": 220,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус, сир, орегано,салямі гостра, перець чілі",
+        "image": "https://api.andi.delivery/images/products/197aa0a7-9b0e-45eb-aa9f-f524de31b90b/thumb.jpg"
+    },
+    {
+        "id": 208,
+        "name": "Піца\" Маргарита\"",
+        "price": 180,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус, сир, помідори, орегано",
+        "image": "https://api.andi.delivery/images/products/b66ba478-be1a-451c-97c4-b7f5575ad5da/thumb.jpg"
+    },
+    {
+        "id": 207,
+        "name": "No6 Каша вівсяна з фруктами",
+        "price": 120,
+        "weightGrams": 100,
+        "categoryId": 20,
+        "categoryName": "СНІДАНКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/1326eccb-055c-4db2-9178-a2bfbd492bbf/thumb.jpg"
+    },
+    {
+        "id": 206,
+        "name": "Стейк лосося з овочами гриль",
+        "price": 450,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/2b40a9d0-fed7-4a33-9bb9-ec5e01d994fc/thumb.jpg"
+    },
+    {
+        "id": 205,
+        "name": "Піца \"Цезар\"",
+        "price": 250,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "вершковий соус, салатний мікс, куряче філе, шинка, кукурудза, сир",
+        "image": "https://api.andi.delivery/images/products/13f53202-b01e-4f82-9ce9-689e97de0141/thumb.jpg"
+    },
+    {
+        "id": 204,
+        "name": "No5 Млинці з джемом",
+        "price": 120,
+        "weightGrams": 100,
+        "categoryId": 20,
+        "categoryName": "СНІДАНКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/01c79d48-f62d-4b17-a07f-7533332e9e52/thumb.jpg"
+    },
+    {
+        "id": 203,
+        "name": "Пюре з жульєном та білими грибами",
+        "price": 250,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/5d1f4590-acc2-4de4-8fad-77b51fe03e10/thumb.jpg"
+    },
+    {
+        "id": 202,
+        "name": "Піца \"Монако\"",
+        "price": 240,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "оливкова олій, вершки, куряче філе, шинка, кукурудза, сир",
+        "image": "https://api.andi.delivery/images/products/9387796c-e22a-4e92-b82e-69a5c1275285/thumb.jpg"
+    },
+    {
+        "id": 201,
+        "name": "No4 Млинці з творогом, сметаною",
+        "price": 150,
+        "weightGrams": 100,
+        "categoryId": 20,
+        "categoryName": "СНІДАНКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/238d9982-833f-462b-8a3e-6486d7c9c5b9/thumb.jpg"
+    },
+    {
+        "id": 200,
+        "name": "Брускети з прошуто та лососем",
+        "price": 250,
+        "weightGrams": 100,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "4 шт.",
+        "image": "https://api.andi.delivery/images/products/1abbba3e-8b58-4c65-a56f-30256e392fc4/thumb.jpg"
+    },
+    {
+        "id": 199,
+        "name": "Лоці з ніжним картопляним пюре",
+        "price": 220,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/988cde7a-de66-465a-b602-417e4f3c0d38/thumb.jpg"
+    },
+    {
+        "id": 198,
+        "name": "Піца з беконом",
+        "price": 220,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус, сир, помідори, бекон, кукурудза, орегано",
+        "image": "https://api.andi.delivery/images/products/221fa285-bde2-49d3-8289-84c6834a5b62/thumb.jpg"
+    },
+    {
+        "id": 197,
+        "name": "No3 Сирники з сметаною та джемом",
+        "price": 160,
+        "weightGrams": 100,
+        "categoryId": 20,
+        "categoryName": "СНІДАНКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/1f104f1b-3206-4e94-83d9-1efba6ec1fb1/thumb.jpg"
+    },
+    {
+        "id": 196,
+        "name": "Сирна тарілка",
+        "price": 350,
+        "weightGrams": 250,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "4 види сира",
+        "image": "https://api.andi.delivery/images/products/6cdeface-5a83-4b6e-91fb-cd55d0f1e027/thumb.jpg"
+    },
+    {
+        "id": 195,
+        "name": "Млинці з творогом та фруктами",
+        "price": 120,
+        "weightGrams": 200,
+        "categoryId": 15,
+        "categoryName": "ДЕСЕРТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/79763483-62f4-4cc8-86b3-17ef085726df/thumb.jpg"
+    },
+    {
+        "id": 194,
+        "name": "Лаваш сирний",
+        "price": 170,
+        "weightGrams": 200,
+        "categoryId": 21,
+        "categoryName": "ЛАВАШІ",
+        "description": "сир твердий, сир моцарела, соус",
+        "image": "https://api.andi.delivery/images/products/c455d7f4-85ed-473b-8511-fd7087eadd36/thumb.jpg"
+    },
+    {
+        "id": 193,
+        "name": "З курятиною",
+        "price": 195,
+        "weightGrams": 250,
+        "categoryId": 18,
+        "categoryName": "СКОВОРІДКИ",
+        "description": "куряче філе, овочі, бекон",
+        "image": "https://api.andi.delivery/images/products/6f86124d-abf0-4fd5-a81d-33d0cde0efca/thumb.jpg"
+    },
+    {
+        "id": 192,
+        "name": "Фрічки з салом",
+        "price": 75,
+        "weightGrams": 250,
+        "categoryId": 16,
+        "categoryName": "ГАРНІРИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/95747857-7484-4b6c-b7ab-36b3b8420f11/thumb.jpg"
+    },
+    {
+        "id": 191,
+        "name": "Борщ \"Український\"",
+        "price": 130,
+        "weightGrams": 335,
+        "categoryId": 17,
+        "categoryName": "ПЕРШІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/63bd858f-b9d5-48ff-85da-2eb9044212f0/thumb.jpg"
+    },
+    {
+        "id": 190,
+        "name": "№3 Сирні кульки, пельмені фрі, картопля фрі, со...",
+        "price": 300,
+        "weightGrams": 500,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/369231ea-d388-4481-9768-06160fa9ed68/thumb.jpg"
+    },
+    {
+        "id": 189,
+        "name": "Свинні медальйони в журавлиному соусі з рисом",
+        "price": 280,
+        "weightGrams": 400,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/c752b400-0af0-457c-8026-048be717e5fd/thumb.jpg"
+    },
+    {
+        "id": 188,
+        "name": "Стейк свинний",
+        "price": 110,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/501fd7d8-b99d-4e2a-98e5-6a2765dc58f4/thumb.jpg"
+    },
+    {
+        "id": 187,
+        "name": "Сир фрі",
+        "price": 75,
+        "weightGrams": 100,
+        "categoryId": 12,
+        "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/a9127b3a-d184-4c9b-858d-fb55e4da8c90/thumb.jpg"
+    },
+    {
+        "id": 186,
+        "name": "Цмунда",
+        "price": 200,
+        "weightGrams": 350,
+        "categoryId": 10,
+        "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/c2d58dbb-6370-40d4-b769-b7d53cedbc81/thumb.jpg"
+    },
+    {
+        "id": 185,
+        "name": "Гриби білі мариновані",
+        "price": 145,
+        "weightGrams": 150,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/b6492dd9-87ce-4983-8bc2-13708b83bcd3/thumb.jpg"
+    },
+    {
+        "id": 184,
+        "name": "Бургер BBQ MAXI",
+        "price": 390,
+        "weightGrams": 630,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "біфштекс із яловичини х2, бекон, сир Чеддер х2, салат, помідор, цибуля, соус BBQ, картопля фрі, кетчуп",
+        "image": "https://api.andi.delivery/images/products/c201f06d-a582-4f65-8213-bba672cce1d4/thumb.jpg"
+    },
+    {
+        "id": 183,
+        "name": "Піца \" 4 сира\"",
+        "price": 250,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "вершки, моцарелла, сир, сир копчений, бринза",
+        "image": "https://api.andi.delivery/images/products/996701fa-c4dd-4589-81ec-8fcc959c1f24/thumb.jpg"
+    },
+    {
+        "id": 182,
+        "name": "No2 Яєшня з беконом, тости, масло, овочі",
+        "price": 190,
+        "weightGrams": 100,
+        "categoryId": 20,
+        "categoryName": "СНІДАНКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/883cd164-5765-4887-b35d-bc325f0d932a/thumb.jpg"
+    },
+    {
+        "id": 181,
+        "name": "М’ясне асорті",
+        "price": 100,
+        "weightGrams": 100,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "свинина шпігована, телятини відварена, шовдарь",
+        "image": "https://api.andi.delivery/images/products/8a9850bf-3ebc-4256-9a8a-4f1c27a154f4/thumb.jpg"
+    },
+    {
+        "id": 180,
+        "name": "Тірамісу",
+        "price": 120,
+        "weightGrams": 200,
+        "categoryId": 15,
+        "categoryName": "ДЕСЕРТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/a8cc6a19-d906-46d1-b291-9c82a0378910/thumb.jpg"
+    },
+    {
+        "id": 179,
+        "name": "Лаваш овочевий",
+        "price": 150,
+        "weightGrams": 200,
+        "categoryId": 21,
+        "categoryName": "ЛАВАШІ",
+        "description": "соус, помідори, кабачки, баклажани, сир, зелень",
+        "image": "https://api.andi.delivery/images/products/495d1b2c-0b99-4c3a-8fb7-5c84ff84c53e/thumb.jpg"
+    },
+    {
+        "id": 178,
+        "name": "З свининою",
+        "price": 215,
+        "weightGrams": 250,
+        "categoryId": 18,
+        "categoryName": "СКОВОРІДКИ",
+        "description": "свинина, гриби, картопля, соус\r\nвершковий, сир",
+        "image": "https://api.andi.delivery/images/products/7f2b82f7-9bd4-4776-a0e3-04ca2261539a/thumb.jpg"
+    },
+    {
+        "id": 177,
+        "name": "Картопля фрі з соусом Чеддер",
+        "price": 110,
+        "weightGrams": 200,
+        "categoryId": 16,
+        "categoryName": "ГАРНІРИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/8519e6bf-854b-40cd-a76e-8b063f690b1f/thumb.jpg"
+    },
+    {
+        "id": 176,
+        "name": "Бограч-левеш",
+        "price": 150,
+        "weightGrams": 350,
+        "categoryId": 17,
+        "categoryName": "ПЕРШІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/26aaced9-06d4-4d3c-8172-fe428f1a51e6/thumb.jpg"
+    },
+    {
+        "id": 175,
+        "name": "№2 Ковбаски гриль, картопля фрі, свинні вушка, ...",
+        "price": 360,
+        "weightGrams": 600,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/6d2b3761-3c9b-4500-a4a3-3dcee73620be/thumb.jpg"
+    },
+    {
+        "id": 174,
+        "name": "Качина ніжка з ніжним картопляним пюре",
+        "price": 300,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/999122b8-5184-4f03-a476-73cb006a84f2/thumb.jpg"
+    },
+    {
+        "id": 173,
+        "name": "Шашлик курячий",
+        "price": 95,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/adc4b1dc-9d97-4366-a2b7-d9d7f05ca530/thumb.jpg"
+    },
+    {
+        "id": 172,
+        "name": "Вареники з картоплею та шкварками",
+        "price": 85,
+        "weightGrams": 200,
+        "categoryId": 12,
+        "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/ea0efef7-89f6-4ede-9668-88f009fbe195/thumb.jpg"
+    },
+    {
+        "id": 171,
+        "name": "Деруни фаршировані  з мʼясом та сметаною",
+        "price": 180,
+        "weightGrams": 300,
+        "categoryId": 10,
+        "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/d92da56f-9f42-43f7-81dd-6163aed71083/thumb.jpg"
+    },
+    {
+        "id": 170,
+        "name": "Салат з молодої капусти",
+        "price": 55,
+        "weightGrams": 200,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "Смачна страва від ресторану Рутенія",
+        "image": "https://api.andi.delivery/images/products/c5c596db-4521-43ad-941e-a5333b747736/thumb.jpg"
+    },
+    {
+        "id": 169,
+        "name": "Бургер BBQ",
+        "price": 250,
+        "weightGrams": 430,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "біфштекс із яловичини, бекон, сир Чеддер, салат, помідор, цибуля, соус BBQ, картопля фрі, кетчуп",
+        "image": "https://api.andi.delivery/images/products/440b0ac9-c9ff-4ac9-a9e6-4672b62e0762/thumb.jpg"
+    },
+    {
+        "id": 168,
+        "name": "Піца \"Капрічоза\"",
+        "price": 210,
+        "weightGrams": 100,
+        "categoryId": 22,
+        "categoryName": "ПІЦА",
+        "description": "соус томатний, сир, шинка, орегано, шампіньйони",
+        "image": "https://api.andi.delivery/images/products/b6aa7da7-ca8f-4d14-bc70-b2784d3f6867/thumb.jpg"
+    },
+    {
+        "id": 152,
+        "name": "Піца Рандомна Тестова 999",
+        "price": 200,
+        "weightGrams": 150,
+        "categoryId": 9,
+        "categoryName": "САЛАТИ",
+        "description": "соус, сир, ковбаса, кукурудза",
+        "image": "https://api.andi.delivery/images/products/3eacc3c0-bf56-4d58-8d56-3a9140bbc968/thumb.jpg"
+    },
+    {
+        "id": 23,
+        "name": "суші",
+        "price": 350,
+        "weightGrams": 250,
+        "categoryId": 3,
+        "categoryName": "Шашлик",
+        "description": "суші [INGS:21222222222222222]",
+        "image": "https://api.andi.delivery/images/products/7c53f44b-ac56-443e-9885-c1f31135722a/thumb.jpg"
+    },
+    {
+        "id": 22,
+        "name": "Шашлик",
+        "price": 2590,
+        "weightGrams": 500,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "Самий ліпший шашлик",
+        "image": "https://api.andi.delivery/images/products/5005ff3d-4288-4b95-b21f-a2de37536467/thumb.jpg"
+    },
+    {
+        "id": 20,
+        "name": "Мясна Піца",
+        "price": 250,
+        "weightGrams": 500,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "Мяcна піца на дровах",
+        "image": null
+    },
+    {
+        "id": 19,
+        "name": "Product_19",
+        "price": 96.9,
+        "weightGrams": 365,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 18,
+        "name": "Product_18",
+        "price": 71.03,
+        "weightGrams": 408,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": "https://api.andi.delivery/images/products/a383ea52-36f5-4654-b2a4-0d319c3103d9/thumb.jpg"
+    },
+    {
+        "id": 17,
+        "name": "Product_17",
+        "price": 53.74,
+        "weightGrams": 369,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 16,
+        "name": "Product_16",
+        "price": 90.62,
+        "weightGrams": 667,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 15,
+        "name": "Product_15",
+        "price": 187.25,
+        "weightGrams": 128,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "[INGS:томат]",
+        "image": "https://api.andi.delivery/images/products/09ed0922-265e-4216-bf13-7981102bcf66/thumb.jpg"
+    },
+    {
+        "id": 14,
+        "name": "Product_14",
+        "price": 88.28,
+        "weightGrams": 233,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 13,
+        "name": "Product_13",
+        "price": 236.58,
+        "weightGrams": 912,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 12,
+        "name": "Product_12",
+        "price": 23.04,
+        "weightGrams": 990,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 11,
+        "name": "Product_11",
+        "price": 86.24,
+        "weightGrams": 833,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 10,
+        "name": "Product_10",
+        "price": 129.94,
+        "weightGrams": 798,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 9,
+        "name": "Product_9",
+        "price": 150.25,
+        "weightGrams": 215,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 8,
+        "name": "Product_8",
+        "price": 169.87,
+        "weightGrams": 902,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 7,
+        "name": "Product_7",
+        "price": 221.76,
+        "weightGrams": 638,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 6,
+        "name": "Product_6",
+        "price": 49.15,
+        "weightGrams": 884,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 5,
+        "name": "Product_5",
+        "price": 113.68,
+        "weightGrams": 538,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 4,
+        "name": "Product_4",
+        "price": 116.83,
+        "weightGrams": 916,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 3,
+        "name": "Product_3",
+        "price": 120.22,
+        "weightGrams": 756,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 2,
+        "name": "Product_2",
+        "price": 136.2,
+        "weightGrams": 311,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": null,
+        "image": null
+    },
+    {
+        "id": 1,
+        "name": "Product_1",
+        "price": 50.14,
+        "weightGrams": 622,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "",
+        "image": "https://api.andi.delivery/images/products/20f40544-95d0-47b6-b38d-8fd5c25202c0/thumb.jpg"
+    }
+]

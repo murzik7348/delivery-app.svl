@@ -37,9 +37,7 @@ import {
   updateQuantity,
   updateCartItemModifiers,
   selectCartSummary,
-  setDeliveryType,
   setOrderNote,
-  FREE_DELIVERY_THRESHOLD,
   MIN_ORDER_AMOUNT,
   formatPrice,
   setCustomDeliveryFee,
@@ -81,57 +79,7 @@ const safeNum = (v) => {
 /** Resolve a canonical ID from a product/cart item. */
 const resolveId = (item) => item?.product_id ?? item?.id ?? null;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Delivery-progress bar (Feature 1)
-// ─────────────────────────────────────────────────────────────────────────────
-function DeliveryProgressBar({ progress, amountToFreeDelivery, locale, theme }) {
-  const anim = useRef(new Animated.Value(progress)).current;
 
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: progress,
-      duration: 480,
-      easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
-      useNativeDriver: false,
-    }).start();
-  }, [progress]);
-
-  const isFree = amountToFreeDelivery === 0;
-
-  return (
-    <View style={progressStyles.wrapper}>
-      <Text style={[progressStyles.label, { color: theme.text }]}>
-        {isFree
-          ? (locale === 'en' ? '🎉 Free delivery unlocked!' : '🎉 Безкоштовна доставка!')
-          : (locale === 'en'
-            ? `${formatPrice(amountToFreeDelivery)} ₴ more for free delivery`
-            : `Ще ${formatPrice(amountToFreeDelivery)} ₴ до безкоштовної доставки`)}
-      </Text>
-      <View style={[progressStyles.track, { backgroundColor: theme.input }]}>
-        <Animated.View
-          style={[
-            progressStyles.fill,
-            {
-              backgroundColor: isFree ? '#22c55e' : theme.primary,
-              width: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0%', '100%'],
-                extrapolate: 'clamp',
-              }),
-            },
-          ]}
-        />
-      </View>
-    </View>
-  );
-}
-
-const progressStyles = StyleSheet.create({
-  wrapper: { marginBottom: 12 },
-  label: { fontSize: 12, fontWeight: '600', marginBottom: 6, letterSpacing: 0.2 },
-  track: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  fill: { height: 6, borderRadius: 3 },
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Modifier chips (Feature 2)
@@ -653,29 +601,7 @@ export default function CartScreen() {
         )}
       </View>
 
-      {/* ── Delivery toggle ── */}
-      {cartItems.length > 0 && (
-        <View style={styles.headerPad}>
-          <View style={[styles.toggle, { backgroundColor: theme.input }]}>
-            {['delivery', 'pickup'].map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[styles.toggleBtn, deliveryType === type && styles.toggleBtnActive]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  dispatch(setDeliveryType(type));
-                }}
-              >
-                <Text style={[styles.toggleText, deliveryType === type && styles.toggleTextActive]}>
-                  {type === 'delivery'
-                    ? `🛵 ${t(locale, 'delivery')}`
-                    : `🏃 ${t(locale, 'pickup')}`}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
+
 
       {/* ── Content ── */}
       {cartItems.length > 0 ? (
@@ -767,15 +693,7 @@ export default function CartScreen() {
 
             {/* ── COLLAPSED ZONE ── */}
             <View style={styles.collapsedZone}>
-              {/* Feature 1: Delivery progress bar */}
-              {deliveryType === 'delivery' && (
-                <DeliveryProgressBar
-                  progress={freeDeliveryProgress}
-                  amountToFreeDelivery={amountToFreeDelivery}
-                  locale={locale}
-                  theme={theme}
-                />
-              )}
+
 
               {/* Total row — Feature 3: crossed-out when promo active */}
               <View style={styles.totalRow}>
@@ -934,20 +852,7 @@ export default function CartScreen() {
                 )
               )}
 
-              {/* Pickup row */}
-              {deliveryType === 'pickup' && (
-                <View style={[styles.actionRow, { backgroundColor: theme.input }]}>
-                  <View style={[styles.actionRowLeft, { flex: 1 }]}>
-                    <Ionicons name="storefront-outline" size={20} color={theme.text} />
-                    <Text
-                      style={[styles.actionRowText, { color: theme.text, flex: 1 }]}
-                      numberOfLines={1}
-                    >
-                      {locale === 'en' ? 'Pickup (from restaurant)' : 'Самовивіз (з ресторану)'}
-                    </Text>
-                  </View>
-                </View>
-              )}
+
 
               {/* Payment row */}
               <TouchableOpacity

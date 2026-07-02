@@ -420,7 +420,7 @@ export default function LocationPickerScreen() {
       >
         {/* Draw Delivery Zone Polygons */}
         {zones.map((zone, idx) => {
-          const colors = getZoneColor(zone.name);
+          const colors = getZoneColor(zone);
           const coords = (zone.points || []).map((p) => ({
             latitude: p.lat,
             longitude: p.lng,
@@ -529,9 +529,9 @@ export default function LocationPickerScreen() {
             {zonesLoading ? (
               <Text style={styles.zoneInfoTextLoading}>Визначення зони доставки...</Text>
             ) : activeZone ? (
-              <View style={[styles.zoneBadge, { backgroundColor: getZoneColor(activeZone.name).fill, borderColor: getZoneColor(activeZone.name).stroke }]}>
-                <Text style={[styles.zoneBadgeText, { color: getZoneColor(activeZone.name).text }]}>
-                  {getZoneColor(activeZone.name).displayName} • Доставка {activeZone.price} ₴
+              <View style={[styles.zoneBadge, { backgroundColor: getZoneColor(activeZone).fill, borderColor: getZoneColor(activeZone).stroke }]}>
+                <Text style={[styles.zoneBadgeText, { color: getZoneColor(activeZone).text }]}>
+                  {getZoneColor(activeZone).displayName} • Доставка {activeZone.price} ₴
                 </Text>
               </View>
             ) : hasFallback ? (

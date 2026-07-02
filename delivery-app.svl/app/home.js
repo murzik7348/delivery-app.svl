@@ -73,9 +73,6 @@ const StoreCardItem = ({ store, theme, router }) => {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={[styles.storeName, { color: theme.text }]} numberOfLines={1}>{store.name}</Text>
           </View>
-          <Text style={[styles.storeMeta, { color: theme.textSecondary }]}>
-            {store.tags.join(' • ')}
-          </Text>
         </View>
       </Animated.View>
     </TouchableOpacity>

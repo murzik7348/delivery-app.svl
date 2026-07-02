@@ -196,7 +196,6 @@ export default function FavoritesScreen() {
                   <View style={styles.metaRow}>
                     <Text style={styles.metaText}>{item.delivery_time}</Text>
                   </View>
-                  <Text style={[styles.tags, { color: 'gray' }]}>{item.tags.join(' · ')}</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => dispatch(toggleFavorite(item.store_id))}

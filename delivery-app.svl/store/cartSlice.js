@@ -94,7 +94,7 @@ const calculateTotals = (state) => {
     if (state.deliveryCoefficient && state.deliveryCoefficient.isActive) {
       baseFee = baseFee * safeNum(state.deliveryCoefficient.multiplier);
     }
-    state.deliveryFee = state.subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : baseFee;
+    state.deliveryFee = baseFee;
   } else {
     state.deliveryFee = 0;
   }
@@ -338,8 +338,8 @@ export const selectCartSummary = createSelector(selectCartState, (cart) => {
   const originalTotal = subtotal + deliveryFee;
 
   const isMinOrderMet = subtotal >= MIN_ORDER_AMOUNT;
-  const amountToFreeDelivery = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
-  const freeDeliveryProgress = Math.min(1, subtotal / FREE_DELIVERY_THRESHOLD);
+  const amountToFreeDelivery = 0;
+  const freeDeliveryProgress = 0;
 
   return {
     subtotal,
