@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Alert } from 'react-native';
+import { useEffect, useState, useMemo } from 'react';
+import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Alert, FlatList, ActivityIndicator } from 'react-native';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -34,13 +34,14 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
   };
 
   return (
-    <TouchableOpacity
-      activeOpacity={1}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      onPress={() => onSelect(product)}
-    >
-      <Animated.View style={[styles.productCard, { backgroundColor: theme.card, transform: [{ scale: scaleAnim }] }]}>
+    <Animated.View style={[styles.productCard, { backgroundColor: theme.card, transform: [{ scale: scaleAnim }] }]}>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={() => onSelect(product)}
+        style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: qty === 0 ? 8 : 0 }}
+      >
         {/* Фото */}
         <View style={styles.imgWrap}>
           <Image source={{ uri: product.image }} style={styles.productImage} />
@@ -81,39 +82,39 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
               {product.description}
             </Text>
           ) : null}
-
-          {/* Кнопки */}
-          <View style={styles.actions}>
-            {qty === 0 ? (
-              <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: theme.primary }]}
-                onPress={handleAddToCart}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="add" size={16} color="white" style={{ marginRight: 4 }} />
-                <Text style={styles.addButtonText}>{t(locale, 'addToCart')}</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.counterContainer}>
-                <TouchableOpacity
-                  style={[styles.counterBtn, { backgroundColor: theme.input }]}
-                  onPress={handleRemoveFromCart}
-                >
-                  <Ionicons name="remove" size={16} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={[styles.counterText, { color: theme.text }]}>{qty}</Text>
-                <TouchableOpacity
-                  style={[styles.counterBtn, { backgroundColor: theme.primary }]}
-                  onPress={handleAddToCart}
-                >
-                  <Ionicons name="add" size={16} color="white" />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
         </View>
-      </Animated.View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+
+      {/* Кнопки - Повністю поза клікабельною областю картки! */}
+      <View style={{ justifyContent: 'center', paddingLeft: 6 }}>
+        {qty === 0 ? (
+          <TouchableOpacity
+            style={[styles.addButton, { backgroundColor: theme.primary }]}
+            onPress={handleAddToCart}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add" size={16} color="white" style={{ marginRight: 4 }} />
+            <Text style={styles.addButtonText}>{t(locale, 'addToCart')}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.counterContainer}>
+            <TouchableOpacity
+              style={[styles.counterBtn, { backgroundColor: theme.input }]}
+              onPress={handleRemoveFromCart}
+            >
+              <Ionicons name="remove" size={16} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={[styles.counterText, { color: theme.text }]}>{qty}</Text>
+            <TouchableOpacity
+              style={[styles.counterBtn, { backgroundColor: theme.primary }]}
+              onPress={handleAddToCart}
+            >
+              <Ionicons name="add" size={16} color="white" />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </Animated.View>
   );
 };
 
@@ -127,7 +128,7 @@ export default function RestaurantScreen() {
   const locale = useSelector(s => s.language?.locale ?? 'uk');
   const cartData = useSelector(state => state.cart);
   const cartItems = cartData ? cartData.items : [];
-  const totalAmount = cartData ? cartData.totalAmount : 0;
+  const cartSubtotal = cartData ? cartData.subtotal : 0;
   const favoriteIds = useSelector(state => state.favorites.ids);
   const favoriteProductIds = useSelector(state => state.favorites.productIds ?? []);
   const stores = useSelector(state => state.catalog.stores);
@@ -159,36 +160,68 @@ export default function RestaurantScreen() {
     }
   }, [id, dispatch]);
 
-  const restaurant = stores.find(s => s.store_id == id);
-  const isClosed = isRestaurantClosed(restaurant);
+  const restaurant = useMemo(() => stores.find(s => Number(s.store_id) === Number(id)), [stores, id]);
+  const isClosed = useMemo(() => isRestaurantClosed(restaurant), [restaurant]);
 
-  const restaurantProducts = products.filter(p => {
-    // Robust numeric comparison to avoid ID mix-ups
-    const pStoreId = Number(p.restaurantId || p.store_id);
+  const restaurantProducts = useMemo(() => {
     const targetId = Number(id);
-    return pStoreId === targetId;
-  });
+    return products.filter(p => {
+      const pStoreId = Number(p.restaurantId || p.store_id);
+      return pStoreId === targetId;
+    });
+  }, [products, id]);
 
   const allCategories = useSelector(state => state.catalog.categories);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
-  const restaurantCategories = allCategories.filter(cat => {
-    const catId = cat.category_id || cat.id;
-    return restaurantProducts.some(p => Number(p.category_id) === Number(catId));
-  });
+  const restaurantCategories = useMemo(() => {
+    const prodCatIds = new Set(restaurantProducts.map(p => Number(p.category_id)));
+    return allCategories.filter(cat => {
+      const catId = Number(cat.category_id || cat.id);
+      return prodCatIds.has(catId);
+    });
+  }, [allCategories, restaurantProducts]);
 
-  const categoriesToRender = [
+  const categoriesToRender = useMemo(() => [
     { category_id: null, name: locale === 'uk' ? 'Усі' : 'All', sticker: '🍽️' },
     ...restaurantCategories.map(c => ({
       category_id: c.category_id || c.id,
       name: c.name,
       sticker: c.sticker || '🍽️'
     }))
-  ];
+  ], [restaurantCategories, locale]);
 
-  const filteredProducts = selectedCategoryId
-    ? restaurantProducts.filter(p => Number(p.category_id) === Number(selectedCategoryId))
-    : restaurantProducts;
+  const filteredProducts = useMemo(() => {
+    if (!selectedCategoryId) return restaurantProducts;
+    return restaurantProducts.filter(p => Number(p.category_id) === Number(selectedCategoryId));
+  }, [restaurantProducts, selectedCategoryId]);
+
+  const flatData = useMemo(() => {
+    const list = [];
+    restaurantCategories.forEach((cat, index) => {
+      const catId = cat.category_id || cat.id;
+      const catProducts = filteredProducts.filter(p => Number(p.category_id) === Number(catId));
+      if (catProducts.length === 0) return;
+
+      list.push({
+        type: 'header',
+        id: `header-${catId}`,
+        catId,
+        catName: cat.name,
+        catSticker: cat.sticker || '🍽️',
+        showDivider: selectedCategoryId === null && index > 0,
+      });
+
+      catProducts.forEach(product => {
+        list.push({
+          type: 'product',
+          id: product.product_id,
+          product,
+        });
+      });
+    });
+    return list;
+  }, [restaurantCategories, filteredProducts, selectedCategoryId]);
 
   const getQty = (prodId) => {
     const item = cartItems.find(i => i.product_id === prodId);
@@ -197,13 +230,164 @@ export default function RestaurantScreen() {
 
   if (!restaurant) return null;
 
+  const renderHeader = () => (
+    <View style={{ backgroundColor: theme.background }}>
+      {/* Картинка */}
+      <View style={{ position: 'relative' }}>
+        <Image source={{ uri: restaurant.image }} style={styles.image} />
+        {isClosed && (
+          <View style={styles.closedOverlayDetail}>
+            <View style={styles.closedTextBgDetail}>
+              <Ionicons name="lock-closed" size={20} color="white" style={{ marginRight: 6 }} />
+              <Text style={styles.closedTextDetail}>Наразі ресторан зачинений</Text>
+            </View>
+          </View>
+        )}
+        <View style={styles.backButton}>
+          <BackButton color="white" />
+        </View>
+      </View>
+
+      {/* Інформація про заклад */}
+      <View style={[styles.infoContainer, { backgroundColor: theme.background }]}>
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { color: theme.text, flex: 1 }]}>{restaurant.name}</Text>
+          <TouchableOpacity onPress={() => dispatch(toggleFavorite(Number(id)))}>
+            <Ionicons
+              name={isFavorite ? "star" : "star-outline"}
+              size={28}
+              color="#FFD700"
+              style={{ marginLeft: 10 }}
+            />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.metaText}>{restaurant.delivery_time}</Text>
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'restaurantMenu')}</Text>
+
+      {/* Горизонтальний повзунок категорій */}
+      {restaurantCategories.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContainer}
+          style={styles.categoriesScroll}
+        >
+          {categoriesToRender.map(cat => {
+            const isSelected = selectedCategoryId === cat.category_id;
+            return (
+              <TouchableOpacity
+                key={cat.category_id ?? 'all'}
+                style={[
+                  styles.categoryBtn,
+                  { backgroundColor: isSelected ? theme.primary : theme.card }
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSelectedCategoryId(cat.category_id);
+                }}
+              >
+                <Text style={styles.categorySticker}>{cat.sticker}</Text>
+                <Text
+                  style={[
+                    styles.categoryBtnText,
+                    { color: isSelected ? 'white' : theme.text }
+                  ]}
+                >
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      {/* Стан завантаження */}
+      {isLoading && restaurantProducts.length === 0 ? (
+        <View style={{ padding: 40, alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'loading') || 'Завантаження...'}</Text>
+        </View>
+      ) : null}
+
+      {filteredProducts.length === 0 && !isLoading ? (
+        <View style={{ padding: 40, alignItems: 'center' }}>
+          <Ionicons name="fast-food-outline" size={48} color="gray" />
+          <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'noProducts') || 'Товарів не знайдено'}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+
+  const renderItem = ({ item }) => {
+    if (item.type === 'header') {
+      return (
+        <View style={styles.categorySection}>
+          {item.showDivider && (
+            <View style={[styles.categoryDivider, { backgroundColor: theme.input }]} />
+          )}
+          <View style={styles.categoryHeaderRow}>
+            <Text style={styles.categoryHeaderSticker}>{item.catSticker}</Text>
+            <Text style={[styles.categoryHeaderTitle, { color: theme.text }]}>
+              {item.catName}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    const product = item.product;
+    const qty = getQty(product.product_id);
+    const isFavProd = favoriteProductIds.includes(product.product_id);
+
+    return (
+      <ProductCardItem
+        product={product}
+        theme={theme}
+        locale={locale}
+        qty={qty}
+        isFavProd={isFavProd}
+        onSelect={setSelectedProduct}
+        onAddToCart={(p) => {
+          if (isClosed) {
+            Alert.alert(
+              'Ресторан зачинено',
+              'Цей ресторан наразі зачинений і не приймає замовлень.'
+            );
+            return;
+          }
+          dispatch(tryAddToCart(p));
+        }}
+        onRemoveFromCart={(productId) => {
+          const itemInCart = cartItems.find(i => i.product_id === productId);
+          if (itemInCart) {
+            if (itemInCart.quantity > 1) {
+              dispatch(decrementItem(itemInCart.cartKey));
+            } else {
+              dispatch(removeFromCart(productId));
+            }
+          }
+        }}
+        onToggleFav={(id) => dispatch(toggleFavoriteProduct(id))}
+      />
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="light-content" />
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
+      <FlatList
+        data={flatData}
+        renderItem={renderItem}
+        keyExtractor={item => item.id.toString()}
+        ListHeaderComponent={renderHeader}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
+        initialNumToRender={6}
+        maxToRenderPerBatch={8}
+        windowSize={5}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -212,163 +396,14 @@ export default function RestaurantScreen() {
             colors={[theme.primary]}
           />
         }
-      >
-        {/* Картинка */}
-        <View style={{ position: 'relative' }}>
-          <Image source={{ uri: restaurant.image }} style={styles.image} />
-          {isClosed && (
-            <View style={styles.closedOverlayDetail}>
-              <View style={styles.closedTextBgDetail}>
-                <Ionicons name="lock-closed" size={20} color="white" style={{ marginRight: 6 }} />
-                <Text style={styles.closedTextDetail}>Наразі ресторан зачинений</Text>
-              </View>
-            </View>
-          )}
-          <View style={styles.backButton}>
-            <BackButton color="white" />
-          </View>
-        </View>
-
-        {/* Інформація про заклад */}
-        <View style={[styles.infoContainer, { backgroundColor: theme.background }]}>
-
-          {/* 👇 3. Рядок з Назвою і Зірочкою (Те, що ти просив) */}
-          <View style={styles.titleRow}>
-            <Text style={[styles.title, { color: theme.text, flex: 1 }]}>{restaurant.name}</Text>
-
-            <TouchableOpacity onPress={() => dispatch(toggleFavorite(Number(id)))}>
-              <Ionicons
-                name={isFavorite ? "star" : "star-outline"}
-                size={28}
-                color="#FFD700"
-                style={{ marginLeft: 10 }}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.metaText}>{restaurant.delivery_time}</Text>
-        </View>
-
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'restaurantMenu')}</Text>
-
-        {/* Горизонтальний повзунок категорій */}
-        {restaurantCategories.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesContainer}
-            style={styles.categoriesScroll}
-          >
-            {categoriesToRender.map(cat => {
-              const isSelected = selectedCategoryId === cat.category_id;
-              return (
-                <TouchableOpacity
-                  key={cat.category_id ?? 'all'}
-                  style={[
-                    styles.categoryBtn,
-                    { backgroundColor: isSelected ? theme.primary : theme.card }
-                  ]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setSelectedCategoryId(cat.category_id);
-                  }}
-                >
-                  <Text style={styles.categorySticker}>{cat.sticker}</Text>
-                  <Text
-                    style={[
-                      styles.categoryBtnText,
-                      { color: isSelected ? 'white' : theme.text }
-                    ]}
-                  >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        )}
-
-        {/* Список товарів */}
-        {isLoading && restaurantProducts.length === 0 ? (
-          <View style={{ padding: 40, alignItems: 'center' }}>
-            <Loader2 />
-            <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'loading') || 'Завантаження...'}</Text>
-          </View>
-        ) : null}
-
-        {filteredProducts.length === 0 && !isLoading ? (
-          <View style={{ padding: 40, alignItems: 'center' }}>
-            <Ionicons name="fast-food-outline" size={48} color="gray" />
-            <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'noProducts') || 'Товарів не знайдено'}</Text>
-          </View>
-        ) : null}
-
-        {restaurantCategories.map((cat, index) => {
-          const catId = cat.category_id || cat.id;
-          const catProducts = filteredProducts.filter(p => Number(p.category_id) === Number(catId));
-          if (catProducts.length === 0) return null;
-
-          return (
-            <View key={catId} style={styles.categorySection}>
-              {selectedCategoryId === null && index > 0 && (
-                <View style={[styles.categoryDivider, { backgroundColor: theme.input }]} />
-              )}
-
-              <View style={styles.categoryHeaderRow}>
-                <Text style={styles.categoryHeaderSticker}>{cat.sticker || '🍽️'}</Text>
-                <Text style={[styles.categoryHeaderTitle, { color: theme.text }]}>
-                  {cat.name}
-                </Text>
-              </View>
-
-              {catProducts.map((product) => {
-                const qty = getQty(product.product_id);
-                const isFavProd = favoriteProductIds.includes(product.product_id);
-
-                return (
-                  <ProductCardItem
-                    key={product.product_id}
-                    product={product}
-                    theme={theme}
-                    locale={locale}
-                    qty={qty}
-                    isFavProd={isFavProd}
-                    onSelect={setSelectedProduct}
-                    onAddToCart={(p) => {
-                      if (isClosed) {
-                        Alert.alert(
-                          'Ресторан зачинено',
-                          'Цей ресторан наразі зачинений і не приймає замовлень.'
-                        );
-                        return;
-                      }
-                      dispatch(tryAddToCart(p));
-                    }}
-                    onRemoveFromCart={(productId) => {
-                      const itemInCart = cartItems.find(i => i.product_id === productId);
-                      if (itemInCart) {
-                        if (itemInCart.quantity > 1) {
-                          dispatch(decrementItem(itemInCart.cartKey));
-                        } else {
-                          dispatch(removeFromCart(productId));
-                        }
-                      }
-                    }}
-                    onToggleFav={(id) => dispatch(toggleFavoriteProduct(id))}
-                  />
-                );
-              })}
-            </View>
-          );
-        })}
-      </ScrollView>
+      />
 
 
       {/* Плаваюча кнопка Кошика */}
-      {totalAmount > 0 && (
+      {cartSubtotal > 0 && (
         <View style={styles.floatingCartContainer}>
           <TouchableOpacity style={[styles.viewCartBtn, { backgroundColor: theme.primary, shadowColor: theme.primary }]} onPress={() => router.push('/cart')}>
-            <Text style={styles.viewCartText}>{locale === 'en' ? 'To cart:' : 'У кошик:'} {formatPrice(totalAmount)} {locale === 'en' ? 'UAH' : 'грн'}</Text>
+            <Text style={styles.viewCartText}>{locale === 'en' ? 'To cart:' : 'У кошик:'} {formatPrice(cartSubtotal)} {locale === 'en' ? 'UAH' : 'грн'}</Text>
           </TouchableOpacity>
         </View>
       )}

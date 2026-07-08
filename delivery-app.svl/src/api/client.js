@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import { getStore } from './storeRef';
 
 // ─── Change this to your real backend URL ───────────────────────────────────
@@ -12,6 +12,9 @@ export const TOKEN_KEY = 'delivery_app_token';
 export const REFRESH_TOKEN_KEY = 'delivery_app_refresh_token';
 
 const isWeb = Platform.OS === 'web';
+
+let failureTimestamps = [];
+let lastAlertTime = 0;
 
 /** Persist the JWT after a successful login / verify */
 export const saveToken = async (token, refreshToken) => {
@@ -78,6 +81,21 @@ const client = axios.create({
 // ── Request interceptor: attach Bearer token automatically & Logging ───────
 client.interceptors.request.use(
     async (config) => {
+        const now = Date.now();
+        failureTimestamps = failureTimestamps.filter(t => now - t < 10000);
+        if (failureTimestamps.length >= 3) {
+            if (now - lastAlertTime > 10000) {
+                lastAlertTime = now;
+                Alert.alert(
+                    'Зв\'язок із сервером',
+                    'Наразі сервер не відповідає, треба трохи зачекати.'
+                );
+            }
+            const rateLimitError = new Error('Наразі сервер не відповідає, треба трохи зачекати.');
+            rateLimitError.config = { ...config, _blockedByRateLimit: true };
+            return Promise.reject(rateLimitError);
+        }
+
         const token = await getToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -113,6 +131,9 @@ const processQueue = (error, token = null) => {
 
 client.interceptors.response.use(
     (response) => {
+        // Reset failures on success
+        failureTimestamps = [];
+
         // Reset offline status on any successful API call
         const store = getStore();
         if (store) {
@@ -123,6 +144,34 @@ client.interceptors.response.use(
     },
     async (error) => {
         const originalRequest = error.config;
+
+        if (originalRequest?._blockedByRateLimit) {
+            return Promise.reject(error);
+        }
+
+        // Track failures: no response or 5xx status code
+        const isFailedServerOrNetworkRequest = !error.response || (error.response.status >= 500 && error.response.status <= 599);
+        if (isFailedServerOrNetworkRequest) {
+            const isGetRequest = originalRequest && originalRequest.method?.toLowerCase() === 'get';
+            const isNetworkOr5xxError = !error.response || (error.response.status >= 500 && error.response.status <= 504);
+            const willRetry = isGetRequest && isNetworkOr5xxError && !originalRequest?._skipRetry && (originalRequest._retryCount || 0) < 3;
+
+            if (!willRetry) {
+                const now = Date.now();
+                failureTimestamps.push(now);
+                failureTimestamps = failureTimestamps.filter(t => now - t < 10000);
+                
+                if (failureTimestamps.length >= 3) {
+                    if (now - lastAlertTime > 10000) {
+                        lastAlertTime = now;
+                        Alert.alert(
+                            'Зв\'язок із сервером',
+                            'Наразі сервер не відповідає, треба трохи зачекати.'
+                        );
+                    }
+                }
+            }
+        }
 
         // Auto-retry for GET requests on transient network or 5xx server issues
         const isGetRequest = originalRequest && originalRequest.method?.toLowerCase() === 'get';

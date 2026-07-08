@@ -2,7 +2,7 @@
   "expo": {
     "name": "K&M",
     "slug": "delivery-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "scheme": "delivery-app",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
@@ -34,7 +34,8 @@
       }
     },
     "android": {
-      "package": "com.murzik7348",
+      "package": "delivery.andi.app",
+      "versionCode": 2,
       "googleServicesFile": "./google-services.json",
       "config": {
         "googleMaps": {
@@ -62,7 +63,6 @@
     ],
     "plugins": [
       "@react-native-firebase/app",
-      "./plugins/withLiveActivity",
       "@react-native-community/datetimepicker",
       [
         "expo-build-properties",

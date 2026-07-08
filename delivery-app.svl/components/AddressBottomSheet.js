@@ -45,8 +45,14 @@ export default function AddressBottomSheet({ visible, onClose }) {
 
     const panResponder = useRef(
         PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
+            onStartShouldSetPanResponder: (evt) => {
+                const { locationY } = evt.nativeEvent;
+                return locationY < 80;
+            },
+            onMoveShouldSetPanResponder: (evt, gestureState) => {
+                const { locationY } = evt.nativeEvent;
+                return locationY < 80 && Math.abs(gestureState.dy) > 5;
+            },
             onPanResponderGrant: () => {
                 translateY.stopAnimation();
                 Animated.spring(activeScale, { toValue: 1.3, friction: 8, useNativeDriver: true }).start();

@@ -109,3 +109,10 @@ export const uploadAvatar = (formData) =>
             'Content-Type': 'multipart/form-data',
         },
     });
+
+/**
+ * Delete the currently authenticated user's account.
+ * @param {Object} data - AuthDeleteMeRequest { password: string }
+ */
+export const deleteMe = (data = {}) => client.delete('/auth/me', { data });
+

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useState, useRef, useEffect } from 'react';
-import { Alert, ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Platform } from 'react-native';
+import { Alert, ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Platform, Linking } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,7 +13,7 @@ import { t } from '../constants/translations';
 import { fetchMe, logoutUser, removeAddress } from '../store/authSlice';
 import { clearOrders } from '../store/ordersSlice';
 import { clearCourierState } from '../store/courierSlice';
-import { deleteAddress as apiDeleteAddress, getAddresses } from '../src/api';
+import { deleteAddress as apiDeleteAddress, getAddresses, deleteMe as apiDeleteMe } from '../src/api';
 import { persistor } from '../store/index';
 
 import { resolveImageUrl } from '../src/api/client';
@@ -142,6 +142,47 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      locale === 'en' ? 'Delete Account' : 'Видалення акаунту',
+      locale === 'en'
+        ? 'Are you sure you want to delete your account? This action is permanent and cannot be undone.'
+        : 'Ви впевнені, що хочете видалити свій акаунт? Цю дію неможливо буде скасувати, а всі ваші дані будуть безповоротно видалені.',
+      [
+        { text: locale === 'en' ? 'Cancel' : 'Скасувати', style: 'cancel' },
+        {
+          text: locale === 'en' ? 'Delete' : 'Видалити',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiDeleteMe();
+              Alert.alert(
+                locale === 'en' ? 'Success' : 'Успішно',
+                locale === 'en' ? 'Your account has been deleted.' : 'Ваш акаунт успішно видалено.'
+              );
+            } catch (err) {
+              console.warn('[Profile] deleteAccount API error:', err.message);
+              Alert.alert(
+                locale === 'en' ? 'Error' : 'Помилка',
+                locale === 'en' ? 'Failed to delete account on server.' : 'Не вдалося видалити акаунт на сервері.'
+              );
+            } finally {
+              dispatch(logoutUser());
+              dispatch(clearOrders());
+              dispatch(clearCourierState());
+              try {
+                await persistor.purge();
+              } catch (e) {
+                console.warn('[Profile] persistor.purge failed:', e);
+              }
+            }
+          }
+        }
+      ]
+    );
+  };
+
+
   const handleDeleteAddress = (id) => {
     Alert.alert('Видалення', 'Видалити цю адресу?', [
       { text: 'Ні', style: 'cancel' },
@@ -260,21 +301,6 @@ export default function ProfileScreen() {
 
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{t(locale, 'activity').toUpperCase()}</Text>
           <View style={[styles.section, { backgroundColor: theme.card }]}>
-            {(() => {
-              const role = String(user?.role || '').toLowerCase().trim();
-              return role === 'courier' || 
-                     role === 'курєр' || 
-                     role === 'кур\'єр' || 
-                     role === 'кур’єр' || 
-                     role === 'кур`єр' || 
-                     Number(user?.role) === 1;
-            })() && (
-              <MenuItem
-                icon="bicycle-outline"
-                label={locale === 'en' ? 'Courier Delivery' : 'Доставка кур\'єром'}
-                onPress={() => router.push('/courier')}
-              />
-            )}
             <MenuItem icon="receipt-outline" label={t(locale, 'myOrders')} onPress={() => router.push('/orders')} />
             <MenuItem
               icon="heart-outline"
@@ -295,6 +321,44 @@ export default function ProfileScreen() {
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
             <Text style={styles.logoutText}>{t(locale, 'logout')}</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={{ 
+              marginHorizontal: 16, 
+              marginTop: 12, 
+              padding: 16, 
+              borderRadius: 16, 
+              borderWidth: 1, 
+              borderColor: 'rgba(255, 0, 0, 0.3)', 
+              alignItems: 'center' 
+            }} 
+            activeOpacity={0.8}
+            onPress={handleDeleteAccount}
+          >
+            <Text style={{ color: 'red', fontSize: 16, fontWeight: 'bold' }}>
+              {locale === 'en' ? 'Delete Account' : 'Видалити акаунт'}
+            </Text>
+          </TouchableOpacity>
+
+
+          <TouchableOpacity 
+            style={{ 
+              alignItems: 'center', 
+              marginTop: 20, 
+              paddingVertical: 8 
+            }} 
+            activeOpacity={0.7}
+            onPress={() => {
+              Linking.openURL('https://andi.delivery/privacy.html').catch(() => 
+                Alert.alert('Помилка', 'Не вдалося відкрити посилання.')
+              );
+            }}
+          >
+            <Text style={{ color: theme.textSecondary, fontSize: 14, textDecorationLine: 'underline' }}>
+              {locale === 'en' ? 'Privacy Policy' : 'Політика конфіденційності'}
+            </Text>
+          </TouchableOpacity>
+
           <Text style={[styles.version, { color: theme.textSecondary }]}>{t(locale, 'version')}</Text>
 
         </ScrollView>

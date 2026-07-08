@@ -1,4 +1,3 @@
-import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { getToken, BASE_URL } from '../src/api/client';
@@ -14,29 +13,24 @@ export const calculateReceiptBreakdown = (order) => {
     }, 0);
     
     const total = Number(order.totalPrice ?? order.total ?? 0);
-    const difference = Math.max(0, total - itemsSubtotal);
-    
-    let deliveryFee = 0;
-    let commissionFee = 0;
     
     // Check if it's a pickup order
     const isPickup = order.address === 'Самовивіз (з ресторану)' || 
                      (order.description && order.description.includes('[САМОВИВІЗ]')) ||
                      (order.note && order.note.includes('[САМОВИВІЗ]'));
     
-    if (isPickup) {
-        deliveryFee = 0;
-        commissionFee = difference;
-    } else {
-        // If it's delivery: base delivery fee is 50 UAH. Any remaining difference is commission.
-        if (difference > 50) {
-            deliveryFee = 50;
-            commissionFee = difference - 50;
-        } else {
-            deliveryFee = difference;
-            commissionFee = 0;
+    let deliveryFee = 0;
+    if (!isPickup) {
+        // Read delivery fee directly from order (which includes any applied coefficients)
+        deliveryFee = Number(order.deliveryFee ?? order.delivery ?? order.deliveryFeeAmount ?? 0);
+        // Fallback to difference if deliveryFee is not stored/available
+        if (deliveryFee <= 0) {
+            const difference = Math.max(0, total - itemsSubtotal);
+            deliveryFee = difference > 50 ? 50 : difference;
         }
     }
+    
+    const commissionFee = Math.max(0, total - itemsSubtotal - deliveryFee);
     
     return {
         subtotal: itemsSubtotal,
@@ -300,6 +294,29 @@ class ReceiptService {
                 </html>
             `;
             
+            let Print;
+            let Alert;
+            try {
+                Print = require('expo-print');
+                Alert = require('react-native').Alert;
+            } catch (e) {
+                console.warn('[ReceiptService] expo-print or react-native module is not available');
+            }
+
+            if (!Print || !Print.printToFileAsync) {
+                if (Alert) {
+                    Alert.alert(
+                        isEn ? 'Error' : 'Помилка',
+                        isEn 
+                            ? 'Printing and receipt generation is not supported on this device.'
+                            : 'Друк та генерація чеку не підтримуються на цьому пристрої.'
+                    );
+                } else {
+                    console.warn('[ReceiptService] Print or Alert is missing');
+                }
+                return;
+            }
+
             const { uri } = await Print.printToFileAsync({ html: htmlContent });
             
             if (await Sharing.isAvailableAsync()) {

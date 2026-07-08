@@ -343,9 +343,26 @@ class OrderService {
             parsedCourierPhoto = resolveImageUrl(parsedCourierPhoto);
         }
 
+        let finalEstimatedMinutes = item.estimatedMinutes;
+        let finalEstimatedDeliveryTime = item.estimatedDeliveryTime;
+
+        if (item.estimatedReadyAt) {
+            const readyDate = new Date(item.estimatedReadyAt);
+            const now = new Date();
+            
+            // Calculate remaining minutes from now
+            const diffMs = readyDate.getTime() - now.getTime();
+            finalEstimatedMinutes = Math.max(1, Math.round(diffMs / 60000));
+            
+            const transitMinutes = isPickupOrder ? 0 : 15;
+            finalEstimatedDeliveryTime = new Date(readyDate.getTime() + transitMinutes * 60000).toISOString();
+        }
+
         return {
             ...item,
             paymentMethod: paymentMethodStr,
+            estimatedMinutes: finalEstimatedMinutes,
+            estimatedDeliveryTime: finalEstimatedDeliveryTime,
             id,
             deliveryId: item.deliveryId || item.id,
             status,
@@ -398,6 +415,10 @@ class OrderService {
             customerLatitude,
             customerLongitude,
             courierLatitude: Number(
+                courierObj?.latitude ||
+                courierObj?.lat ||
+                courierObj?.location?.latitude ||
+                courierObj?.location?.lat ||
                 item.courier?.latitude ||
                 item.courier?.lat ||
                 item.courier?.location?.latitude ||
@@ -408,13 +429,17 @@ class OrderService {
                 0
             ),
             courierLongitude: Number(
+                courierObj?.longitude ||
+                courierObj?.lng ||
+                courierObj?.location?.longitude ||
+                courierObj?.location?.lng ||
                 item.courier?.longitude ||
                 item.courier?.lng ||
                 item.courier?.location?.longitude ||
                 item.courier?.location?.lng ||
                 item.courierLongitude ||
                 item.courierLocation?.longitude ||
-            item.courierLocation?.lng ||
+                item.courierLocation?.lng ||
                 0
             ),
             courierName: parsedCourierName,

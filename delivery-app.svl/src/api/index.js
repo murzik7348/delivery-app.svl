@@ -13,6 +13,7 @@ export {
     updatePushToken,
     sendTestPushNotification,
     uploadAvatar,
+    deleteMe,
 } from './auth';
 
 // ── Address ──────────────────────────────────────────────────────────────────

@@ -11,14 +11,12 @@ try {
   // Silent fallback
 }
 
-import '../services/BackgroundLocationTask';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { PersistGate } from 'redux-persist/integration/react';
 import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Constants from 'expo-constants';
 import usePushNotifications from '../hooks/usePushNotifications';
-import useCourierLocation from '../hooks/useCourierLocation';
 // import useLiveActivitySync from '../hooks/useLiveActivitySync';
 import { fetchAddresses, fetchMe } from '../store/authSlice';
 import { fetchOrders } from '../store/ordersSlice';
@@ -125,7 +123,6 @@ function AppStartup() {
   const dispatch = useDispatch();
   const isAuthenticated = useSelector(s => s.auth?.isAuthenticated);
   const { expoPushToken } = usePushNotifications();
-  useCourierLocation();
   const router = useRouter();
   const segments = useSegments();
   const pathname = usePathname();

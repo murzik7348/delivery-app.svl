@@ -97,9 +97,7 @@ export default function BottomBar() {
     { name: 'orders', route: '/orders', icon: 'receipt', label: t(locale, 'myOrders'), badge: activeOrdersCount, type: 'orders' },
   ];
 
-  if (isCourier) {
-    tabs.push({ name: 'courier', route: '/courier', icon: 'bicycle', label: locale === 'en' ? 'Delivery' : 'Доставка', badge: courierCount, type: 'courier' });
-  }
+
 
   const navigate = (route) => {
     // If it's already the current route, don't push
