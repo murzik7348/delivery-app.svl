@@ -39,20 +39,6 @@ function OrdersBadge({ color, focused, count }) {
   );
 }
 
-function CourierBadge({ color, focused, count }) {
-  const colorScheme = useColorScheme();
-  return (
-    <View style={styles.iconContainer}>
-      <Ionicons name={focused ? 'bicycle' : 'bicycle-outline'} size={24} color={color} />
-      {count > 0 && (
-        <View style={[styles.badge, { backgroundColor: '#2ecc71', borderColor: colorScheme === 'dark' ? '#171717' : '#ffffff' }]}>
-          <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
-        </View>
-      )}
-    </View>
-  );
-}
-
 export default function BottomBar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -74,19 +60,6 @@ export default function BottomBar() {
     const statusNum = Number(o.statusDelivery || o.status || 0);
     return statusNum > 0 && statusNum < 6;
   }).length;
-
-  const availableCourierOrders = useSelector((s) => s.courier.availableOrders || []);
-  const courierCount = availableCourierOrders.length;
-
-  const isCourier = (() => {
-    const role = String(user?.role || '').toLowerCase().trim();
-    return role === 'courier' || 
-           role === 'курєр' || 
-           role === 'кур\'єр' || 
-           role === 'кур’єр' || 
-           role === 'кур`єр' || 
-           Number(user?.role) === 1;
-  })();
 
   // Define tabs
   const tabs = [
@@ -148,7 +121,6 @@ export default function BottomBar() {
 
         if (tab.type === 'cart') IconComponent = <CartBadge color={color} focused={focused} count={tab.badge} />;
         if (tab.type === 'orders') IconComponent = <OrdersBadge color={color} focused={focused} count={tab.badge} />;
-        if (tab.type === 'courier') IconComponent = <CourierBadge color={color} focused={focused} count={tab.badge} />;
 
         return (
           <TouchableOpacity

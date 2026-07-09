@@ -50,18 +50,7 @@ export {
     toggleDeliveryCoefficientActivityAdmin,
 } from './delivery';
 
-// ── Courier ──────────────────────────────────────────────────────────────────
-export {
-    getCourierDeliveries,
-    getCourierDeliveriesMy,
-    courierAcceptDelivery,
-    courierBookDelivery,
-    courierPickupDelivery,
-    courierConfirmDelivery,
-    courierSetOnlineStatus,
-    getCourierShiftStatus,
-    courierUpdateLocation,
-} from './courier';
+
 
 // ── Restaurant ───────────────────────────────────────────────────────────────
 export {

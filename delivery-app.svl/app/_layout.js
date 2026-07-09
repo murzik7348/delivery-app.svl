@@ -194,7 +194,7 @@ export default function RootLayout() {
   const { fontsLoaded, fontError } = useAppFonts();
 
   const pathname = usePathname();
-  const mainScreens = ['/home', '/catalog', '/favorites', '/cart', '/orders', '/profile', '/courier'];
+  const mainScreens = ['/home', '/catalog', '/favorites', '/cart', '/orders', '/profile'];
   const showBottomBar = mainScreens.includes(pathname);
 
   const [transitionAnimation, setTransitionAnimation] = useState('slide_from_right');

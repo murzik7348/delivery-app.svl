@@ -14,7 +14,7 @@ import languageReducer from './languageSlice';
 import uiReducer from './uiSlice';
 import aiReducer from './aiSlice';
 import catalogReducer from './catalogSlice';
-import courierReducer from './courierSlice';
+
 
 const appReducer = combineReducers({
   auth: authReducer,
@@ -28,7 +28,7 @@ const appReducer = combineReducers({
   ui: uiReducer,
   ai: aiReducer,
   catalog: catalogReducer,
-  courier: courierReducer,
+
 });
 
 const rootReducer = (state, action) => {

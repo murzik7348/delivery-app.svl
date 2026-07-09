@@ -12,7 +12,7 @@ import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import { fetchMe, logoutUser, removeAddress } from '../store/authSlice';
 import { clearOrders } from '../store/ordersSlice';
-import { clearCourierState } from '../store/courierSlice';
+
 import { deleteAddress as apiDeleteAddress, getAddresses, deleteMe as apiDeleteMe } from '../src/api';
 import { persistor } from '../store/index';
 
@@ -131,7 +131,7 @@ export default function ProfileScreen() {
       { text: t(locale, 'yes') ?? 'Так', style: 'destructive', onPress: async () => {
         dispatch(logoutUser());
         dispatch(clearOrders());
-        dispatch(clearCourierState());
+
         // Force purge of persistent storage to prevent data leakage between accounts
         try {
           await persistor.purge();
@@ -169,7 +169,7 @@ export default function ProfileScreen() {
             } finally {
               dispatch(logoutUser());
               dispatch(clearOrders());
-              dispatch(clearCourierState());
+
               try {
                 await persistor.purge();
               } catch (e) {
