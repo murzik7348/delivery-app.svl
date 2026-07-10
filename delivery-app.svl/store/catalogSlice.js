@@ -63,7 +63,14 @@ const catalogSlice = createSlice({
                 if (c) state.categories = c;
                 if (p) state.promotions = p;
                 if (s) state.stores = s;
-                if (pr) state.products = pr;
+                if (pr) {
+                    const productMap = new Map();
+                    pr.forEach(prod => {
+                        const id = prod.product_id || prod.id;
+                        if (id) productMap.set(String(id), prod);
+                    });
+                    state.products = Array.from(productMap.values());
+                }
             })
             .addCase(fetchCatalog.rejected, (state, action) => {
                 state.isLoading = false;
@@ -75,9 +82,14 @@ const catalogSlice = createSlice({
                 if (newProducts.length === 0) return;
 
                 // Merge products: replace existing ones with same ID, add new ones
-                const productMap = new Map(state.products.map(p => [p.product_id, p]));
+                const productMap = new Map();
+                state.products.forEach(p => {
+                    const id = p.product_id || p.id;
+                    if (id) productMap.set(String(id), p);
+                });
                 newProducts.forEach(p => {
-                    productMap.set(p.product_id, p);
+                    const id = p.product_id || p.id;
+                    if (id) productMap.set(String(id), p);
                 });
                 state.products = Array.from(productMap.values());
             });
