@@ -2,7 +2,7 @@
   "expo": {
     "name": "K&M",
     "slug": "delivery-app",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "scheme": "delivery-app",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
@@ -20,14 +20,13 @@
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": false,
       "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
-        },
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
           "fetch"
         ],
-        "NSLocationWhenInUseUsageDescription": "Додаток потребує доступу до геопозиції для показу вашої позиції на карті та вибору адреси доставки."
+        "NSLocationWhenInUseUsageDescription": "Додаток потребує доступу до геопозиції для показу вашої позиції на карті та вибору адреси доставки.",
+        "NSPhotoLibraryUsageDescription": "Додаток потребує доступу до вашої галереї фото для вибору аватарки вашого профілю.",
+        "NSCameraUsageDescription": "Додаток потребує доступу до вашої камери для створення фото профілю."
       }
     },
     "android": {
@@ -79,7 +78,14 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-location",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Додаток потребує доступу до вашої галереї фото для вибору аватарки вашого профілю.",
+          "cameraPermission": "Додаток потребує доступу до вашої камери для створення фото профілю."
+        }
+      ]
     ],
     "extra": {
       "eas": {
