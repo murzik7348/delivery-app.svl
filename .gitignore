@@ -19,3 +19,11 @@ buildServer.json
 # Local testing helpers
 geolocations/
 
+# Ignore heavy binaries and platform folders for EAS
+*.aab
+*.ipa
+*.apk
+ios/
+android/
+**/ios/
+**/android/

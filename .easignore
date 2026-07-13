@@ -1,0 +1,17 @@
+# Ignore everything not needed for Expo EAS builds in the repo
+node_modules/
+.expo/
+ios/
+android/
+**/ios/
+**/android/
+*.aab
+*.ipa
+*.apk
+.agents/
+.gemini/
+.agent/
+geolocations/
+build/
+dist/
+bin/
