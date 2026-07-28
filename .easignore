@@ -1,4 +1,4 @@
-# Ignore everything not needed for Expo EAS builds in the repo
+# Ignore everything not needed for Expo EAS builds
 node_modules/
 .expo/
 ios/
@@ -8,10 +8,22 @@ android/
 *.aab
 *.ipa
 *.apk
+app-release.aab
 .agents/
 .gemini/
 .agent/
 geolocations/
+phot/
+photo/
 build/
 dist/
 bin/
+backEnd.json
+BackEnd.json
+rutenia_food_catalog.json
+get-courier-details.js
+test-api-users.js
+test-courier-push.js
+test-fcm.js
+ssh-run.exp
+svl.geojson

@@ -43,6 +43,11 @@ export default function AddressBottomSheet({ visible, onClose }) {
         });
     };
 
+    const handleDismissRef = useRef(handleDismiss);
+    useEffect(() => {
+        handleDismissRef.current = handleDismiss;
+    });
+
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: (evt) => {
@@ -68,7 +73,7 @@ export default function AddressBottomSheet({ visible, onClose }) {
             onPanResponderRelease: (_, gestureState) => {
                 Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
                 if (gestureState.vy > 0.5 || gestureState.dy > SHEET_HEIGHT * 0.35) {
-                    handleDismiss();
+                    if (handleDismissRef.current) handleDismissRef.current();
                 } else {
                     Animated.spring(translateY, {
                         toValue: 0,

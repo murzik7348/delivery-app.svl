@@ -26,6 +26,7 @@ export default function BackButton({ color, onPress }) {
       style={styles.btn}
       activeOpacity={0.7}
       onPress={handlePress}
+      hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
     >
       <Ionicons name="arrow-back" size={26} color={activeColor} />
     </TouchableOpacity>

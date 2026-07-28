@@ -4,14 +4,26 @@ import CatalogService from '../services/CatalogService';
 // ── Async Thunk ───────────────────────────────────────────────────────────────
 export const fetchCatalog = createAsyncThunk(
     'catalog/fetchCatalog',
-    async (_, { rejectWithValue }) => {
+    async (_arg, { rejectWithValue }) => {
         try {
             return await CatalogService.fetchFullCatalog();
         } catch (err) {
             return rejectWithValue(err.message);
         }
+    },
+    {
+        // Skip if already loading OR data is fresh (< 5 minutes old)
+        // Pass { forceRefresh: true } to bypass the cache
+        condition: (arg, { getState }) => {
+            const { catalog } = getState();
+            if (catalog.isLoading) return false;
+            if (arg?.forceRefresh) return true;
+            if (catalog.lastFetched && Date.now() - catalog.lastFetched < 5 * 60 * 1000) return false;
+            return true;
+        },
     }
 );
+
 
 export const fetchRestaurantProducts = createAsyncThunk(
     'catalog/fetchRestaurantProducts',
@@ -32,6 +44,7 @@ const initialState = {
     products: [],
     isLoading: false,
     error: null,
+    lastFetched: null,
 };
 
 const catalogSlice = createSlice({
@@ -59,6 +72,7 @@ const catalogSlice = createSlice({
             })
             .addCase(fetchCatalog.fulfilled, (state, action) => {
                 state.isLoading = false;
+                state.lastFetched = Date.now();
                 const { categories: c, promotions: p, stores: s, products: pr } = action.payload;
                 if (c) state.categories = c;
                 if (p) state.promotions = p;
@@ -66,8 +80,9 @@ const catalogSlice = createSlice({
                 if (pr) {
                     const productMap = new Map();
                     pr.forEach(prod => {
-                        const id = prod.product_id || prod.id;
-                        if (id) productMap.set(String(id), prod);
+                        const sId = prod.store_id || prod.restaurantId || 1;
+                        const pId = prod.product_id || prod.id;
+                        if (pId) productMap.set(`${sId}_${pId}`, prod);
                     });
                     state.products = Array.from(productMap.values());
                 }
@@ -75,21 +90,22 @@ const catalogSlice = createSlice({
             .addCase(fetchCatalog.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload ?? 'Failed to load catalog';
-                // Keep existing mock data in state so the app stays usable
             })
             .addCase(fetchRestaurantProducts.fulfilled, (state, action) => {
                 const newProducts = action.payload || [];
                 if (newProducts.length === 0) return;
 
-                // Merge products: replace existing ones with same ID, add new ones
+                // Merge products: replace existing ones with same store_id + product_id, add new ones
                 const productMap = new Map();
                 state.products.forEach(p => {
-                    const id = p.product_id || p.id;
-                    if (id) productMap.set(String(id), p);
+                    const sId = p.store_id || p.restaurantId || 1;
+                    const pId = p.product_id || p.id;
+                    if (pId) productMap.set(`${sId}_${pId}`, p);
                 });
                 newProducts.forEach(p => {
-                    const id = p.product_id || p.id;
-                    if (id) productMap.set(String(id), p);
+                    const sId = p.store_id || p.restaurantId || 1;
+                    const pId = p.product_id || p.id;
+                    if (pId) productMap.set(`${sId}_${pId}`, p);
                 });
                 state.products = Array.from(productMap.values());
             });

@@ -154,7 +154,7 @@ export default function CartScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await dispatch(fetchCatalog()).unwrap();
+      await dispatch(fetchCatalog({ forceRefresh: true })).unwrap();
     } catch (error) {
       console.error('[Cart] Refresh failed:', error);
     } finally {
@@ -187,6 +187,7 @@ export default function CartScreen() {
   const paymentMethods = useSelector((s) => s.payment?.methods ?? []);
   const savedAddresses = useSelector((s) => s.auth?.addresses || []);
   const { currentLocation } = useSelector((s) => s.location);
+
   const deliveryCoefficient = useSelector((s) => s.cart.deliveryCoefficient);
 
   const activeAddress = savedAddresses.find(a => a.address === currentLocation?.addressName) 
@@ -422,6 +423,36 @@ export default function CartScreen() {
     if (!isMinOrderMet || isOffline) return; // guard — button is also visually disabled
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     initiateCheckout();
+  };
+
+  const handleAddressPress = () => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        locale === 'en' ? 'Not signed in' : 'Вхід не виконано',
+        locale === 'en' ? 'Please sign in to add a delivery address.' : 'Будь ласка, увійдіть в акаунт, щоб додати адресу доставки.',
+        [
+          { text: locale === 'en' ? 'Cancel' : 'Скасувати', style: 'cancel' },
+          { text: locale === 'en' ? 'Login' : 'Увійти', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
+      return;
+    }
+    router.push('/location-picker');
+  };
+
+  const handleEditAddressPress = () => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        locale === 'en' ? 'Not signed in' : 'Вхід не виконано',
+        locale === 'en' ? 'Please sign in to change the delivery address.' : 'Будь ласка, увійдіть в акаунт, щоб змінити адресу доставки.',
+        [
+          { text: locale === 'en' ? 'Cancel' : 'Скасувати', style: 'cancel' },
+          { text: locale === 'en' ? 'Login' : 'Увійти', onPress: () => router.push('/(auth)/login') },
+        ]
+      );
+      return;
+    }
+    setAddressSheetOpen(true);
   };
 
   // ── Feature 4: Safe decrement with Alert────────────────────────────────────
@@ -778,9 +809,7 @@ export default function CartScreen() {
                   </Text>
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={[styles.priceValue, { color: theme.text }]}>
-                      {deliveryFee === 0
-                        ? locale === 'en' ? 'Free' : 'Безкоштовно'
-                        : `${formatPrice(deliveryFee)} ₴`}
+                      {`${formatPrice(deliveryFee)} ₴`}
                     </Text>
                     {deliveryFee > 0 && deliveryCoefficient && deliveryCoefficient.isActive && (
                       <Text style={{ fontSize: 11, color: theme.primary, fontWeight: '600', marginTop: 2 }}>
@@ -825,7 +854,7 @@ export default function CartScreen() {
                   <TouchableOpacity
                     style={[styles.checkoutBtn, { backgroundColor: theme.primary, marginBottom: 12, borderStyle: 'dashed', borderWidth: 1, borderColor: 'white' }]}
                     activeOpacity={0.8}
-                    onPress={() => router.push('/location-picker')}
+                    onPress={handleAddressPress}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <Ionicons name="add-circle" size={22} color="white" style={{ marginRight: 10 }} />
@@ -836,7 +865,7 @@ export default function CartScreen() {
                   <TouchableOpacity
                     style={[styles.actionRow, { backgroundColor: theme.input }]}
                     activeOpacity={0.75}
-                    onPress={() => setAddressSheetOpen(true)}
+                    onPress={handleEditAddressPress}
                   >
                     <View style={[styles.actionRowLeft, { flex: 1 }]}>
                       <Ionicons name="location-outline" size={20} color={theme.text} />

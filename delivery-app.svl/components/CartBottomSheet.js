@@ -152,7 +152,7 @@ export default function CartBottomSheet({
           {deliveryType === 'delivery' && (
             <View style={styles.detailRow}>
               <Text style={styles.detailText}>Доставка</Text>
-              <Text style={styles.detailPrice}>{safeDelivery === 0 ? 'Безкоштовно' : `${formatPrice(safeDelivery)} ₴`}</Text>
+              <Text style={styles.detailPrice}>{`${formatPrice(safeDelivery)} ₴`}</Text>
             </View>
           )}
 

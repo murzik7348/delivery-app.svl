@@ -103,7 +103,7 @@ export default function HomeScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await dispatch(fetchCatalog()).unwrap();
+      await dispatch(fetchCatalog({ forceRefresh: true })).unwrap();
     } catch (error) {
       console.error('Refresh failed:', error);
     } finally {
@@ -112,14 +112,32 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    dispatch(fetchCatalog());
-
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.2, duration: 900, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
       ])
     ).start();
+
+    // Тимчасовий локальний тест звуку сповіщень через 5 секунд після входу на головну
+    const testTimer = setTimeout(async () => {
+      try {
+        const Notifications = require('expo-notifications');
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Локальний тест звуку 🔔',
+            body: 'Якщо ви чуєте цей звук, дозволи та динамік працюють!',
+            sound: 'default',
+          },
+          trigger: null, // негайно
+        });
+        console.log('🔔 [Test] Локальне сповіщення відправлено!');
+      } catch (e) {
+        console.warn('⚠️ [Test] Помилка локального сповіщення:', e);
+      }
+    }, 5000);
+
+    return () => clearTimeout(testTimer);
   }, []);
 
   const handleSearchPress = () => {
@@ -268,7 +286,7 @@ export default function HomeScreen() {
                 activeOpacity={0.9}
                 onPress={() => setSelectedPromo(promo)}
               >
-                <Image source={{ uri: promo.image }} style={styles.promoImage} />
+                <Image source={typeof promo.image === 'number' ? promo.image : { uri: promo.image }} style={styles.promoImage} />
                 {/* Темний градієнт знижу */}
                 <View style={styles.promoOverlay}>
                   <Text style={styles.promoTitle} numberOfLines={2}>{promo.title}</Text>

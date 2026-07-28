@@ -38,7 +38,7 @@ export default function FavoritesScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await dispatch(fetchCatalog()).unwrap();
+      await dispatch(fetchCatalog({ forceRefresh: true })).unwrap();
     } catch (error) {
       console.error('[Favorites] Refresh failed:', error);
     } finally {

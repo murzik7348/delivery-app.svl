@@ -26,6 +26,9 @@ export default function Index() {
     // Crucial fix: Do not try to route anywhere before root layout is completely mounted!
     if (!rootNavigationState?.key) return;
 
+    let isMounted = true;
+    let timerId = null;
+
     async function checkLaunch() {
       const state = store.getState();
       const isAuthenticated = state.auth?.isAuthenticated;
@@ -37,40 +40,39 @@ export default function Index() {
         }
         const url = response?.notification?.request?.content?.data?.url;
 
-        if (isAuthenticated) {
-          if (url) {
-            console.log("🔔 ХОЛОДНИЙ СТАРТ: Летимо на", url);
-            setTimeout(() => {
-              router.replace(url);
-            }, 100);
-          } else {
-            setTimeout(() => {
-              router.replace('/home');
-            }, 100);
-          }
+        if (isAuthenticated && url) {
+          console.log("🔔 ХОЛОДНИЙ СТАРТ: Летимо на", url);
+          timerId = setTimeout(() => {
+            if (isMounted) router.replace(url);
+          }, 100);
         } else {
-          console.log("🔒 НЕ АВТОРИЗОВАНИЙ: На екран логіну");
-          setTimeout(() => {
-            router.replace('/(auth)/login');
+          console.log("🔓 ВХІД ЯК ГІСТЬ АБО ЗВИЧАЙНИЙ СТАРТ: На головну");
+          timerId = setTimeout(() => {
+            if (isMounted) router.replace('/home');
           }, 100);
         }
       } catch (e) {
         console.error("Помилка старту:", e);
         if (isAuthenticated) {
-          setTimeout(() => {
-            router.replace('/home');
+          timerId = setTimeout(() => {
+            if (isMounted) router.replace('/home');
           }, 100);
         } else {
-          setTimeout(() => {
-            router.replace('/(auth)/login');
+          timerId = setTimeout(() => {
+            if (isMounted) router.replace('/(auth)/login');
           }, 100);
         }
       } finally {
-        setIsReady(true);
+        if (isMounted) setIsReady(true);
       }
     }
 
     checkLaunch();
+
+    return () => {
+      isMounted = false;
+      if (timerId) clearTimeout(timerId);
+    };
   }, [rootNavigationState?.key]);
 
   return <WelcomeScreen />;

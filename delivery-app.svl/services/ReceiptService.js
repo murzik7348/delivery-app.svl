@@ -6,13 +6,16 @@ import { getToken, BASE_URL } from '../src/api/client';
  * Calculates order price breakdown dynamically based on total and items.
  */
 export const calculateReceiptBreakdown = (order) => {
-    const itemsSubtotal = (order.items || []).reduce((acc, item) => {
-        const price = Number(item.price || item.productPrice || 0);
+    const rawItems = order.items || order.products || [];
+    const itemsSubtotal = rawItems.reduce((acc, item) => {
         const qty = Number(item.quantity || 1);
-        return acc + (price * qty);
+        const lineTotal = item.totalLineAmount !== undefined && item.totalLineAmount !== null
+            ? Number(item.totalLineAmount)
+            : (Number(item.price || item.productPrice || 0) * qty);
+        return acc + lineTotal;
     }, 0);
     
-    const total = Number(order.totalPrice ?? order.total ?? 0);
+    const total = Number(order.totalPrice ?? order.total ?? order.totalAmount ?? 0);
     
     // Check if it's a pickup order
     const isPickup = order.address === 'Самовивіз (з ресторану)' || 
@@ -23,11 +26,6 @@ export const calculateReceiptBreakdown = (order) => {
     if (!isPickup) {
         // Read delivery fee directly from order (which includes any applied coefficients)
         deliveryFee = Number(order.deliveryFee ?? order.delivery ?? order.deliveryFeeAmount ?? 0);
-        // Fallback to difference if deliveryFee is not stored/available
-        if (deliveryFee <= 0) {
-            const difference = Math.max(0, total - itemsSubtotal);
-            deliveryFee = difference > 50 ? 50 : difference;
-        }
     }
     
     const commissionFee = Math.max(0, total - itemsSubtotal - deliveryFee);
@@ -93,17 +91,21 @@ class ReceiptService {
                 : new Date().toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
             
             // Generate items table HTML
-            const itemsHtml = (order.items || []).map(item => {
+            const rawItems = order.items || order.products || [];
+            const itemsHtml = rawItems.map(item => {
                 const name = item.productName || item.name || (isEn ? 'Item' : 'Товар');
-                const qty = item.quantity || 1;
-                const price = item.price || item.productPrice || 0;
-                const totalLine = price * qty;
+                const qty = Number(item.quantity || 1);
+                const lineTotal = item.totalLineAmount !== undefined && item.totalLineAmount !== null
+                    ? Number(item.totalLineAmount)
+                    : (Number(item.price || item.productPrice || 0) * qty);
+                const unitPrice = qty > 0 ? (lineTotal / qty) : lineTotal;
+
                 return `
                     <tr class="item-row">
                         <td>${name}</td>
                         <td class="text-center">${qty}</td>
-                        <td class="text-right">${price.toFixed(2)} ₴</td>
-                        <td class="text-right">${totalLine.toFixed(2)} ₴</td>
+                        <td class="text-right">${unitPrice.toFixed(2)} ₴</td>
+                        <td class="text-right">${lineTotal.toFixed(2)} ₴</td>
                     </tr>
                 `;
             }).join('');

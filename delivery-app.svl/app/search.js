@@ -55,7 +55,7 @@ export default function SearchScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await dispatch(fetchCatalog()).unwrap();
+      await dispatch(fetchCatalog({ forceRefresh: true })).unwrap();
     } catch (error) {
       console.error('[Search] Refresh failed:', error);
     } finally {

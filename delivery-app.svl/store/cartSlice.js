@@ -1,10 +1,11 @@
 import { createSelector, createSlice } from '@reduxjs/toolkit';
+import { safeNum } from '../utils/math';
 
 
 // ─── Business Rule Constants ─────────────────────────────────────────────────
 export const MIN_ORDER_AMOUNT = 200;        // UAH – minimum to enable checkout
 export const FREE_DELIVERY_THRESHOLD = 899; // UAH – subtotal that unlocks free delivery
-export const BASE_DELIVERY_FEE = 50;        // UAH – flat delivery fee below threshold
+export const BASE_DELIVERY_FEE = 0;        // Strictly 0 UAH default (wait for DB tariff)
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -32,11 +33,7 @@ export const makeCartKey = (item) => {
   return `${id}|${sorted}`;
 };
 
-/** Parse any value safely — never returns NaN. */
-const safeNum = (v) => {
-  const n = parseFloat(v);
-  return Number.isFinite(n) ? n : 0;
-};
+
 
 /**
  * Calculate the effective unit price for a line item: base price + sum of modifier prices.
@@ -90,7 +87,7 @@ const calculateTotals = (state) => {
   if (state.deliveryType === 'delivery' && state.subtotal > 0) {
     let baseFee = state.customDeliveryFee !== null && state.customDeliveryFee !== undefined
       ? state.customDeliveryFee
-      : BASE_DELIVERY_FEE;
+      : 0;
     if (state.deliveryCoefficient && state.deliveryCoefficient.isActive) {
       baseFee = baseFee * safeNum(state.deliveryCoefficient.multiplier);
     }
@@ -158,6 +155,17 @@ const cartSlice = createSlice({
         return;
       }
 
+      const newStoreId = Number(action.payload.store_id || action.payload.restaurantId);
+      if (state.items.length > 0 && newStoreId) {
+        const existingStoreId = Number(state.items[0].store_id || state.items[0].restaurantId);
+        if (existingStoreId && existingStoreId !== newStoreId) {
+          // Clear cart if items from a different restaurant are added
+          state.items = [];
+          state.appliedPromo = null;
+          state.discountAmount = 0;
+        }
+      }
+
       const cartKey = makeCartKey(action.payload);
       const existingItem = state.items.find((item) => item.cartKey === cartKey);
       const safePrice = safeNum(action.payload.price);
@@ -171,6 +179,8 @@ const cartSlice = createSlice({
 
         state.items.push({
           ...action.payload,
+          store_id: newStoreId || 1,
+          restaurantId: newStoreId || 1,
           price: safePrice,
           modifiers: action.payload.modifiers ?? [],
           quantity: initialQty,
@@ -355,27 +365,22 @@ export const selectCartSummary = createSelector(selectCartState, (cart) => {
 
 
 export const tryAddToCart = (product) => (dispatch, getState) => {
-  const { cart } = getState();
+  const { cart, catalog } = getState();
   const existingItem = cart.items[0];
   if (existingItem) {
     const existingStoreId = Number(existingItem.restaurantId || existingItem.store_id);
     const newStoreId = Number(product.restaurantId || product.store_id);
     if (existingStoreId && newStoreId && existingStoreId !== newStoreId) {
-      let Alert;
-      try {
-        Alert = require('react-native').Alert;
-      } catch (e) {
-        Alert = {
-          alert: (title, message, buttons) => {
-            console.log(`[Alert Mock] ${title}: ${message}`);
-            const okButton = buttons && buttons.find(b => b.style !== 'cancel');
-            if (okButton && okButton.onPress) okButton.onPress();
-          }
-        };
-      }
-      Alert.alert(
-        'Різні ресторани',
-        'Ваш кошик містить товари з іншого ресторану. Очистити кошик і додати цей товар?',
+      const stores = catalog?.stores || [];
+      const oldStore = stores.find(s => Number(s.store_id || s.id) === existingStoreId);
+      const newStore = stores.find(s => Number(s.store_id || s.id) === newStoreId);
+      const oldName = oldStore?.name || (existingStoreId === 1 ? 'Рутенія' : 'Дублін');
+      const newName = newStore?.name || (newStoreId === 1 ? 'Рутенія' : 'Дублін');
+
+      const AlertModule = require('react-native').Alert;
+      AlertModule.alert(
+        'Кошик з іншого ресторану 🛒',
+        `У вашому кошику вже є товари з закладу «${oldName}». Очистити кошик і додати товар з «${newName}»?`,
         [
           { text: 'Скасувати', style: 'cancel' },
           {

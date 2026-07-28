@@ -391,7 +391,14 @@ export default function ProductSheet({ product, onClose }) {
 
                     {/* Ціна + Controls */}
                     <View style={styles.footer}>
-                        <Text style={[styles.price, { color: theme.primary, fontSize: pricingType !== 'piece' ? 18 : 26 }]}>{priceLabel}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                            {product?.oldPrice && (
+                                <Text style={{ fontSize: pricingType !== 'piece' ? 13 : 18, textDecorationLine: 'line-through', color: 'gray', marginRight: 4 }}>
+                                    {formatPrice(safeNum(product.oldPrice) + (pricingType === 'piece' ? modsPrice : 0))} ₴
+                                </Text>
+                            )}
+                            <Text style={[styles.price, { color: theme.primary, fontSize: pricingType !== 'piece' ? 18 : 26 }]}>{priceLabel}</Text>
+                        </View>
 
                         {qty === 0 ? (
                             <Animated.View style={{ transform: [{ scale: btnScale }] }}>

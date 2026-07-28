@@ -11,6 +11,7 @@ import Colors from '../constants/Colors';
 import { t } from '../constants/translations';
 import { setLanguage } from '../store/languageSlice';
 import BackButton from '../components/BackButton';
+import { safeBack } from '../utils/navigation';
 
 const LANGUAGES = [
     { code: 'uk', label: 'Українська', flag: '🇺🇦', sub: 'Ukrainian' },

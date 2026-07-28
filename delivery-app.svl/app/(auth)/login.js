@@ -112,25 +112,53 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (phone.length < 13) {
-      Alert.alert('Помилка', 'Будь ласка, введіть повний номер телефону');
+    const trimmedPhone = phone.trim();
+    if (trimmedPhone.length < 13) {
+      Alert.alert(
+        'Помилка входу / Login Error',
+        'Номер телефону введено не повністю або невірно. Введіть повний номер, наприклад: +380991234567\n\nPhone number is incomplete. Please enter a full number, e.g. +380991234567'
+      );
       return;
     }
-    if (!password) {
-      Alert.alert('Помилка', 'Введіть пароль');
+    if (!password || password.trim().length === 0) {
+      Alert.alert(
+        'Помилка входу / Login Error',
+        'Будь ласка, введіть пароль.\n\nPlease enter your password.'
+      );
       return;
     }
 
     setIsLoading(true);
-    try {
-      await authLogin({ phoneNumber: phone, password });
+    
+    // Create a 10-second safety timeout promise to prevent infinite loading
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT_ERROR')), 10000)
+    );
+
+    const loginFlow = (async () => {
+      await authLogin({ phoneNumber: trimmedPhone, password });
       const me = await getMe();
+      return me;
+    })();
+
+    try {
+      const me = await Promise.race([loginFlow, timeoutPromise]);
       const user = me ?? {};
       dispatch(loginUser(user));
       dispatch(fetchAddresses());
       router.replace('/home');
     } catch (err) {
-      Alert.alert('Помилка входу', err.message || 'Щось пішло не так. Спробуйте ще раз.');
+      if (err.message === 'TIMEOUT_ERROR') {
+        Alert.alert(
+          'Помилка з\'єднання / Connection Error',
+          'Час очікування відповіді від сервера минув. Спробуйте ще раз.\n\nConnection timeout. Please try again.'
+        );
+      } else {
+        Alert.alert(
+          'Помилка входу / Login Error',
+          err.message || 'Не вдалося увійти. Спробуйте ще раз.\n\nFailed to login. Please try again.'
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -139,6 +167,9 @@ export default function LoginScreen() {
   const openSupport = (type) => {
     let url = '';
     switch (type) {
+      case 'web':
+        url = 'https://andi.delivery/support.html';
+        break;
       case 'telegram':
         url = 'https://t.me/delivery_app_support';
         break;
@@ -152,7 +183,7 @@ export default function LoginScreen() {
 
     if (url) {
       Linking.openURL(url).catch(() => {
-        Alert.alert('Помилка', 'Не вдалося відкрити додаток. Переконайтеся, що він встановлений.');
+        Alert.alert('Помилка', 'Не вдалося відкрити посилання.');
       });
     }
     setIsSupportVisible(false);
@@ -430,6 +461,22 @@ export default function LoginScreen() {
                     </View>
                   )}
                 </TouchableOpacity>
+
+                {/* Continue as Guest Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.guestButton, 
+                    { 
+                      borderColor: primaryColor,
+                      borderWidth: 1.5,
+                      marginTop: 12,
+                    }
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={() => router.replace('/home')}
+                >
+                  <Text style={[styles.guestButtonText, { color: textColor }]}>Продовжити як гість</Text>
+                </TouchableOpacity>
               </BlurView>
             </Animated.View>
 
@@ -457,6 +504,17 @@ export default function LoginScreen() {
           <View style={styles.modalContentWrapper}>
             <BlurView intensity={80} tint={isDarkCover ? 'dark' : 'light'} style={[styles.supportModal, { borderColor: borderLight }]}>
               <Text style={[styles.modalTitle, { color: textColor }]}>Допомога та підтримка</Text>
+
+              <TouchableOpacity 
+                style={[styles.supportOption, { backgroundColor: isDarkCover ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]} 
+                onPress={() => openSupport('web')}
+              >
+                <View style={[styles.iconCircle, { backgroundColor: '#e22bc6' }]}>
+                  <Ionicons name="globe-outline" size={22} color="white" />
+                </View>
+                <Text style={[styles.supportOptionText, { color: textColor }]}>Сайт підтримки (Support Web)</Text>
+                <Ionicons name="chevron-forward" size={18} color={textMuted} style={styles.optionChevron} />
+              </TouchableOpacity>
 
               <TouchableOpacity 
                 style={[styles.supportOption, { backgroundColor: isDarkCover ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]} 
@@ -602,9 +660,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
   },
-  buttonInner: { flexDirection: 'row', alignItems: 'center' },
+   buttonInner: { flexDirection: 'row', alignItems: 'center' },
   buttonText: { color: 'white', fontSize: 17, fontWeight: '800' },
   buttonIcon: { marginLeft: 8 },
+  guestButton: {
+    height: 58,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  guestButtonText: { fontSize: 17, fontWeight: '800' },
   footerSection: { marginTop: 32, alignItems: 'center' },
   link: { padding: 12 },
   linkText: { fontSize: 15, fontWeight: '600' },

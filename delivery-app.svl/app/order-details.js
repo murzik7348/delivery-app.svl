@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
+import { HubConnectionBuilder, HttpTransportType, HubConnectionState } from '@microsoft/signalr';
 import { getToken, getValidToken } from '../src/api/client';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -437,13 +437,15 @@ export default function OrderDetailsScreen() {
 
         await connection.start();
         if (!isMounted) {
-          connection.stop();
+          if (connection) connection.stop().catch(() => null);
           return;
         }
         console.log('🔌 [SignalR User] Connected successfully');
 
-        await connection.invoke("JoinOrderGroup", orderIdNum);
-        console.log(`🔌 [SignalR User] Joined order group: order_${orderIdNum}`);
+        if (isMounted && connection.state === HubConnectionState.Connected) {
+          await connection.invoke("JoinOrderGroup", orderIdNum);
+          console.log(`🔌 [SignalR User] Joined order group: order_${orderIdNum}`);
+        }
       } catch (err) {
         if (isMounted) {
           console.error('❌ [SignalR User] Connection error:', err);
@@ -846,6 +848,61 @@ export default function OrderDetailsScreen() {
                   </Text>
                 </View>
               )}
+              <View style={[styles.divider, { backgroundColor: theme.border }]} />
+              
+              {/* Financial Breakdown */}
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>{locale === 'en' ? 'Items Subtotal' : 'Вартість товарів'}</Text>
+                <Text style={[styles.summaryVal, { color: theme.text }]}>
+                  {formatPrice(
+                    (order.items || order.products || []).reduce((acc, item) => {
+                      const qty = Number(item.quantity || 1);
+                      const lineTotal = item.totalLineAmount !== undefined && item.totalLineAmount !== null
+                        ? Number(item.totalLineAmount)
+                        : (safeNumber(item.price || item.productPrice || 0) * qty);
+                      return acc + lineTotal;
+                    }, 0)
+                  )} ₴
+                </Text>
+              </View>
+
+              {(() => {
+                const isPickup = order.address === 'Самовивіз (з ресторану)' || (order.description && order.description.includes('[САМОВИВІЗ]')) || (order.note && order.note.includes('[САМОВИВІЗ]'));
+                const rawFee = order.deliveryFee ?? order.delivery ?? order.deliveryFeeAmount ?? order.delivery_fee ?? order.deliveryPrice;
+                let feeVal = parseFloat(rawFee);
+                if (!Number.isFinite(feeVal) || (feeVal <= 0 && !isPickup)) {
+                  const itemsSubtotal = (order.items || order.products || []).reduce((acc, item) => {
+                    const qty = Number(item.quantity || 1);
+                    const lineTotal = item.totalLineAmount !== undefined && item.totalLineAmount !== null
+                      ? Number(item.totalLineAmount)
+                      : (safeNumber(item.price || item.productPrice || 0) * qty);
+                    return acc + lineTotal;
+                  }, 0);
+                  const orderTotal = safeNumber(order.totalPrice ?? order.total ?? 0);
+                  const discount = safeNumber(order.discountAmount ?? order.discount ?? 0);
+                  const derivedFee = orderTotal - itemsSubtotal + discount;
+                  feeVal = derivedFee > 0 ? derivedFee : 50;
+                }
+                if (isPickup) feeVal = 0;
+                return (
+                  <View style={[styles.summaryRow, { marginTop: 6 }]}>
+                    <Text style={styles.summaryLabel}>{locale === 'en' ? 'Delivery Fee' : 'Доставка'}</Text>
+                    <Text style={[styles.summaryVal, { color: theme.text }]}>
+                      {`${formatPrice(feeVal)} ₴`}
+                    </Text>
+                  </View>
+                );
+              })()}
+
+              {safeNumber(order.discountAmount ?? order.discount ?? 0) > 0 && (
+                <View style={[styles.summaryRow, { marginTop: 6 }]}>
+                  <Text style={styles.summaryLabel}>{locale === 'en' ? 'Discount' : 'Знижка'}</Text>
+                  <Text style={[styles.summaryVal, { color: '#34C759' }]}>
+                    -{formatPrice(safeNumber(order.discountAmount ?? order.discount ?? 0))} ₴
+                  </Text>
+                </View>
+              )}
+
               <View style={[styles.divider, { backgroundColor: theme.border }]} />
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabelTotal}>{t(locale, 'amount')}</Text>

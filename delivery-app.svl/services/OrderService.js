@@ -358,6 +358,20 @@ class OrderService {
             finalEstimatedDeliveryTime = new Date(readyDate.getTime() + transitMinutes * 60000).toISOString();
         }
 
+        const rawDeliveryFee = item.deliveryFee ?? item.delivery ?? item.deliveryFeeAmount ?? item.delivery_fee ?? item.deliveryPrice ?? item.deliveryCost;
+        let deliveryFeeNum = parseFloat(rawDeliveryFee);
+        if (!Number.isFinite(deliveryFeeNum)) {
+            const itemsSubtotal = (normalizedItems || []).reduce((sum, i) => sum + (parseFloat(i.totalLineAmount || (i.price * i.quantity)) || 0), 0);
+            const rawTotal = parseFloat(item.totalPrice ?? item.total) || 0;
+            const diff = rawTotal - itemsSubtotal;
+            deliveryFeeNum = diff > 0 ? diff : 50;
+        }
+        if (isPickupOrder) {
+            deliveryFeeNum = 0;
+        } else if (deliveryFeeNum <= 0) {
+            deliveryFeeNum = 50;
+        }
+
         return {
             ...item,
             paymentMethod: paymentMethodStr,
@@ -370,6 +384,9 @@ class OrderService {
             deliveryStatus: sNum,
             items: normalizedItems,
             totalPrice: item.totalPrice || item.total || 0,
+            deliveryFee: deliveryFeeNum,
+            delivery: deliveryFeeNum,
+            deliveryFeeAmount: deliveryFeeNum,
             statusTimestamps: item.statusTimestamps || {
                 created: item.createdAt || new Date().toISOString(),
                 accepted: null,

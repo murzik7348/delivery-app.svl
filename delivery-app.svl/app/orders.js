@@ -11,7 +11,8 @@ import { formatUkraineDate } from '../utils/dateUtils';
 import { t } from '../constants/translations';
 import { clearOrders, fetchOrders } from '../store/ordersSlice';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
-import { formatPrice } from '../store/cartSlice';
+import { formatPrice, addToCart, clearCart } from '../store/cartSlice';
+import * as Haptics from 'expo-haptics';
 import BackButton from '../components/BackButton';
 
 export default function OrdersTabScreen() {
@@ -50,6 +51,25 @@ export default function OrdersTabScreen() {
     
     return () => clearInterval(interval);
   }, [dispatch]);
+
+  const handleReorder = (orderItem) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+    }
+    const products = orderItem.products || orderItem.items || [];
+    if (products.length > 0) {
+      dispatch(clearCart());
+      products.forEach((prod) => {
+        dispatch(addToCart(prod));
+      });
+      router.push('/cart');
+    } else {
+      Alert.alert(
+        locale === 'en' ? 'Reorder' : 'Повторити замовлення',
+        locale === 'en' ? 'No items found in this order.' : 'Не знайдено товарів у цьому замовленні.'
+      );
+    }
+  };
 
   const renderOrderItem = ({ item }) => {
     // Prioritize numeric deliveryStatus from our normalization or backend
@@ -90,9 +110,20 @@ export default function OrdersTabScreen() {
 
         <View style={styles.cardFooter}>
           <StatusBadge order={item} locale={locale} />
-          <View style={styles.detailsBtn}>
-            <Text style={[styles.detailsText, { color: theme.primary }]}>{t(locale, 'details')}</Text>
-            <Ionicons name="chevron-forward" size={16} color={theme.primary} />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity 
+              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.primary + '18', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginRight: 8 }}
+              onPress={() => handleReorder(item)}
+            >
+              <Ionicons name="refresh-outline" size={14} color={theme.primary} style={{ marginRight: 4 }} />
+              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.primary }}>
+                {locale === 'en' ? 'Reorder' : 'Повторити'}
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.detailsBtn}>
+              <Text style={[styles.detailsText, { color: theme.primary }]}>{t(locale, 'details')}</Text>
+              <Ionicons name="chevron-forward" size={16} color={theme.primary} />
+            </View>
           </View>
         </View>
       </TouchableOpacity>

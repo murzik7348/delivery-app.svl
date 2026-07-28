@@ -20,6 +20,7 @@ import usePushNotifications from '../hooks/usePushNotifications';
 // import useLiveActivitySync from '../hooks/useLiveActivitySync';
 import { fetchAddresses, fetchMe } from '../store/authSlice';
 import { fetchOrders } from '../store/ordersSlice';
+import { fetchCatalog } from '../store/catalogSlice';
 import { updatePushToken } from '../src/api';
 import BottomBar from '../components/BottomBar';
 import DynamicIsland from '../components/DynamicIsland';
@@ -141,6 +142,10 @@ function AppStartup() {
     }
   }, []);
 
+  useEffect(() => {
+    dispatch(fetchCatalog());
+  }, [dispatch]);
+
   // Global Auth Guard
   useEffect(() => {
     let interval;
@@ -148,17 +153,18 @@ function AppStartup() {
       dispatch(fetchMe());
       dispatch(fetchAddresses());
       dispatch(fetchOrders());
+      // fetchCatalog is already dispatched on startup — condition guard prevents duplicates
 
       // Poll order status every 30 seconds
       interval = setInterval(() => {
         dispatch(fetchOrders());
       }, 30000);
     } else {
-      // If NOT authenticated, ensure we redirect to login
-      // We ignore the root index '/' since it has its own logic, 
-      // but if we somehow land on a protected screen, redirect immediately.
+      // If NOT authenticated, redirect to login only if trying to access a protected screen
+      const protectedScreens = ['/orders', '/profile', '/favorites', '/profile-edit'];
+      const isProtected = protectedScreens.some(screen => pathname.startsWith(screen));
       const inAuthGroup = segments[0] === '(auth)';
-      if (!inAuthGroup && pathname !== '/' && pathname) {
+      if (isProtected && !inAuthGroup) {
         setTimeout(() => {
           router.replace('/(auth)/login');
         }, 0);
@@ -172,7 +178,24 @@ function AppStartup() {
   useEffect(() => {
     if (isAuthenticated && expoPushToken) {
       console.log("Syncing Push Token to backend:", expoPushToken);
-      updatePushToken(expoPushToken).catch(err => console.log('Failed to sync push token', err));
+      let isSubscribed = true;
+      const syncToken = async () => {
+        try {
+          await updatePushToken(expoPushToken);
+          console.log("✅ [Push] Push Token synced successfully.");
+        } catch (err) {
+          console.warn('⚠️ [Push] Failed to sync push token, retrying in 3s...', err.message || err);
+          setTimeout(async () => {
+            if (isSubscribed) {
+              await updatePushToken(expoPushToken).catch(retryErr => {
+                console.error('❌ [Push] Push token sync failed on retry:', retryErr.message || retryErr);
+              });
+            }
+          }, 3000);
+        }
+      };
+      syncToken();
+      return () => { isSubscribed = false; };
     }
   }, [expoPushToken, isAuthenticated]);
 

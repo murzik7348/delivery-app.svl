@@ -72,7 +72,7 @@ export default function usePushNotifications() {
                 title: title ?? 'Нове повідомлення',
                 body: body ?? '',
                 data: remoteMessage.data ?? {},
-                sound: true,
+                sound: 'default',
                 priority: Notifications.AndroidNotificationPriority?.MAX ?? 'max',
               },
               trigger: null,
@@ -138,7 +138,14 @@ async function registerForPushNotificationsAsync() {
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
   if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
+    const { status } = await Notifications.requestPermissionsAsync({
+      ios: {
+        allowAlert: true,
+        allowBadge: true,
+        allowSound: true,
+        allowAnnouncements: true,
+      },
+    });
     finalStatus = status;
   }
   if (finalStatus !== 'granted') {
@@ -148,12 +155,26 @@ async function registerForPushNotificationsAsync() {
 
   // Отримуємо FCM токен через Firebase (працює на iOS і Android)
   if (firebaseMessaging) {
-    try {
-      const fcmToken = await firebaseMessaging().getToken();
-      console.log('🔥 FCM Token (Firebase):', fcmToken);
-      return fcmToken;
-    } catch (e) {
-      console.log('❌ Помилка отримання FCM токену:', e);
+    const maxRetries = 3;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (Platform.OS === 'ios') {
+          if (!firebaseMessaging().isDeviceRegisteredForRemoteMessages) {
+            console.log(`📱 [Push] iOS registerDeviceForRemoteMessages (Attempt ${attempt})...`);
+            await firebaseMessaging().registerDeviceForRemoteMessages();
+          }
+        }
+        const fcmToken = await firebaseMessaging().getToken();
+        if (fcmToken) {
+          console.log(`🔥 FCM Token (Firebase) [Attempt ${attempt}]:`, fcmToken);
+          return fcmToken;
+        }
+      } catch (e) {
+        console.warn(`⚠️ [Push] Помилка отримання FCM токену (спроба ${attempt}/${maxRetries}):`, e.message || e);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
     }
   }
 

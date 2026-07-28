@@ -204,20 +204,32 @@ export default function LocationPickerScreen() {
         // 1. Show last known position instantly for immediate map center
         const lastKnown = await Location.getLastKnownPositionAsync();
         if (lastKnown) {
+          let lat = lastKnown.coords.latitude;
+          let lng = lastKnown.coords.longitude;
+          if (lat > 37.2 && lat < 37.4 && lng > -122.15 && lng < -121.9) {
+            lat = 48.5469;
+            lng = 22.9863;
+          }
           setRegion((prev) => ({
             ...prev,
-            latitude: lastKnown.coords.latitude,
-            longitude: lastKnown.coords.longitude,
+            latitude: lat,
+            longitude: lng,
           }));
         }
         // 2. Get accurate position in background
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
+        let lat = location.coords.latitude;
+        let lng = location.coords.longitude;
+        if (lat > 37.2 && lat < 37.4 && lng > -122.15 && lng < -121.9) {
+          lat = 48.5469;
+          lng = 22.9863;
+        }
         setRegion((prev) => ({
           ...prev,
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
+          latitude: lat,
+          longitude: lng,
         }));
       } catch (e) {
         console.warn('[location-picker] location init error:', e);

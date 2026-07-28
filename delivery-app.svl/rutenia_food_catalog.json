@@ -3,6 +3,7 @@
         "id": 520,
         "name": "Піца \"Гавайська\"",
         "price": 250,
+        "oldPrice": 290,
         "weightGrams": 100,
         "categoryId": 22,
         "categoryName": "ПІЦА",
@@ -13,6 +14,7 @@
         "id": 519,
         "name": "Піца \"ITALIANO\"",
         "price": 320,
+        "oldPrice": 375,
         "weightGrams": 100,
         "categoryId": 22,
         "categoryName": "ПІЦА",
@@ -46,7 +48,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/cbef9ecc-ea8e-42a5-be6b-3e49892c729c/thumb.jpg"
     },
     {
@@ -66,7 +68,7 @@
         "weightGrams": 100,
         "categoryId": 13,
         "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/7b5a64d3-09a3-45eb-8b27-de613d7b4052/thumb.jpg"
     },
     {
@@ -76,7 +78,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/f81fb04f-e133-42fc-8458-a086a4253bf1/thumb.jpg"
     },
     {
@@ -86,7 +88,7 @@
         "weightGrams": 200,
         "categoryId": 9,
         "categoryName": "САЛАТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Легкий та корисний салат із добірних свіжих овочів, зелені та фірмової заправки від шеф-кухаря.",
         "image": "https://api.andi.delivery/images/products/7909b3be-27da-4976-9d55-b0c8f7bc4e1e/thumb.jpg"
     },
     {
@@ -96,7 +98,7 @@
         "weightGrams": 200,
         "categoryId": 9,
         "categoryName": "САЛАТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Легкий та корисний салат із добірних свіжих овочів, зелені та фірмової заправки від шеф-кухаря.",
         "image": "https://api.andi.delivery/images/products/e6824bba-e1b3-490c-9841-5f12679a3fb2/thumb.jpg"
     },
     {
@@ -116,7 +118,7 @@
         "weightGrams": 100,
         "categoryId": 13,
         "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/5634f2c0-a103-40db-a8b1-9b00fcfd0568/thumb.jpg"
     },
     {
@@ -126,7 +128,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/5c0d9bcb-7cff-4a1e-a2e1-4f421ba519a7/thumb.jpg"
     },
     {
@@ -156,7 +158,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/ac607a7b-c058-4a79-9f19-382b1998090d/thumb.jpg"
     },
     {
@@ -166,7 +168,7 @@
         "weightGrams": 200,
         "categoryId": 9,
         "categoryName": "САЛАТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Легкий та корисний салат із добірних свіжих овочів, зелені та фірмової заправки від шеф-кухаря.",
         "image": "https://api.andi.delivery/images/products/0341b556-a607-4485-b566-711781cc75b4/thumb.jpg"
     },
     {
@@ -186,7 +188,7 @@
         "weightGrams": 200,
         "categoryId": 15,
         "categoryName": "ДЕСЕРТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Вишуканий солодкий десерт, створений за авторським рецептом для ідеального завершення вашої трапези.",
         "image": "https://api.andi.delivery/images/products/dc1e3843-c834-4b35-915a-02c1990578ee/thumb.jpg"
     },
     {
@@ -196,7 +198,7 @@
         "weightGrams": 100,
         "categoryId": 13,
         "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/1f12ef42-9fa9-4fb6-8a8a-6a916c37d428/thumb.jpg"
     },
     {
@@ -206,7 +208,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/1a4af763-5ea1-4862-a4ad-540e5be2eb5d/thumb.jpg"
     },
     {
@@ -216,7 +218,7 @@
         "weightGrams": 200,
         "categoryId": 9,
         "categoryName": "САЛАТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Легкий та корисний салат із добірних свіжих овочів, зелені та фірмової заправки від шеф-кухаря.",
         "image": "https://api.andi.delivery/images/products/656b9121-ebc7-4d84-8117-638a7c113e6a/thumb.jpg"
     },
     {
@@ -236,7 +238,7 @@
         "weightGrams": 100,
         "categoryId": 19,
         "categoryName": "ЗАКУСКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Чудова холодна або гаряча закуска, яка чудово смакує як самостійно, так і до улюблених напоїв.",
         "image": "https://api.andi.delivery/images/products/08442638-fe26-4070-a006-d323b4cb9b3e/thumb.jpg"
     },
     {
@@ -246,7 +248,7 @@
         "weightGrams": 100,
         "categoryId": 15,
         "categoryName": "ДЕСЕРТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Вишуканий солодкий десерт, створений за авторським рецептом для ідеального завершення вашої трапези.",
         "image": "https://api.andi.delivery/images/products/2999c34e-87a9-49b9-93f8-147eb93f1d27/thumb.jpg"
     },
     {
@@ -256,7 +258,7 @@
         "weightGrams": 300,
         "categoryId": 17,
         "categoryName": "ПЕРШІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Навариста та ароматна перша страва, приготовлена за класичним рецептом із найсвіжіших інгредієнтів.",
         "image": "https://api.andi.delivery/images/products/377c822a-e4c1-48b4-8a28-7e0e06f02088/thumb.jpg"
     },
     {
@@ -266,7 +268,7 @@
         "weightGrams": 100,
         "categoryId": 13,
         "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/a51af1f3-5e73-462d-841c-2ecb1ef36873/thumb.jpg"
     },
     {
@@ -276,7 +278,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/798eeda4-f335-4b90-aec4-5f1001cefa84/thumb.jpg"
     },
     {
@@ -286,7 +288,7 @@
         "weightGrams": 250,
         "categoryId": 12,
         "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжна італійська паста з твердих сортів пшениці у насиченому соусі з вишуканими добавками.",
         "image": "https://api.andi.delivery/images/products/6bdaeceb-8741-4ee6-a962-2a436d71468e/thumb.jpg"
     },
     {
@@ -296,7 +298,7 @@
         "weightGrams": 350,
         "categoryId": 10,
         "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжна італійська паста з твердих сортів пшениці у насиченому соусі з вишуканими добавками.",
         "image": "https://api.andi.delivery/images/products/d14d083c-5706-4630-97d4-30a1d43726c8/thumb.jpg"
     },
     {
@@ -306,7 +308,7 @@
         "weightGrams": 200,
         "categoryId": 9,
         "categoryName": "САЛАТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Легкий та корисний салат із добірних свіжих овочів, зелені та фірмової заправки від шеф-кухаря.",
         "image": "https://api.andi.delivery/images/products/e3cca5d4-0d9d-4df1-ac02-d8acb9b09178/thumb.jpg"
     },
     {
@@ -321,12 +323,12 @@
     },
     {
         "id": 488,
-        "name": "No6 Каша вівсяна з фруктами",
+        "name": "Каша вівсяна з фруктами",
         "price": 120,
         "weightGrams": 100,
         "categoryId": 20,
         "categoryName": "СНІДАНКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/4e81479c-1007-4327-8551-6043972bd3e8/thumb.jpg"
     },
     {
@@ -336,7 +338,7 @@
         "weightGrams": 100,
         "categoryId": 19,
         "categoryName": "ЗАКУСКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Чудова холодна або гаряча закуска, яка чудово смакує як самостійно, так і до улюблених напоїв.",
         "image": "https://api.andi.delivery/images/products/d1034258-5baf-47cf-b29d-faa72dfdf9d9/thumb.jpg"
     },
     {
@@ -346,7 +348,7 @@
         "weightGrams": 150,
         "categoryId": 15,
         "categoryName": "ДЕСЕРТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Вишуканий солодкий десерт, створений за авторським рецептом для ідеального завершення вашої трапези.",
         "image": "https://api.andi.delivery/images/products/7e07d1ca-8090-400d-8d23-539ffe831d59/thumb.jpg"
     },
     {
@@ -356,7 +358,7 @@
         "weightGrams": 200,
         "categoryId": 16,
         "categoryName": "ГАРНІРИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/66c6312f-0970-47ae-b253-d09a0e78e4ef/thumb.jpg"
     },
     {
@@ -366,17 +368,17 @@
         "weightGrams": 300,
         "categoryId": 17,
         "categoryName": "ПЕРШІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Навариста та ароматна перша страва, приготовлена за класичним рецептом із найсвіжіших інгредієнтів.",
         "image": "https://api.andi.delivery/images/products/e5cbafc1-bf0f-45b9-a3c6-004f00ec9eaa/thumb.jpg"
     },
     {
         "id": 483,
-        "name": "№6 Крила в медовому соусі, чіпи, соус",
+        "name": "Крила в медовому соусі, чіпи, соус",
         "price": 200,
         "weightGrams": 350,
         "categoryId": 14,
         "categoryName": "ПИВНІ ТАРІЛКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Чудова холодна або гаряча закуска, яка чудово смакує як самостійно, так і до улюблених напоїв.",
         "image": "https://api.andi.delivery/images/products/7f82fa61-e321-45f1-b64a-3e0453b79c30/thumb.jpg"
     },
     {
@@ -386,7 +388,7 @@
         "weightGrams": 100,
         "categoryId": 13,
         "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/1ad4dc90-3ca1-449a-9f81-9433f68d88e6/thumb.jpg"
     },
     {
@@ -396,7 +398,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/554ddd1d-bcfd-4251-8fbf-d72a34312f92/thumb.jpg"
     },
     {
@@ -406,7 +408,7 @@
         "weightGrams": 250,
         "categoryId": 12,
         "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Свіжа риба високої якості, запечена чи підсмажена з додаванням лимонного соку та пряних трав.",
         "image": "https://api.andi.delivery/images/products/c8eb8b1a-706e-447f-b695-904b85237791/thumb.jpg"
     },
     {
@@ -416,7 +418,7 @@
         "weightGrams": 400,
         "categoryId": 10,
         "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/8e1adc7a-fe60-4d71-bf5d-f8c95e34f705/thumb.jpg"
     },
     {
@@ -426,7 +428,7 @@
         "weightGrams": 200,
         "categoryId": 9,
         "categoryName": "САЛАТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Легкий та корисний салат із добірних свіжих овочів, зелені та фірмової заправки від шеф-кухаря.",
         "image": "https://api.andi.delivery/images/products/e2ea39dc-c534-47a1-a48b-b176618fcee2/thumb.jpg"
     },
     {
@@ -441,12 +443,12 @@
     },
     {
         "id": 476,
-        "name": "No5 Млинці з джемом",
+        "name": "Млинці з джемом",
         "price": 120,
         "weightGrams": 100,
         "categoryId": 20,
         "categoryName": "СНІДАНКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Поживний та збалансований сніданок, який подарує вам енергію та чудовий настрій на весь день.",
         "image": "https://api.andi.delivery/images/products/00b988dd-7d60-48b1-a382-aec3a9245ac1/thumb.jpg"
     },
     {
@@ -456,7 +458,7 @@
         "weightGrams": 100,
         "categoryId": 19,
         "categoryName": "ЗАКУСКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Чудова холодна або гаряча закуска, яка чудово смакує як самостійно, так і до улюблених напоїв.",
         "image": "https://api.andi.delivery/images/products/2bf24baf-011f-4422-97de-34f8a65e9876/thumb.jpg"
     },
     {
@@ -466,7 +468,7 @@
         "weightGrams": 200,
         "categoryId": 15,
         "categoryName": "ДЕСЕРТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Вишуканий солодкий десерт, створений за авторським рецептом для ідеального завершення вашої трапези.",
         "image": "https://api.andi.delivery/images/products/2bcc270d-6b4b-4cdc-b1f4-0a2d10fdae12/thumb.jpg"
     },
     {
@@ -476,7 +478,7 @@
         "weightGrams": 200,
         "categoryId": 16,
         "categoryName": "ГАРНІРИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/e0cf7db0-06a4-495d-9ac7-29cf1a22af5d/thumb.jpg"
     },
     {
@@ -486,12 +488,12 @@
         "weightGrams": 320,
         "categoryId": 17,
         "categoryName": "ПЕРШІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Навариста та ароматна перша страва, приготовлена за класичним рецептом із найсвіжіших інгредієнтів.",
         "image": "https://api.andi.delivery/images/products/da171865-f6af-4466-99d4-1d70ccbc9f50/thumb.jpg"
     },
     {
         "id": 471,
-        "name": "№5 На велику компанію",
+        "name": "На велику компанію",
         "price": 1500,
         "weightGrams": 2000,
         "categoryId": 14,
@@ -506,7 +508,7 @@
         "weightGrams": 100,
         "categoryId": 13,
         "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Свіжа риба високої якості, запечена чи підсмажена з додаванням лимонного соку та пряних трав.",
         "image": "https://api.andi.delivery/images/products/79c54616-bf16-4a1d-acc8-d44a9d8252b5/thumb.jpg"
     },
     {
@@ -516,7 +518,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/e39fa7a9-f7d6-4ae4-9b70-a63955041bf1/thumb.jpg"
     },
     {
@@ -526,7 +528,7 @@
         "weightGrams": 250,
         "categoryId": 12,
         "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/c9d6588e-63da-4ba8-9e12-aadf5e865d16/thumb.jpg"
     },
     {
@@ -536,7 +538,7 @@
         "weightGrams": 350,
         "categoryId": 10,
         "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Свіжа риба високої якості, запечена чи підсмажена з додаванням лимонного соку та пряних трав.",
         "image": "https://api.andi.delivery/images/products/28ad8f72-b540-4081-8b3a-29f78d337dab/thumb.jpg"
     },
     {
@@ -546,7 +548,7 @@
         "weightGrams": 150,
         "categoryId": 9,
         "categoryName": "САЛАТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Легкий та корисний салат із добірних свіжих овочів, зелені та фірмової заправки від шеф-кухаря.",
         "image": "https://api.andi.delivery/images/products/622f35c4-82aa-43ba-8381-4f46c97f32a4/thumb.jpg"
     },
     {
@@ -561,12 +563,12 @@
     },
     {
         "id": 464,
-        "name": "No4 Млинці з творогом, сметаною",
+        "name": "Млинці з творогом, сметаною",
         "price": 150,
         "weightGrams": 100,
         "categoryId": 20,
         "categoryName": "СНІДАНКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Поживний та збалансований сніданок, який подарує вам енергію та чудовий настрій на весь день.",
         "image": "https://api.andi.delivery/images/products/d1eb9a8e-d42e-4982-a0e7-aa8f67cf8f3a/thumb.jpg"
     },
     {
@@ -586,7 +588,7 @@
         "weightGrams": 200,
         "categoryId": 15,
         "categoryName": "ДЕСЕРТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Вишуканий солодкий десерт, створений за авторським рецептом для ідеального завершення вашої трапези.",
         "image": "https://api.andi.delivery/images/products/b02fdc88-b002-4207-8dfd-e033e17c93e7/thumb.jpg"
     },
     {
@@ -596,7 +598,7 @@
         "weightGrams": 200,
         "categoryId": 16,
         "categoryName": "ГАРНІРИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/8fed5549-c16e-4dc7-94af-85eac244e606/thumb.jpg"
     },
     {
@@ -606,17 +608,17 @@
         "weightGrams": 335,
         "categoryId": 17,
         "categoryName": "ПЕРШІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Навариста та ароматна перша страва, приготовлена за класичним рецептом із найсвіжіших інгредієнтів.",
         "image": "https://api.andi.delivery/images/products/a3cc914d-83e2-4f07-909e-90fe8c7fe605/thumb.jpg"
     },
     {
         "id": 459,
-        "name": "№4 Нагетси курячі, картопля фрі, соус",
+        "name": "Нагетси курячі, картопля фрі, соус",
         "price": 170,
         "weightGrams": 250,
         "categoryId": 14,
         "categoryName": "ПИВНІ ТАРІЛКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/476d4c4d-e44b-46ad-97f1-497125ff5be7/thumb.jpg"
     },
     {
@@ -626,7 +628,7 @@
         "weightGrams": 100,
         "categoryId": 13,
         "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/abb48e0a-0241-47fd-8fcb-32fce673a5f6/thumb.jpg"
     },
     {
@@ -636,7 +638,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/05427de2-8b12-4b19-8e89-fc8831e73d15/thumb.jpg"
     },
     {
@@ -646,7 +648,7 @@
         "weightGrams": 100,
         "categoryId": 12,
         "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/ae7f6654-29a9-4e44-9eb0-70f2adf308f8/thumb.jpg"
     },
     {
@@ -656,7 +658,7 @@
         "weightGrams": 350,
         "categoryId": 10,
         "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/821bfaab-50df-4fbc-a9be-21c2dcaba495/thumb.jpg"
     },
     {
@@ -666,7 +668,7 @@
         "weightGrams": 150,
         "categoryId": 9,
         "categoryName": "САЛАТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Легкий та корисний салат із добірних свіжих овочів, зелені та фірмової заправки від шеф-кухаря.",
         "image": "https://api.andi.delivery/images/products/97b2ec03-b6b0-4967-be51-540ef9bf2616/thumb.jpg"
     },
     {
@@ -691,12 +693,12 @@
     },
     {
         "id": 451,
-        "name": "No3 Сирники з сметаною та джемом",
+        "name": "Сирники з сметаною та джемом",
         "price": 160,
         "weightGrams": 100,
         "categoryId": 20,
         "categoryName": "СНІДАНКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/99312f23-1e75-4599-9b3b-c0dd5ffb98a5/thumb.jpg"
     },
     {
@@ -716,7 +718,7 @@
         "weightGrams": 200,
         "categoryId": 15,
         "categoryName": "ДЕСЕРТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Вишуканий солодкий десерт, створений за авторським рецептом для ідеального завершення вашої трапези.",
         "image": "https://api.andi.delivery/images/products/26e051fc-c08b-4220-975b-91cf1a311667/thumb.jpg"
     },
     {
@@ -746,7 +748,7 @@
         "weightGrams": 250,
         "categoryId": 16,
         "categoryName": "ГАРНІРИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/98bbf98d-539e-42ec-a11e-613b4e3799ab/thumb.jpg"
     },
     {
@@ -756,17 +758,17 @@
         "weightGrams": 335,
         "categoryId": 17,
         "categoryName": "ПЕРШІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Навариста та ароматна перша страва, приготовлена за класичним рецептом із найсвіжіших інгредієнтів.",
         "image": "https://api.andi.delivery/images/products/cf9bb7e4-8349-4ef9-8f15-2a5a1c9a83cf/thumb.jpg"
     },
     {
         "id": 444,
-        "name": "№3 Сирні кульки, пельмені фрі, картопля фрі, со...",
+        "name": "Сирні кульки, пельмені фрі, картопля фрі, со...",
         "price": 300,
         "weightGrams": 500,
         "categoryId": 14,
         "categoryName": "ПИВНІ ТАРІЛКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/20e644a8-6816-49a2-bf80-e99545ac3b7d/thumb.jpg"
     },
     {
@@ -776,7 +778,7 @@
         "weightGrams": 400,
         "categoryId": 13,
         "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/6453c439-ea13-4275-8805-22e1d1f21ce3/thumb.jpg"
     },
     {
@@ -786,7 +788,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/b34e3b92-2a60-4c1a-b386-712c3712be17/thumb.jpg"
     },
     {
@@ -796,7 +798,7 @@
         "weightGrams": 100,
         "categoryId": 12,
         "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/d7e8b480-1daf-4195-9baf-dea0e48fb73f/thumb.jpg"
     },
     {
@@ -806,7 +808,7 @@
         "weightGrams": 350,
         "categoryId": 10,
         "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/fdf09e26-d9ff-4945-83cd-2409cc84bb11/thumb.jpg"
     },
     {
@@ -816,7 +818,7 @@
         "weightGrams": 150,
         "categoryId": 9,
         "categoryName": "САЛАТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Легкий та корисний салат із добірних свіжих овочів, зелені та фірмової заправки від шеф-кухаря.",
         "image": "https://api.andi.delivery/images/products/c24db0a9-3919-4169-8462-7dc0b2d6cda7/thumb.jpg"
     },
     {
@@ -841,12 +843,12 @@
     },
     {
         "id": 436,
-        "name": "No2 Яєшня з беконом, тости, масло, овочі",
+        "name": "Яєшня з беконом, тости, масло, овочі",
         "price": 190,
         "weightGrams": 100,
         "categoryId": 20,
         "categoryName": "СНІДАНКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/2e828949-02ae-4ed0-b9a2-fc4596871d02/thumb.jpg"
     },
     {
@@ -866,7 +868,7 @@
         "weightGrams": 200,
         "categoryId": 15,
         "categoryName": "ДЕСЕРТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Вишуканий солодкий десерт, створений за авторським рецептом для ідеального завершення вашої трапези.",
         "image": "https://api.andi.delivery/images/products/3a4c5f5a-e67b-4bf0-afd3-73d0904907d2/thumb.jpg"
     },
     {
@@ -896,7 +898,7 @@
         "weightGrams": 200,
         "categoryId": 16,
         "categoryName": "ГАРНІРИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/bc6cc231-2392-4790-a45a-23309ce0f3a8/thumb.jpg"
     },
     {
@@ -906,17 +908,17 @@
         "weightGrams": 350,
         "categoryId": 17,
         "categoryName": "ПЕРШІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Навариста та ароматна перша страва, приготовлена за класичним рецептом із найсвіжіших інгредієнтів.",
         "image": "https://api.andi.delivery/images/products/65ad96f9-e67f-455a-9d9c-3abf6c4d5b7b/thumb.jpg"
     },
     {
         "id": 429,
-        "name": "№2 Ковбаски гриль, картопля фрі, свинні вушка, ...",
+        "name": "Ковбаски гриль, картопля фрі, свинні вушка, ...",
         "price": 360,
         "weightGrams": 600,
         "categoryId": 14,
         "categoryName": "ПИВНІ ТАРІЛКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/2b573e02-9cd7-4ee2-9900-9fb8ddbad3b7/thumb.jpg"
     },
     {
@@ -926,7 +928,7 @@
         "weightGrams": 100,
         "categoryId": 13,
         "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/9ccb3900-f32f-49c8-86ed-c839c8a71d05/thumb.jpg"
     },
     {
@@ -936,7 +938,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/500e6325-2e5f-46d1-83f1-78de74046c25/thumb.jpg"
     },
     {
@@ -946,7 +948,7 @@
         "weightGrams": 200,
         "categoryId": 12,
         "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/c9ddeac8-c4dc-4a60-b5d1-e3b5396c58a9/thumb.jpg"
     },
     {
@@ -956,7 +958,7 @@
         "weightGrams": 300,
         "categoryId": 10,
         "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/d3914d05-b798-49c6-8d2b-1fa659690a3a/thumb.jpg"
     },
     {
@@ -966,7 +968,7 @@
         "weightGrams": 200,
         "categoryId": 9,
         "categoryName": "САЛАТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Легкий та корисний салат із добірних свіжих овочів, зелені та фірмової заправки від шеф-кухаря.",
         "image": "https://api.andi.delivery/images/products/edf83000-dee3-4472-96b3-72c4a08459b7/thumb.jpg"
     },
     {
@@ -991,12 +993,12 @@
     },
     {
         "id": 421,
-        "name": "No1 Омлет з беконом, грінки, овочі, масло вершкове",
+        "name": "Омлет з беконом, грінки, овочі, масло вершкове",
         "price": 200,
         "weightGrams": 100,
         "categoryId": 20,
         "categoryName": "СНІДАНКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/73631869-72bb-4a64-8fe3-921025a58b88/thumb.jpg"
     },
     {
@@ -1046,7 +1048,7 @@
         "weightGrams": 200,
         "categoryId": 16,
         "categoryName": "ГАРНІРИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/0b423daa-2458-4d20-b97a-6f398b667bd1/thumb.jpg"
     },
     {
@@ -1056,17 +1058,17 @@
         "weightGrams": 350,
         "categoryId": 17,
         "categoryName": "ПЕРШІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Навариста та ароматна перша страва, приготовлена за класичним рецептом із найсвіжіших інгредієнтів.",
         "image": "https://api.andi.delivery/images/products/6f8eec03-5010-41c5-978f-0251f1abd07d/thumb.jpg"
     },
     {
         "id": 414,
-        "name": "№1 Сир фрі, картопля фрі, грінки",
+        "name": "Сир фрі, картопля фрі, грінки",
         "price": 195,
         "weightGrams": 300,
         "categoryId": 14,
         "categoryName": "ПИВНІ ТАРІЛКИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
         "image": "https://api.andi.delivery/images/products/e59700f6-b563-448c-8f4b-d0e0080ea1eb/thumb.jpg"
     },
     {
@@ -1086,7 +1088,7 @@
         "weightGrams": 100,
         "categoryId": 11,
         "categoryName": "СТРАВИ НА МАНГАЛІ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
         "image": "https://api.andi.delivery/images/products/7f9af9e9-8dc9-47f4-b153-7db012f25f59/thumb.jpg"
     },
     {
@@ -1096,7 +1098,7 @@
         "weightGrams": 200,
         "categoryId": 12,
         "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/18b49d6f-29e3-44df-9808-9a654f92a37d/thumb.jpg"
     },
     {
@@ -1106,7 +1108,7 @@
         "weightGrams": 250,
         "categoryId": 10,
         "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Фірмова страва від нашого ресторану, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
         "image": "https://api.andi.delivery/images/products/738157b4-384d-4e60-80f3-83289312d133/thumb.jpg"
     },
     {
@@ -1116,7 +1118,7 @@
         "weightGrams": 200,
         "categoryId": 9,
         "categoryName": "САЛАТИ",
-        "description": "Смачна страва від ресторану Рутенія",
+        "description": "Легкий та корисний салат із добірних свіжих овочів, зелені та фірмової заправки від шеф-кухаря.",
         "image": "https://api.andi.delivery/images/products/6aacee09-c9ed-47bd-bbc6-045abdadc4af/thumb.jpg"
     },
     {
@@ -1138,5 +1140,485 @@
         "categoryName": "ПІЦА",
         "description": "соус, сир, ковбаса, кукурудза",
         "image": "https://api.andi.delivery/images/products/ac4704a2-0ec0-4231-89c2-99e574c63e2d/thumb.jpg"
+    },
+    {
+        "id": 516,
+        "name": "Стейк \" Ribeye",
+        "price": 220,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/cbef9ecc-ea8e-42a5-be6b-3e49892c729c/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 514,
+        "name": "Котлета фірмова",
+        "price": 80,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Фірмова страва від нашого пабу Дублін, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
+        "image": "https://api.andi.delivery/images/products/7b5a64d3-09a3-45eb-8b27-de613d7b4052/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 513,
+        "name": "Хек смажений",
+        "price": 55,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/f81fb04f-e133-42fc-8458-a086a4253bf1/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 509,
+        "name": "Котлета по-київський",
+        "price": 80,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Фірмова страва від нашого пабу Дублін, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
+        "image": "https://api.andi.delivery/images/products/5634f2c0-a103-40db-a8b1-9b00fcfd0568/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 508,
+        "name": "Короп смажений",
+        "price": 65,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/5c0d9bcb-7cff-4a1e-a2e1-4f421ba519a7/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 506,
+        "name": "Завиванець по-закарпатськи",
+        "price": 95,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "філе куряче, сир твердий, зелень, бекон",
+        "image": "https://api.andi.delivery/images/products/bec33ff4-741e-4142-8db8-bad71426d654/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 505,
+        "name": "Стейк форелі морської",
+        "price": 190,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/ac607a7b-c058-4a79-9f19-382b1998090d/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 501,
+        "name": "Відбивна куряча",
+        "price": 85,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Фірмова страва від нашого пабу Дублін, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
+        "image": "https://api.andi.delivery/images/products/1f12ef42-9fa9-4fb6-8a8a-6a916c37d428/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 500,
+        "name": "Форель річкова",
+        "price": 100,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/1a4af763-5ea1-4862-a4ad-540e5be2eb5d/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 497,
+        "name": "Грінки з часником",
+        "price": 50,
+        "weightGrams": 100,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "Чудова холодна або гаряча закуска, яка чудово смакує як самостійно, так і до улюблених напоїв.",
+        "image": "https://api.andi.delivery/images/products/08442638-fe26-4070-a006-d323b4cb9b3e/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 494,
+        "name": "Відбивна з свинини",
+        "price": 85,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Фірмова страва від нашого пабу Дублін, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
+        "image": "https://api.andi.delivery/images/products/a51af1f3-5e73-462d-841c-2ecb1ef36873/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 493,
+        "name": "Овочі гриль",
+        "price": 90,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/798eeda4-f335-4b90-aec4-5f1001cefa84/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 487,
+        "name": "Сало домашнє",
+        "price": 80,
+        "weightGrams": 100,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "Чудова холодна або гаряча закуска, яка чудово смакує як самостійно, так і до улюблених напоїв.",
+        "image": "https://api.andi.delivery/images/products/d1034258-5baf-47cf-b29d-faa72dfdf9d9/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 483,
+        "name": "Крила в медовому соусі, чіпи, соус",
+        "price": 200,
+        "weightGrams": 350,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "Чудова холодна або гаряча закуска, яка чудово смакує як самостійно, так і до улюблених напоїв.",
+        "image": "https://api.andi.delivery/images/products/7f82fa61-e321-45f1-b64a-3e0453b79c30/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 482,
+        "name": "Стейк лосося з овочами гриль",
+        "price": 450,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/1ad4dc90-3ca1-449a-9f81-9433f68d88e6/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 481,
+        "name": "Ребра свинні",
+        "price": 100,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/554ddd1d-bcfd-4251-8fbf-d72a34312f92/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 475,
+        "name": "Махан/Бастурма",
+        "price": 200,
+        "weightGrams": 100,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "Чудова холодна або гаряча закуска, яка чудово смакує як самостійно, так і до улюблених напоїв.",
+        "image": "https://api.andi.delivery/images/products/2bf24baf-011f-4422-97de-34f8a65e9876/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 471,
+        "name": "На велику компанію",
+        "price": 1500,
+        "weightGrams": 2000,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "крила курячі, 2 вида ковбасок, огірки солені,  2 види соуса",
+        "image": "https://api.andi.delivery/images/products/983ef405-40e6-42ca-a357-aee02ae1ae6f/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 470,
+        "name": "Пюре з жульєном та білими грибами",
+        "price": 250,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Свіжа риба високої якості, запечена чи підсмажена з додаванням лимонного соку та пряних трав.",
+        "image": "https://api.andi.delivery/images/products/79c54616-bf16-4a1d-acc8-d44a9d8252b5/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 469,
+        "name": "Ковбаски гриль",
+        "price": 85,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/e39fa7a9-f7d6-4ae4-9b70-a63955041bf1/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 463,
+        "name": "Брускети з прошуто та лососем",
+        "price": 250,
+        "weightGrams": 100,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "4 шт.",
+        "image": "https://api.andi.delivery/images/products/e1507880-0dad-4bf9-92cc-89cd6431b958/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 459,
+        "name": "Нагетси курячі, картопля фрі, соус",
+        "price": 170,
+        "weightGrams": 250,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
+        "image": "https://api.andi.delivery/images/products/476d4c4d-e44b-46ad-97f1-497125ff5be7/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 458,
+        "name": "Лоці з ніжним картопляним пюре",
+        "price": 220,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
+        "image": "https://api.andi.delivery/images/products/abb48e0a-0241-47fd-8fcb-32fce673a5f6/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 457,
+        "name": "Стейк телячий",
+        "price": 160,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/05427de2-8b12-4b19-8e89-fc8831e73d15/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 453,
+        "name": "Бургер CHICKEN",
+        "price": 230,
+        "weightGrams": 430,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "курка гриль, сир Чеддер, помідор, огірок свіжий, салат, соус, картопля фрі, кетчуп",
+        "image": "https://api.andi.delivery/images/products/586c02f7-70a3-4899-86af-f39a81dc9090/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 450,
+        "name": "Сирна тарілка",
+        "price": 350,
+        "weightGrams": 250,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "4 види сира",
+        "image": "https://api.andi.delivery/images/products/13496906-52da-4bbd-8180-9444a043411b/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 444,
+        "name": "Сирні кульки, пельмені фрі, картопля фрі, со...",
+        "price": 300,
+        "weightGrams": 500,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
+        "image": "https://api.andi.delivery/images/products/20e644a8-6816-49a2-bf80-e99545ac3b7d/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 443,
+        "name": "Свинні медальйони в журавлиному соусі з рисом",
+        "price": 280,
+        "weightGrams": 400,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Фірмова страва від нашого пабу Дублін, приготована за особливим рецептом шеф-кухаря з любов'ю до деталей.",
+        "image": "https://api.andi.delivery/images/products/6453c439-ea13-4275-8805-22e1d1f21ce3/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 442,
+        "name": "Стейк свинний",
+        "price": 110,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/b34e3b92-2a60-4c1a-b386-712c3712be17/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 438,
+        "name": "Бургер BBQ MAXI",
+        "price": 390,
+        "weightGrams": 630,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "біфштекс із яловичини х2, бекон, сир Чеддер х2, салат, помідор, цибуля, соус BBQ, картопля фрі, кетчуп",
+        "image": "https://api.andi.delivery/images/products/925fb54b-dac3-45ff-b3de-96bb53578542/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 435,
+        "name": "М’ясне асорті",
+        "price": 100,
+        "weightGrams": 100,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "свинина шпігована, телятини відварена, шовдарь",
+        "image": "https://api.andi.delivery/images/products/40d257f2-37d5-4be9-be41-4416a1171656/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 429,
+        "name": "Ковбаски гриль, картопля фрі, свинні вушка, ...",
+        "price": 360,
+        "weightGrams": 600,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
+        "image": "https://api.andi.delivery/images/products/2b573e02-9cd7-4ee2-9900-9fb8ddbad3b7/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 428,
+        "name": "Качина ніжка з ніжним картопляним пюре",
+        "price": 300,
+        "weightGrams": 100,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
+        "image": "https://api.andi.delivery/images/products/9ccb3900-f32f-49c8-86ed-c839c8a71d05/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 427,
+        "name": "Шашлик курячий",
+        "price": 95,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/500e6325-2e5f-46d1-83f1-78de74046c25/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 423,
+        "name": "Бургер BBQ",
+        "price": 250,
+        "weightGrams": 430,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "біфштекс із яловичини, бекон, сир Чеддер, салат, помідор, цибуля, соус BBQ, картопля фрі, кетчуп",
+        "image": "https://api.andi.delivery/images/products/af61a4a7-4f98-4df3-ac93-839962b49be0/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 420,
+        "name": "Тарілочка до горілочки",
+        "price": 450,
+        "weightGrams": 250,
+        "categoryId": 19,
+        "categoryName": "ЗАКУСКИ",
+        "description": "сало солене, сало попрігаш, шкварки молені, грінки",
+        "image": "https://api.andi.delivery/images/products/5abc1885-96c5-40ea-bfa8-220e0098d927/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 414,
+        "name": "Сир фрі, картопля фрі, грінки",
+        "price": 195,
+        "weightGrams": 300,
+        "categoryId": 14,
+        "categoryName": "ПИВНІ ТАРІЛКИ",
+        "description": "Смачний та ситний гарнір, який ідеально підійде до будь-якої м'ясної чи рибної страви.",
+        "image": "https://api.andi.delivery/images/products/e59700f6-b563-448c-8f4b-d0e0080ea1eb/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 413,
+        "name": "Фірмова страва \"Рутенія\"",
+        "price": 450,
+        "weightGrams": 775,
+        "categoryId": 13,
+        "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
+        "description": "три види мʼяса: теляе, куряче, свинне, гриби лісові, картопля смажена",
+        "image": "https://api.andi.delivery/images/products/2e39e896-dfa6-45bc-a367-17e0dd9bf122/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 412,
+        "name": "Шашлик свинний",
+        "price": 110,
+        "weightGrams": 100,
+        "categoryId": 11,
+        "categoryName": "СТРАВИ НА МАНГАЛІ",
+        "description": "Ніжне та соковите м'ясо, приготоване на відкритому вогні з додаванням ароматних спецій та димку.",
+        "image": "https://api.andi.delivery/images/products/7f9af9e9-8dc9-47f4-b153-7db012f25f59/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
+    },
+    {
+        "id": 408,
+        "name": "Бургер NEW YORK",
+        "price": 250,
+        "weightGrams": 430,
+        "categoryId": 1,
+        "categoryName": "Бургери",
+        "description": "біфштекс із яловичини, сир Чеддер, салат, помідор, цибуля, солений огірок, соус, картопля фрі, кетчуп",
+        "image": "https://api.andi.delivery/images/products/e16ac69b-7e05-4d69-8008-aab80e3a7687/thumb.jpg",
+        "store_id": 2,
+        "restaurantId": 2
     }
 ]

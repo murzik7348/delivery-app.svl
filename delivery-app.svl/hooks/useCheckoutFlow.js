@@ -29,7 +29,7 @@ export default function useCheckoutFlow() {
     const { currentLocation } = useSelector(state => state.location);
 
     // Active Selection State
-    const activeAddress = savedAddresses.find(a => a.address === currentLocation?.addressName) ?? (savedAddresses.length > 0 ? savedAddresses[0] : null);
+    let activeAddress = savedAddresses.find(a => a.address === currentLocation?.addressName) ?? (savedAddresses.length > 0 ? savedAddresses[0] : null);
     const activePayment = paymentMethods.find(m => m.id === selectedMethodId) ?? (paymentMethods.length > 0 ? paymentMethods[0] : null);
 
     /**
@@ -97,6 +97,8 @@ export default function useCheckoutFlow() {
             total: totalAmount,
             discount: discountAmount,
             delivery: deliveryFee,
+            deliveryFee: deliveryFee,
+            deliveryFeeAmount: deliveryFee,
             promo: appliedPromo?.code ?? null,
             note: finalNote,
             type: deliveryType,

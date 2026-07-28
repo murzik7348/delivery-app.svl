@@ -341,23 +341,37 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
 
-          <TouchableOpacity 
-            style={{ 
-              alignItems: 'center', 
-              marginTop: 20, 
-              paddingVertical: 8 
-            }} 
-            activeOpacity={0.7}
-            onPress={() => {
-              Linking.openURL('https://andi.delivery/privacy.html').catch(() => 
-                Alert.alert('Помилка', 'Не вдалося відкрити посилання.')
-              );
-            }}
-          >
-            <Text style={{ color: theme.textSecondary, fontSize: 14, textDecorationLine: 'underline' }}>
-              {locale === 'en' ? 'Privacy Policy' : 'Політика конфіденційності'}
-            </Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20, gap: 16 }}>
+            <TouchableOpacity 
+              style={{ paddingVertical: 8 }} 
+              activeOpacity={0.7}
+              onPress={() => {
+                Linking.openURL('https://andi.delivery/support.html').catch(() => 
+                  Alert.alert('Помилка', 'Не вдалося відкрити посилання.')
+                );
+              }}
+            >
+              <Text style={{ color: theme.textSecondary, fontSize: 14, textDecorationLine: 'underline' }}>
+                {locale === 'en' ? 'Support Center' : 'Служба підтримки'}
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={{ color: theme.textSecondary, fontSize: 14 }}>•</Text>
+
+            <TouchableOpacity 
+              style={{ paddingVertical: 8 }} 
+              activeOpacity={0.7}
+              onPress={() => {
+                Linking.openURL('https://andi.delivery/privacy.html').catch(() => 
+                  Alert.alert('Помилка', 'Не вдалося відкрити посилання.')
+                );
+              }}
+            >
+              <Text style={{ color: theme.textSecondary, fontSize: 14, textDecorationLine: 'underline' }}>
+                {locale === 'en' ? 'Privacy Policy' : 'Політика конфіденційності'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <Text style={[styles.version, { color: theme.textSecondary }]}>{t(locale, 'version')}</Text>
 

@@ -208,7 +208,7 @@ export default function PromoSheet({ promo, onClose }) {
 
                     {/* Hero */}
                     <View style={s.heroWrap}>
-                        <Image source={{ uri: promo.image }} style={s.hero} />
+                        <Image source={typeof promo.image === 'number' ? promo.image : { uri: promo.image }} style={s.hero} />
                         <View style={s.heroOverlay} />
                         <View style={[s.tag, { backgroundColor: promo.tagColor ?? theme.primary }]}>
                             <Text style={s.tagText}>{promo.tag}</Text>

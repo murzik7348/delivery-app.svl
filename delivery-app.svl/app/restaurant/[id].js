@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState, useMemo } from 'react';
-import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Alert, FlatList, ActivityIndicator } from 'react-native';
+import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Alert, FlatList, ActivityIndicator, Platform } from 'react-native';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -48,7 +48,14 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
           {/* Glassmorphism Price Badge */}
           <View style={styles.priceBadgeOverlay}>
             <BlurView intensity={70} tint="dark" style={styles.priceBadgeBlur}>
-              <Text style={styles.priceBadgeTextBlur}>{formatPrice(product.price)} ₴</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                {product.oldPrice && (
+                  <Text style={[styles.priceBadgeTextBlur, { textDecorationLine: 'line-through', opacity: 0.6, fontSize: 11, marginRight: 2 }]}>
+                    {formatPrice(product.oldPrice)}
+                  </Text>
+                )}
+                <Text style={styles.priceBadgeTextBlur}>{formatPrice(product.price)} ₴</Text>
+              </View>
             </BlurView>
           </View>
 
@@ -140,9 +147,8 @@ export default function RestaurantScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      // Refresh both full catalog (for restaurant info) and specific products
       await Promise.all([
-        dispatch(fetchCatalog()).unwrap(),
+        dispatch(fetchCatalog({ forceRefresh: true })).unwrap(),
         dispatch(fetchRestaurantProducts(Number(id))).unwrap()
       ]);
     } catch (error) {
@@ -156,9 +162,11 @@ export default function RestaurantScreen() {
 
   useEffect(() => {
     if (id) {
+      // fetchCatalog already called from _layout — condition guard prevents re-fetch if fresh
       dispatch(fetchRestaurantProducts(Number(id)));
     }
   }, [id, dispatch]);
+
 
   const restaurant = useMemo(() => stores.find(s => Number(s.store_id) === Number(id)), [stores, id]);
   const isClosed = useMemo(() => isRestaurantClosed(restaurant), [restaurant]);
@@ -350,6 +358,9 @@ export default function RestaurantScreen() {
         isFavProd={isFavProd}
         onSelect={setSelectedProduct}
         onAddToCart={(p) => {
+          if (Platform.OS !== 'web') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+          }
           if (isClosed) {
             Alert.alert(
               'Ресторан зачинено',
@@ -360,6 +371,9 @@ export default function RestaurantScreen() {
           dispatch(tryAddToCart(p));
         }}
         onRemoveFromCart={(productId) => {
+          if (Platform.OS !== 'web') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+          }
           const itemInCart = cartItems.find(i => i.product_id === productId);
           if (itemInCart) {
             if (itemInCart.quantity > 1) {
@@ -421,7 +435,7 @@ export default function RestaurantScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   image: { width: '100%', height: 250, resizeMode: 'cover' },
-  backButton: { position: 'absolute', top: 50, left: 20, backgroundColor: 'rgba(0,0,0,0.5)', padding: 8, borderRadius: 20 },
+  backButton: { position: 'absolute', top: 50, left: 20, backgroundColor: 'rgba(0,0,0,0.5)', padding: 8, borderRadius: 20, zIndex: 10 },
 
   infoContainer: { padding: 20, marginTop: -20, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },

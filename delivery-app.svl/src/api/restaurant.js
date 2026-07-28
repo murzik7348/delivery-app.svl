@@ -33,9 +33,14 @@ export const restaurantCancelDelivery = (id) =>
 /**
  * Restaurant marks a delivery order as cooking (preparing).
  * @param {number} id - Delivery ID
+ * @param {number} prepTimeMinutes - Cooking/preparation time in minutes
  */
-export const restaurantCookingDelivery = (id) =>
-    client.put(`/restaurant/deliveries/${id}/cooking`);
+export const restaurantCookingDelivery = (id, prepTimeMinutes) =>
+    client.put(`/restaurant/deliveries/${id}/cooking`, JSON.stringify(prepTimeMinutes), {
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
 
 /**
  * Restaurant marks a delivery order as ready for pickup.

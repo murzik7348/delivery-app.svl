@@ -1278,6 +1278,124 @@
         }
       }
     },
+    "/courier/me": {
+      "get": {
+        "tags": [
+          "Courier"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResultCourier"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResultCourier"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResultCourier"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/me/balance/history": {
+      "get": {
+        "tags": [
+          "Courier"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierBalanceHistoryResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierBalanceHistoryResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierBalanceHistoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/courier/deliveries": {
       "get": {
         "tags": [
@@ -2154,9 +2272,8 @@
             "multipart/form-data": {
               "schema": {
                 "required": [
-                  "CategoryId",
+                  "CategoryIds",
                   "Description",
-                  "Image",
                   "Name",
                   "Price",
                   "RestaurantId",
@@ -2176,9 +2293,12 @@
                     "type": "integer",
                     "format": "int32"
                   },
-                  "CategoryId": {
-                    "type": "integer",
-                    "format": "int32"
+                  "CategoryIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "format": "int32"
+                    }
                   },
                   "Description": {
                     "type": "string"
@@ -2203,7 +2323,7 @@
                 "WeightGrams": {
                   "style": "form"
                 },
-                "CategoryId": {
+                "CategoryIds": {
                   "style": "form"
                 },
                 "Description": {
@@ -2736,6 +2856,88 @@
     },
     "/restaurant/deliveries/{id}/cooking": {
       "put": {
+        "tags": [
+          "Restaurant"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/restaurant/deliveries/{id}/estimated-ready-time": {
+      "patch": {
         "tags": [
           "Restaurant"
         ],
@@ -3647,6 +3849,61 @@
         },
         "additionalProperties": false
       },
+      "CourierBalanceHistoryItem": {
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deliveryId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "transactionType": {
+            "$ref": "#/components/schemas/CourierTransactionTypes"
+          },
+          "transactionTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "balanceAfterTransaction": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CourierBalanceHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "balance": {
+            "type": "number",
+            "format": "double"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourierBalanceHistoryItem"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CourierShiftsAdminResponse": {
         "type": "object",
         "properties": {
@@ -3670,6 +3927,17 @@
         "enum": [
           1,
           2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "CourierTransactionTypes": {
+        "enum": [
+          1,
+          2,
+          3,
+          4,
+          5
         ],
         "type": "integer",
         "format": "int32"
@@ -3750,6 +4018,11 @@
           },
           "description": {
             "type": "string",
+            "nullable": true
+          },
+          "estimatedReadyAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           },
           "createdAt": {
@@ -3850,6 +4123,11 @@
           "restaurantLng": {
             "type": "number",
             "format": "double"
+          },
+          "estimatedReadyAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           },
           "createdAt": {
             "type": "string",
@@ -4197,6 +4475,39 @@
         },
         "additionalProperties": false
       },
+      "MeResultCourier": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          },
+          "balance": {
+            "type": "number",
+            "format": "double"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "shiftStatus": {
+            "$ref": "#/components/schemas/StatusShiftCourierResponse"
+          }
+        },
+        "additionalProperties": false
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -4239,11 +4550,16 @@
             "type": "number",
             "format": "double"
           },
+          "oldPrice": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
           "weightGrams": {
             "type": "integer",
             "format": "int32"
           },
-          "categoryId": {
+          "restaurantId": {
             "type": "integer",
             "format": "int32"
           },
@@ -4251,12 +4567,16 @@
             "type": "string",
             "nullable": true
           },
-          "restaurantId": {
-            "type": "integer",
-            "format": "int32"
-          },
           "urlBase": {
             "type": "string",
+            "nullable": true
+          },
+          "categoryIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
             "nullable": true
           }
         },
@@ -4274,14 +4594,22 @@
             "format": "double",
             "nullable": true
           },
+          "oldPrice": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
           "weightGrams": {
             "type": "integer",
             "format": "int32",
             "nullable": true
           },
-          "categoryId": {
-            "type": "integer",
-            "format": "int32",
+          "categoryIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
             "nullable": true
           },
           "description": {

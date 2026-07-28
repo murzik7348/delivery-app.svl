@@ -1,29 +1,68 @@
-node_modules
+# Dependencies
+node_modules/
+**/node_modules/
 
-# xcode-build-server files
-buildServer.json
-.compile
-
-# Local build artifacts
+# Expo & Build Artifacts
+.expo/
+**/.expo/
 .build/
-
-# Agent and IDE specific directories
-.agents
-.gemini
-.agent/
-
-# System files
-.DS_Store
-**/.DS_Store
-
-# Local testing helpers
-geolocations/
-
-# Ignore heavy binaries and platform folders for EAS
+dist/
+**/dist/
 *.aab
 *.ipa
 *.apk
+app-release.aab
+build-*.aab
+**/build-*.aab
+
+# Native build directories (managed by Expo Prebuild / EAS)
 ios/
 android/
 **/ios/
 **/android/
+
+# System files
+.DS_Store
+**/.DS_Store
+Thumbs.db
+**/Thumbs.db
+
+# Agent, IDE & Tooling configs
+.agents
+.agent/
+.gemini
+.vscode/
+**/.vscode/
+buildServer.json
+.compile
+
+# Local test scripts & non-production helper files
+get-courier-details.js
+test-api-users.js
+test-courier-push.js
+test-fcm.js
+ssh-run.exp
+svl.geojson
+geolocations/
+**/geolocations/
+phot/
+photo/
+**/photo/
+**/phot/
+
+# Backend schemas, catalogs & mock data
+backEnd.json
+BackEnd.json
+**/backEnd.json
+**/BackEnd.json
+rutenia_food_catalog.json
+**/rutenia_food_catalog.json
+**/menu_parsed.json
+
+# Logs & Environment overrides
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env*.local
+.env.local

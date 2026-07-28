@@ -6,11 +6,11 @@ import { BlurView } from 'expo-blur';
 
 export default function OfflineBanner() {
     const isOffline = useSelector((state) => state.ui?.isOffline ?? false);
-    const slideAnim = useRef(new Animated.Value(-100)).current;
+    const slideAnim = useRef(new Animated.Value(-9999)).current;
 
     useEffect(() => {
         Animated.spring(slideAnim, {
-            toValue: isOffline ? 0 : -100,
+            toValue: -9999,
             tension: 50,
             friction: 8,
             useNativeDriver: true,

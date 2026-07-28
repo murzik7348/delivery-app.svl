@@ -39,7 +39,7 @@
     "@react-native-firebase/messaging": "^24.0.0",
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.13.5",
-    "expo": "~54.0.33",
+    "expo": "~54.0.36",
     "expo-blur": "^15.0.8",
     "expo-build-properties": "~1.0.10",
     "expo-clipboard": "~8.0.8",
