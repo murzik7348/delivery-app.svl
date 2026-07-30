@@ -2,15 +2,21 @@
   "dependencies": {
     "@google/genai": "^1.42.0",
     "@reduxjs/toolkit": "^2.11.2",
+    "expo": "^57.0.9",
     "firebase-admin": "^14.0.0",
     "lucide-react": "^0.577.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.13.1",
-    "recharts": "^3.8.0"
+    "recharts": "^3.8.0",
+    "react": "19.2.3",
+    "react-native": "0.86.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.27",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.1"
-  }
+  },
+  "name": "delivery-app",
+  "version": "1.0.0",
+  "scripts": {}
 }
