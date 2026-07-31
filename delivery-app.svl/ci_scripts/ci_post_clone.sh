@@ -1,36 +1,40 @@
 #!/bin/sh
-
-# Зупинити виконання при будь-якій помилці
 set -e
 
-echo "=== Xcode Cloud Post-Clone Script Started ==="
+echo "=== Xcode Cloud Post-Clone Started ==="
 
-# Перехід у корінь проєкту
+# Перехід у корінь репозиторію
 if [ -n "$CI_PRIMARY_REPOSITORY_DIR" ]; then
     cd "$CI_PRIMARY_REPOSITORY_DIR"
 else
     cd "$(dirname "$0")/.."
 fi
 
-# Додаємо шляхи для Homebrew / Node / Pods
-export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+# Експорт шляхів для системних утиліт Xcode Cloud
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
-# Перевірка та встановлення CocoaPods якщо відсутні
+# Встановлення Node.js якщо відсутній
+if ! command -v node &> /dev/null; then
+    echo "Node.js not found. Installing via Homebrew..."
+    brew install node
+fi
+
+# Встановлення CocoaPods якщо відсутні
 if ! command -v pod &> /dev/null; then
-    echo "CocoaPods not found, installing..."
+    echo "CocoaPods not found. Installing..."
     brew install cocoapods || gem install cocoapods
 fi
 
-# 1. Встановлення npm-залежностей проєкту
-echo "Installing Node modules..."
+# Встановлення npm-пакетів
+echo "Installing npm dependencies..."
 npm install --legacy-peer-deps
 
-# 2. Встановлення Pods
-echo "Installing iOS Pods..."
+# Встановлення Pods
+echo "Installing CocoaPods dependencies..."
 if [ -d "ios" ]; then
     cd ios
-    pod install
+    pod install --repo-update
     cd ..
 fi
 
-echo "=== Post-Clone Completed Successfully ==="
+echo "=== Xcode Cloud Post-Clone Finished ==="
