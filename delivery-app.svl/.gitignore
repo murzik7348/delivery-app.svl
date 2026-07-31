@@ -10,8 +10,12 @@ dist/
 *.apk
 
 # Native build directories
-ios/
-android/
+ios/Pods/
+ios/build/
+ios/DerivedData/
+android/build/
+android/.gradle/
+android/app/build/
 
 # System files
 .DS_Store

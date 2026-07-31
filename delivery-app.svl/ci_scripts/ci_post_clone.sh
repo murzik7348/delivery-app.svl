@@ -29,11 +29,13 @@ echo "NPM version: $(npm -v)"
 echo "Встановлення npm dependencies..."
 npm install --legacy-peer-deps
 
-# 4. Генерація нативного iOS-проєкту через Expo Prebuild
-echo "Генерація нативної папки ios через Expo Prebuild..."
-npx expo prebuild --platform ios --clean
+# 4. Якщо папки ios немає — створюємо її, інакше оновлюємо Pods
+if [ ! -d "ios" ]; then
+    echo "Генерація нативної папки ios через Expo Prebuild..."
+    npx expo prebuild --platform ios
+fi
 
-# 5. Встановлення CocoaPods залежностей
+# 5. Встановлення CocoaPods для KM.xcworkspace
 echo "Встановлення CocoaPods..."
 if [ -d "ios" ]; then
     cd ios
