@@ -1,49 +1,56 @@
 #!/bin/bash
-
-# Зупинити виконання при виникненні помилок
 set -e
 
 echo "=== [Xcode Cloud] Post-Clone Script Started ==="
 
-# 0. Експорт PATH для середовища Xcode Cloud (Homebrew, Node, CocoaPods)
-export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin
+# 1. Export PATH for Node.js, Homebrew, Ruby & CocoaPods in Xcode Cloud VM
+export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH
+export PATH=$HOME/.gem/ruby/$(ruby -e 'puts RUBY_VERSION' 2>/dev/null || echo "3.0.0")/bin:$PATH
 
-# 1. Визначення кореневої директорії додатка
+# 2. Locate App Root Directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 if [ -f "$SCRIPT_DIR/../package.json" ]; then
     APP_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
+elif [ -n "$CI_PRIMARY_REPOSITORY_DIR" ]; then
+    APP_DIR="$CI_PRIMARY_REPOSITORY_DIR"
 else
     APP_DIR="$(pwd)"
 fi
 
-echo "Робоча директорія додатка: $APP_DIR"
+echo "App directory: $APP_DIR"
 cd "$APP_DIR"
 
-# 2. Перевірка та встановлення Node.js
+# 3. Check and install Node.js / npm if missing
 if ! command -v node &> /dev/null; then
-    echo "Node.js не знайдено. Встановлення через Homebrew..."
+    echo "Node.js not found in PATH. Installing via Homebrew..."
     brew install node
 fi
 
 echo "Node.js version: $(node -v)"
 echo "NPM version: $(npm -v)"
 
-# 3. Встановлення npm-залежностей проєкту
-echo "Встановлення npm dependencies..."
+# 4. Check and install CocoaPods (pod) if missing
+if ! command -v pod &> /dev/null; then
+    echo "CocoaPods (pod) not found in PATH. Installing via Homebrew..."
+    brew install cocoapods || gem install cocoapods --user-install || true
+fi
+
+echo "CocoaPods version: $(pod --version || echo 'checking...')"
+
+# 5. Install Node dependencies
+echo "Installing npm dependencies..."
 npm install --legacy-peer-deps
 
-# 4. Якщо папки ios немає — створюємо її, інакше оновлюємо Pods
+# 6. Ensure ios directory exists
 if [ ! -d "ios" ]; then
-    echo "Генерація нативної папки ios через Expo Prebuild..."
+    echo "Generating ios directory via Expo Prebuild..."
     npx expo prebuild --platform ios
 fi
 
-# 5. Встановлення CocoaPods для KM.xcworkspace
-echo "Встановлення CocoaPods..."
-if [ -d "ios" ]; then
-    cd ios
-    pod install
-    cd ..
-fi
+# 7. Run pod install in ios/ directory to generate Pods and xcconfig files
+echo "Running pod install in ios/ directory..."
+cd ios
+pod install
+cd ..
 
 echo "=== [Xcode Cloud] Post-Clone Script Successfully Completed ==="
