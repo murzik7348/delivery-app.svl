@@ -5,6 +5,9 @@ set -e
 
 echo "=== [Xcode Cloud] Post-Clone Script Started ==="
 
+# 0. Експорт PATH для середовища Xcode Cloud (Homebrew, Node, CocoaPods)
+export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin
+
 # 1. Визначення кореневої директорії додатка
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 if [ -f "$SCRIPT_DIR/../package.json" ]; then
