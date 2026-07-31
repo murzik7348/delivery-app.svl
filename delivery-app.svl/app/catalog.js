@@ -57,7 +57,7 @@ const BouncyProductCard = ({ item, theme, router, isDark, onPress }) => {
         <Image source={{ uri: item.image }} style={styles.cardImage} />
         <View style={styles.cardContent}>
           <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
-          <Text style={[styles.cardPrice, { color: theme.tint }]}>{formatPrice(item.price)} грн</Text>
+          <Text style={[styles.cardPrice, { color: theme.text }]}>{formatPrice(item.price)} грн</Text>
           <View style={[styles.addBtn, { backgroundColor: theme.primary }]}>
             <Ionicons name="add" size={20} color="white" />
           </View>
@@ -100,7 +100,7 @@ const BouncyHorizontalCard = ({ item, router, theme, isDark, tag, tagColor, onPr
         <View style={[styles.badgeTop, { backgroundColor: tagColor }]}><Text style={styles.badgeText}>{tag}</Text></View>
         <Image source={{ uri: item.image }} style={styles.horizontalImage} />
         <Text style={[styles.hCardTitle, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
-        <Text style={[styles.hCardPrice, { color: theme.tint }]}>{formatPrice(item.price)} грн</Text>
+        <Text style={[styles.hCardPrice, { color: theme.text }]}>{formatPrice(item.price)} грн</Text>
       </Animated.View>
     </TouchableOpacity>
   );

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState, useMemo } from 'react';
-import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Alert, FlatList, ActivityIndicator, Platform } from 'react-native';
+import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Alert, FlatList, ActivityIndicator } from 'react-native';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -48,14 +48,7 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
           {/* Glassmorphism Price Badge */}
           <View style={styles.priceBadgeOverlay}>
             <BlurView intensity={70} tint="dark" style={styles.priceBadgeBlur}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                {product.oldPrice && (
-                  <Text style={[styles.priceBadgeTextBlur, { textDecorationLine: 'line-through', opacity: 0.6, fontSize: 11, marginRight: 2 }]}>
-                    {formatPrice(product.oldPrice)}
-                  </Text>
-                )}
-                <Text style={styles.priceBadgeTextBlur}>{formatPrice(product.price)} ₴</Text>
-              </View>
+              <Text style={styles.priceBadgeTextBlur}>{formatPrice(product.price)} ₴</Text>
             </BlurView>
           </View>
 
@@ -147,6 +140,8 @@ export default function RestaurantScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
+      // Refresh both full catalog (for restaurant info) and specific products
+      // Pass forceRefresh: true to bypass 5-min cache condition
       await Promise.all([
         dispatch(fetchCatalog({ forceRefresh: true })).unwrap(),
         dispatch(fetchRestaurantProducts(Number(id))).unwrap()
@@ -162,11 +157,9 @@ export default function RestaurantScreen() {
 
   useEffect(() => {
     if (id) {
-      // fetchCatalog already called from _layout — condition guard prevents re-fetch if fresh
       dispatch(fetchRestaurantProducts(Number(id)));
     }
   }, [id, dispatch]);
-
 
   const restaurant = useMemo(() => stores.find(s => Number(s.store_id) === Number(id)), [stores, id]);
   const isClosed = useMemo(() => isRestaurantClosed(restaurant), [restaurant]);
@@ -184,10 +177,18 @@ export default function RestaurantScreen() {
 
   const restaurantCategories = useMemo(() => {
     const prodCatIds = new Set(restaurantProducts.map(p => Number(p.category_id)));
-    return allCategories.filter(cat => {
-      const catId = Number(cat.category_id || cat.id);
-      return prodCatIds.has(catId);
+    const categories = [];
+    prodCatIds.forEach(catId => {
+      let found = allCategories.find(c => Number(c.category_id || c.id) === catId);
+      if (found) {
+        categories.push(found);
+      } else {
+        // Якщо категорію було відфільтровано (бо це була заглушка), створюємо дефолтну,
+        // щоб товари в цій категорії не зникли з меню ресторану.
+        categories.push({ category_id: catId, name: 'Меню', sticker: '🍽️' });
+      }
     });
+    return categories;
   }, [allCategories, restaurantProducts]);
 
   const categoriesToRender = useMemo(() => [
@@ -358,9 +359,6 @@ export default function RestaurantScreen() {
         isFavProd={isFavProd}
         onSelect={setSelectedProduct}
         onAddToCart={(p) => {
-          if (Platform.OS !== 'web') {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-          }
           if (isClosed) {
             Alert.alert(
               'Ресторан зачинено',
@@ -371,9 +369,6 @@ export default function RestaurantScreen() {
           dispatch(tryAddToCart(p));
         }}
         onRemoveFromCart={(productId) => {
-          if (Platform.OS !== 'web') {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-          }
           const itemInCart = cartItems.find(i => i.product_id === productId);
           if (itemInCart) {
             if (itemInCart.quantity > 1) {
@@ -435,7 +430,7 @@ export default function RestaurantScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   image: { width: '100%', height: 250, resizeMode: 'cover' },
-  backButton: { position: 'absolute', top: 50, left: 20, backgroundColor: 'rgba(0,0,0,0.5)', padding: 8, borderRadius: 20, zIndex: 10 },
+  backButton: { position: 'absolute', top: 50, left: 20, backgroundColor: 'rgba(0,0,0,0.5)', padding: 8, borderRadius: 20 },
 
   infoContainer: { padding: 20, marginTop: -20, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },

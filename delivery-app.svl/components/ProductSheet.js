@@ -49,13 +49,24 @@ export default function ProductSheet({ product, onClose }) {
 
     const [selectedModifiers, setSelectedModifiers] = useState({});
 
-    // Pre-select first modifier of each group by default on mount/change
+    // Pre-select modifiers on mount/change
     useEffect(() => {
         if (product?.modifierGroups) {
             const initial = {};
             product.modifierGroups.forEach(group => {
-                if (group.modifiers && group.modifiers.length > 0) {
-                    initial[group.id] = group.modifiers[0];
+                initial[group.id] = {};
+                let hasDefault = false;
+                if (group.modifiers) {
+                    group.modifiers.forEach(mod => {
+                        if (mod.isDefaultSelected) {
+                            initial[group.id][mod.id] = mod;
+                            hasDefault = true;
+                        }
+                    });
+                    // Fallback: if it's required single-choice and nothing is default, select the first one
+                    if (!hasDefault && group.selectionType === 1 && group.isRequired && group.modifiers.length > 0) {
+                        initial[group.id][group.modifiers[0].id] = group.modifiers[0];
+                    }
                 }
             });
             setSelectedModifiers(initial);
@@ -64,7 +75,13 @@ export default function ProductSheet({ product, onClose }) {
         }
     }, [product]);
 
-    const getModifiersList = () => Object.values(selectedModifiers);
+    const getModifiersList = () => {
+        const list = [];
+        Object.values(selectedModifiers).forEach(groupMods => {
+            list.push(...Object.values(groupMods));
+        });
+        return list;
+    };
 
     const currentCartKey = product ? makeCartKey({
         ...product,
@@ -121,8 +138,16 @@ export default function ProductSheet({ product, onClose }) {
 
     const handleAdd = () => {
         // Validate required modifiers selection
-        const reqGroups = product?.modifierGroups?.filter(g => g.required) ?? [];
-        const missing = reqGroups.filter(g => !selectedModifiers[g.id]);
+        const missing = [];
+        const reqGroups = product?.modifierGroups?.filter(g => g.isRequired || g.minSelection > 0) ?? [];
+        reqGroups.forEach(g => {
+            const selectedCount = Object.keys(selectedModifiers[g.id] || {}).length;
+            const requiredMin = g.minSelection || (g.isRequired ? 1 : 0);
+            if (selectedCount < requiredMin) {
+                missing.push(g.name);
+            }
+        });
+        
         if (missing.length > 0) {
             let AlertModule;
             try {
@@ -131,10 +156,10 @@ export default function ProductSheet({ product, onClose }) {
                 AlertModule = { alert: (t, m) => console.log(t, m) };
             }
             AlertModule.alert(
-                locale === 'en' ? 'Select options' : 'Оберіть параметри',
+                locale === 'en' ? 'Select options' : 'Оберіть обов\'язкові параметри',
                 locale === 'en' 
-                  ? `Please select: ${missing.map(g => g.name).join(', ')}`
-                  : `Будь ласка, виберіть: ${missing.map(g => g.name).join(', ')}`
+                  ? `Please select: ${missing.join(', ')}`
+                  : `Будь ласка, виберіть: ${missing.join(', ')}`
             );
             return;
         }
@@ -348,41 +373,67 @@ export default function ProductSheet({ product, onClose }) {
                         )}
 
                         {/* Options / Weight variants */}
-                        {product.modifierGroups?.map((group) => (
-                            <View key={group.id} style={styles.groupContainer}>
-                                <Text style={[styles.groupName, { color: theme.text }]}>
-                                    {group.name} {group.required && <Text style={{ color: theme.primary }}>*</Text>}
-                                </Text>
-                                <View style={styles.optionsRow}>
-                                    {group.modifiers?.map((mod) => {
-                                        const isSelected = selectedModifiers[group.id]?.id === mod.id;
-                                        return (
-                                            <TouchableOpacity
-                                                key={mod.id}
-                                                style={[
-                                                    styles.optionChip,
-                                                    { 
-                                                        backgroundColor: isSelected ? theme.primary : theme.input,
-                                                        borderColor: isSelected ? theme.primary : 'rgba(0,0,0,0.05)'
-                                                    }
-                                                ]}
-                                                onPress={() => {
-                                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                                    setSelectedModifiers(prev => ({
-                                                        ...prev,
-                                                        [group.id]: mod
-                                                    }));
-                                                }}
-                                            >
-                                                <Text style={[styles.optionText, { color: isSelected ? 'white' : theme.text }]}>
-                                                    {mod.name} {mod.price > 0 ? `(+${mod.price} ₴)` : ''}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
+                        {product.modifierGroups?.map((group) => {
+                            const selectedCount = Object.keys(selectedModifiers[group.id] || {}).length;
+                            return (
+                                <View key={group.id} style={styles.groupContainer}>
+                                    <Text style={[styles.groupName, { color: theme.text }]}>
+                                        {group.name} {group.isRequired && <Text style={{ color: theme.primary }}>*</Text>}
+                                    </Text>
+                                    <View style={styles.optionsRow}>
+                                        {group.modifiers?.map((mod) => {
+                                            const isSelected = !!(selectedModifiers[group.id] && selectedModifiers[group.id][mod.id]);
+                                            return (
+                                                <TouchableOpacity
+                                                    key={mod.id}
+                                                    style={[
+                                                        styles.optionChip,
+                                                        { 
+                                                            backgroundColor: isSelected ? theme.primary : theme.input,
+                                                            borderColor: isSelected ? theme.primary : 'rgba(0,0,0,0.05)'
+                                                        }
+                                                    ]}
+                                                    onPress={() => {
+                                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                                        setSelectedModifiers(prev => {
+                                                            const currentGroupMods = { ...(prev[group.id] || {}) };
+                                                            const currentlySelected = !!currentGroupMods[mod.id];
+
+                                                            if (group.selectionType === 1) {
+                                                                // Single choice
+                                                                if (currentlySelected) {
+                                                                    if (group.isRequired && Object.keys(currentGroupMods).length === 1) {
+                                                                        return prev; // don't uncheck if required
+                                                                    }
+                                                                    delete currentGroupMods[mod.id];
+                                                                } else {
+                                                                    return { ...prev, [group.id]: { [mod.id]: mod } };
+                                                                }
+                                                            } else {
+                                                                // Multi choice
+                                                                if (currentlySelected) {
+                                                                    delete currentGroupMods[mod.id];
+                                                                } else {
+                                                                    if (group.maxSelection !== null && selectedCount >= group.maxSelection) {
+                                                                        return prev; // reached limit
+                                                                    }
+                                                                    currentGroupMods[mod.id] = mod;
+                                                                }
+                                                            }
+                                                            return { ...prev, [group.id]: currentGroupMods };
+                                                        });
+                                                    }}
+                                                >
+                                                    <Text style={[styles.optionText, { color: isSelected ? 'white' : theme.text }]}>
+                                                        {mod.name} {mod.price > 0 ? `(+${mod.price} ₴)` : ''}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
                                 </View>
-                            </View>
-                        ))}
+                            );
+                        })}
                     </ScrollView>
 
                     {detailLabel ? (

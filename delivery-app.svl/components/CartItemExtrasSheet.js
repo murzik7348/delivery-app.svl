@@ -37,18 +37,22 @@ export default function CartItemExtrasSheet({ visible, item, catalogProduct, onC
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
   const activeScale = useRef(new Animated.Value(1)).current;
 
-  // Local state: { [addonId]: quantity }
-  // Pre-fill from current item.modifiers
-  const [addonQtys, setAddonQtys] = useState({});
+  // Local state: { [groupId]: { [modId]: mod } }
+  const [selectedModifiers, setSelectedModifiers] = useState({});
 
   useEffect(() => {
-    if (visible && item) {
-      // Build initial qtys from item.modifiers
+    if (visible && item && catalogProduct?.modifierGroups) {
       const initial = {};
-      (item.modifiers ?? []).forEach((m) => {
-        initial[m.id] = m.qty ?? 1;
+      catalogProduct.modifierGroups.forEach(group => {
+          initial[group.id] = {};
+          group.modifiers?.forEach(mod => {
+              const isInCart = item.modifiers?.some(m => m.id === mod.id);
+              if (isInCart) {
+                  initial[group.id][mod.id] = mod;
+              }
+          });
       });
-      setAddonQtys(initial);
+      setSelectedModifiers(initial);
 
       Animated.spring(translateY, {
         toValue: 0,
@@ -100,19 +104,40 @@ export default function CartItemExtrasSheet({ visible, item, catalogProduct, onC
     })
   ).current;
 
+  const getModifiersList = () => {
+    const list = [];
+    Object.values(selectedModifiers).forEach(groupMods => {
+        list.push(...Object.values(groupMods));
+    });
+    return list;
+  };
+
   const handleConfirm = () => {
-    // Build modifiers array from current local state
-    const allAddons = catalogProduct?.modifierGroups?.flatMap(g => g.modifiers ?? []) ?? [];
-    const newModifiers = allAddons
-      .filter(addon => (addonQtys[addon.id] ?? 0) > 0)
-      .map(addon => ({
-        id: addon.id,
-        name: addon.name,
-        price: safeNum(addon.price),
-        qty: addonQtys[addon.id] ?? 1,
-        image: addon.image ?? null,
-        description: addon.description ?? '',
-      }));
+    // Validate required modifiers selection
+    const missing = [];
+    const reqGroups = catalogProduct?.modifierGroups?.filter(g => g.isRequired || g.minSelection > 0) ?? [];
+    reqGroups.forEach(g => {
+        const selectedCount = Object.keys(selectedModifiers[g.id] || {}).length;
+        const requiredMin = g.minSelection || (g.isRequired ? 1 : 0);
+        if (selectedCount < requiredMin) {
+            missing.push(g.name);
+        }
+    });
+
+    if (missing.length > 0) {
+        let AlertModule;
+        try { AlertModule = require('react-native').Alert; } catch (e) { AlertModule = { alert: () => {} }; }
+        AlertModule.alert(
+            'Оберіть обов\'язкові параметри',
+            `Будь ласка, виберіть: ${missing.join(', ')}`
+        );
+        return;
+    }
+
+    const newModifiers = getModifiersList().map(mod => ({
+        ...mod,
+        qty: 1
+    }));
 
     dispatch(updateCartItemModifiers({
       cartKey: item.cartKey,
@@ -122,25 +147,8 @@ export default function CartItemExtrasSheet({ visible, item, catalogProduct, onC
     handleDismiss();
   };
 
-  const incrementAddon = (addonId) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-    setAddonQtys(prev => ({ ...prev, [addonId]: (prev[addonId] ?? 0) + 1 }));
-  };
-
-  const decrementAddon = (addonId) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
-    setAddonQtys(prev => {
-      const current = prev[addonId] ?? 0;
-      if (current <= 0) return prev;
-      return { ...prev, [addonId]: current - 1 };
-    });
-  };
-
   // Compute extras total
-  const allAddons = catalogProduct?.modifierGroups?.flatMap(g => g.modifiers ?? []) ?? [];
-  const extrasTotal = allAddons.reduce((sum, addon) => {
-    return sum + safeNum(addon.price) * (addonQtys[addon.id] ?? 0);
-  }, 0);
+  const extrasTotal = getModifiersList().reduce((sum, mod) => sum + safeNum(mod.price), 0);
 
   if (!visible || !item) return null;
 
@@ -247,85 +255,68 @@ export default function CartItemExtrasSheet({ visible, item, catalogProduct, onC
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.addonsList}
         >
-          {catalogProduct?.modifierGroups?.map((group) => (
-            <View key={group.id}>
-              {group.modifiers?.map((addon) => {
-                const qty = addonQtys[addon.id] ?? 0;
-                const addonPrice = safeNum(addon.price);
-                const lineTotal = addonPrice * qty;
+          {catalogProduct?.modifierGroups?.map((group) => {
+              const selectedCount = Object.keys(selectedModifiers[group.id] || {}).length;
+              return (
+                  <View key={group.id} style={styles.groupContainer}>
+                      <Text style={[styles.groupName, { color: theme.text }]}>
+                          {group.name} {group.isRequired && <Text style={{ color: theme.primary }}>*</Text>}
+                      </Text>
+                      <View style={styles.optionsRow}>
+                          {group.modifiers?.map((mod) => {
+                              const isSelected = !!(selectedModifiers[group.id] && selectedModifiers[group.id][mod.id]);
+                              return (
+                                  <TouchableOpacity
+                                      key={mod.id}
+                                      style={[
+                                          styles.optionChip,
+                                          { 
+                                              backgroundColor: isSelected ? theme.primary : theme.input,
+                                              borderColor: isSelected ? theme.primary : 'rgba(0,0,0,0.05)'
+                                          }
+                                      ]}
+                                      onPress={() => {
+                                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                          setSelectedModifiers(prev => {
+                                              const currentGroupMods = { ...(prev[group.id] || {}) };
+                                              const currentlySelected = !!currentGroupMods[mod.id];
 
-                return (
-                  <View key={addon.id}>
-                    <View style={styles.addonRow}>
-                      {/* Addon image */}
-                      {addon.image ? (
-                        <Image
-                          source={{ uri: addon.image }}
-                          style={[styles.addonImage, { backgroundColor: theme.input }]}
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <View style={[styles.addonImagePlaceholder, { backgroundColor: theme.input }]}>
-                          <Ionicons name="fast-food-outline" size={20} color="gray" />
-                        </View>
-                      )}
-
-                      {/* Addon info */}
-                      <View style={styles.addonInfo}>
-                        <Text style={[styles.addonName, { color: theme.text }]}>
-                          {addon.name}
-                        </Text>
-                        {addon.description ? (
-                          <Text style={[styles.addonDesc, { color: theme.textSecondary ?? 'gray' }]} numberOfLines={2}>
-                            {addon.description}
-                          </Text>
-                        ) : null}
-                        {addonPrice > 0 ? (
-                          <Text style={[styles.addonPrice, { color: 'gray' }]}>
-                            {formatPrice(addonPrice)} ₴ / шт
-                          </Text>
-                        ) : null}
+                                              if (group.selectionType === 1) {
+                                                  if (currentlySelected) {
+                                                      if (group.isRequired && Object.keys(currentGroupMods).length === 1) {
+                                                          return prev;
+                                                      }
+                                                      delete currentGroupMods[mod.id];
+                                                  } else {
+                                                      return { ...prev, [group.id]: { [mod.id]: mod } };
+                                                  }
+                                              } else {
+                                                  if (currentlySelected) {
+                                                      delete currentGroupMods[mod.id];
+                                                  } else {
+                                                      if (group.maxSelection !== null && selectedCount >= group.maxSelection) {
+                                                          return prev;
+                                                      }
+                                                      currentGroupMods[mod.id] = mod;
+                                                  }
+                                              }
+                                              return { ...prev, [group.id]: currentGroupMods };
+                                          });
+                                      }}
+                                  >
+                                      <Text style={[styles.optionText, { color: isSelected ? 'white' : theme.text }]}>
+                                          {mod.name} {mod.price > 0 ? `(+${mod.price} ₴)` : ''}
+                                      </Text>
+                                  </TouchableOpacity>
+                              );
+                          })}
                       </View>
-
-                      {/* Stepper */}
-                      <View style={styles.addonStepper}>
-                        <TouchableOpacity
-                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                          onPress={() => decrementAddon(addon.id)}
-                          style={[styles.stepperBtn, { backgroundColor: qty > 0 ? theme.primary : theme.input }]}
-                        >
-                          <Ionicons name="remove" size={16} color={qty > 0 ? 'white' : 'gray'} />
-                        </TouchableOpacity>
-                        <Text style={[styles.stepperQty, { color: theme.text }]}>{qty}</Text>
-                        <TouchableOpacity
-                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                          onPress={() => incrementAddon(addon.id)}
-                          style={[styles.stepperBtn, { backgroundColor: theme.primary }]}
-                        >
-                          <Ionicons name="add" size={16} color="white" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    {/* Загалом row for this addon if qty > 0 */}
-                    {qty > 0 && addonPrice > 0 && (
-                      <View style={styles.addonTotalRow}>
-                        <Text style={[styles.addonTotalLabel, { color: theme.primary }]}>Загалом</Text>
-                        <Text style={[styles.addonTotalValue, { color: theme.primary }]}>
-                          {formatPrice(lineTotal)} ₴
-                        </Text>
-                      </View>
-                    )}
-
-                    <View style={[styles.addonDivider, { backgroundColor: theme.border ?? 'rgba(0,0,0,0.06)' }]} />
                   </View>
-                );
-              })}
-            </View>
-          ))}
+              );
+          })}
 
           {/* Empty state if no addons available */}
-          {allAddons.length === 0 && (
+          {(!catalogProduct?.modifierGroups || catalogProduct.modifierGroups.length === 0) && (
             <View style={styles.emptyAddons}>
               <Ionicons name="add-circle-outline" size={40} color="gray" />
               <Text style={{ color: 'gray', marginTop: 8, fontSize: 14 }}>
@@ -433,78 +424,31 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 20,
   },
-  addonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    gap: 12,
+  groupContainer: {
+    marginBottom: 16,
   },
-  addonImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-  },
-  addonImagePlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addonInfo: {
-    flex: 1,
-  },
-  addonName: {
-    fontSize: 15,
+  groupName: {
+    fontSize: 14,
     fontWeight: '700',
-    marginBottom: 2,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    opacity: 0.8,
   },
-  addonDesc: {
-    fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 2,
-  },
-  addonPrice: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  addonStepper: {
+  optionsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
   },
-  stepperBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
+  optionChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  stepperQty: {
-    fontSize: 16,
-    fontWeight: '800',
-    minWidth: 20,
-    textAlign: 'center',
-  },
-  addonTotalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-    marginTop: -4,
-  },
-  addonTotalLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  addonTotalValue: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  addonDivider: {
-    height: StyleSheet.hairlineWidth,
-    marginBottom: 2,
+  optionText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   emptyAddons: {
     alignItems: 'center',

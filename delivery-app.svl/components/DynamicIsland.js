@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { hideDynamicIsland } from '../store/uiSlice';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+import { useColorScheme } from '../hooks/use-color-scheme';
+import Colors from '../constants/Colors';
 
 const { width } = Dimensions.get('window');
 
@@ -40,6 +41,8 @@ export default function DynamicIsland() {
     const dispatch = useDispatch();
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const colorScheme = useColorScheme();
+    const theme = Colors[colorScheme ?? 'light'];
 
     // Dynamic Island notification state
     const island = useSelector((state) => state.ui?.dynamicIsland) || {};
@@ -116,10 +119,32 @@ export default function DynamicIsland() {
     if (type === 'info') iconColor = '#5ac8fa';
     if (type === 'courier') iconColor = '#3498db';
 
+    const isBarVisible = useSelector((state) => state.ui?.bottomBarVisible !== false);
+    const scrollAnim = useRef(new Animated.Value(0)).current;
+
     const topOffset = Platform.OS === 'ios' ? (insets.top || 44) : 10;
+    const hideDistance = -(topOffset + 80);
+
+    useEffect(() => {
+        Animated.spring(scrollAnim, {
+            toValue: isBarVisible ? 0 : hideDistance,
+            useNativeDriver: true,
+            tension: 65,
+            friction: 11,
+        }).start();
+    }, [isBarVisible, hideDistance]);
 
     return (
-        <View style={[styles.wrapper, { top: topOffset }]} pointerEvents="box-none">
+        <Animated.View 
+            style={[
+                styles.wrapper, 
+                { 
+                    top: topOffset,
+                    transform: [{ translateY: scrollAnim }]
+                }
+            ]} 
+            pointerEvents="box-none"
+        >
             <Animated.View style={[
                 styles.container,
                 {
@@ -218,7 +243,7 @@ export default function DynamicIsland() {
                     </TouchableOpacity>
                 )}
             </Animated.View>
-        </View>
+        </Animated.View>
     );
 }
 

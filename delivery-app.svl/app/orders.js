@@ -12,6 +12,7 @@ import { t } from '../constants/translations';
 import { clearOrders, fetchOrders } from '../store/ordersSlice';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { formatPrice, addToCart, clearCart } from '../store/cartSlice';
+import { fs, hs, vs, r } from '../utils/responsive';
 import * as Haptics from 'expo-haptics';
 import BackButton from '../components/BackButton';
 
@@ -60,7 +61,18 @@ export default function OrdersTabScreen() {
     if (products.length > 0) {
       dispatch(clearCart());
       products.forEach((prod) => {
-        dispatch(addToCart(prod));
+        const itemToCart = {
+          ...prod,
+          id: prod.product_id ?? prod.productId ?? prod.id,
+          product_id: prod.product_id ?? prod.productId ?? prod.id,
+          name: prod.productName ?? prod.name ?? 'Товар',
+          price: parseFloat(prod.price ?? prod.unitPrice ?? (prod.totalLineAmount && prod.quantity ? prod.totalLineAmount / prod.quantity : 0)) || 0,
+          restaurantId: prod.restaurantId ?? prod.store_id ?? orderItem.restaurantId ?? orderItem.store_id ?? 1,
+          store_id: prod.store_id ?? prod.restaurantId ?? orderItem.store_id ?? orderItem.restaurantId ?? 1,
+          quantity: Math.max(1, parseInt(prod.quantity ?? prod.qty ?? 1, 10)),
+          modifiers: prod.modifiers ?? prod.selectedModifiers ?? [],
+        };
+        dispatch(addToCart(itemToCart));
       });
       router.push('/cart');
     } else {
@@ -92,37 +104,39 @@ export default function OrdersTabScreen() {
         onPress={() => router.push({ pathname: '/order-details', params: { id: item.deliveryId || item.id } })}
       >
         <View style={styles.cardHeader}>
-          <View style={styles.row}>
+          <View style={[styles.row, { flex: 1, marginRight: 8 }]}>
             <View style={[styles.iconBox, { backgroundColor: color + '15' }]}>
               <Ionicons name="receipt" size={20} color={color} />
             </View>
-            <View style={{ marginLeft: 12 }}>
-              <Text style={[styles.orderTitle, { color: theme.text }]}>
+            <View style={{ marginLeft: 10, flex: 1 }}>
+              <Text style={[styles.orderTitle, { color: theme.text }]} numberOfLines={1} maxFontSizeMultiplier={1.25}>
                 {locale === 'en' ? 'Order ' : 'Замовлення '}{formatOrderNumber(item.deliveryId || item.id)}
               </Text>
-              <Text style={styles.date}>{formatUkraineDate(item.createdAt || item.date)}</Text>
+              <Text style={styles.date} numberOfLines={1} maxFontSizeMultiplier={1.2}>{formatUkraineDate(item.createdAt || item.date)}</Text>
             </View>
           </View>
-          <Text style={[styles.price, { color: theme.text }]}>{formatPrice(item.totalPrice || item.total)} ₴</Text>
+          <Text style={[styles.price, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} maxFontSizeMultiplier={1.25}>
+            {formatPrice(item.totalPrice || item.total)} ₴
+          </Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.cardFooter}>
           <StatusBadge order={item} locale={locale} />
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 0 }}>
             <TouchableOpacity 
-              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.primary + '18', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginRight: 8 }}
+              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.primary + '18', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12, marginRight: 6 }}
               onPress={() => handleReorder(item)}
             >
-              <Ionicons name="refresh-outline" size={14} color={theme.primary} style={{ marginRight: 4 }} />
-              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.primary }}>
+              <Ionicons name="refresh-outline" size={13} color={theme.primary} style={{ marginRight: 3 }} />
+              <Text maxFontSizeMultiplier={1.2} style={{ fontSize: fs(11), fontWeight: '600', color: theme.primary }}>
                 {locale === 'en' ? 'Reorder' : 'Повторити'}
               </Text>
             </TouchableOpacity>
             <View style={styles.detailsBtn}>
-              <Text style={[styles.detailsText, { color: theme.primary }]}>{t(locale, 'details')}</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.primary} />
+              <Text maxFontSizeMultiplier={1.2} style={[styles.detailsText, { color: theme.primary, fontSize: fs(11) }]}>{t(locale, 'details')}</Text>
+              <Ionicons name="chevron-forward" size={14} color={theme.primary} />
             </View>
           </View>
         </View>
@@ -239,9 +253,9 @@ function StatusBadge({ order, locale }) {
   }
 
   return (
-    <View style={[styles.statusBadge, { backgroundColor: color + '20' }]}>
-      <Ionicons name={icon} size={14} color={color} style={{ marginRight: 4 }} />
-      <Text style={{ color, fontWeight: '800', fontSize: 13, textTransform: 'uppercase' }}>{text}</Text>
+    <View style={[styles.statusBadge, { backgroundColor: color + '20', flexShrink: 1, marginRight: 6 }]}>
+      <Ionicons name={icon} size={12} color={color} style={{ marginRight: 4 }} />
+      <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={{ color, fontWeight: '800', fontSize: fs(11), textTransform: 'uppercase' }}>{text}</Text>
     </View>
   );
 }
@@ -249,12 +263,12 @@ function StatusBadge({ order, locale }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold' },
+  headerTitle: { fontSize: fs(20), fontWeight: 'bold' },
   clearBtn: { padding: 4 },
   card: {
     borderRadius: 24, marginBottom: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 18,
+    padding: 16,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
       android: { elevation: 2 }
@@ -262,15 +276,15 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   row: { flexDirection: 'row', alignItems: 'center' },
-  iconBox: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  orderTitle: { fontSize: 18, fontWeight: '900', fontFamily: 'Menlo' },
-  date: { fontSize: 13, color: 'gray', marginTop: 4, fontWeight: '600' },
-  price: { fontSize: 20, fontWeight: '900' },
+  iconBox: { width: 40, height: 40, borderRadius: 14, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  orderTitle: { fontSize: fs(15), fontWeight: '900', fontFamily: 'Menlo' },
+  date: { fontSize: fs(12), color: 'gray', marginTop: 2, fontWeight: '600' },
+  price: { fontSize: fs(15), fontWeight: '900', flexShrink: 0, marginLeft: 4 },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(0,0,0,0.05)', marginVertical: 12 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statusBadge: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
+    paddingHorizontal: 8, paddingVertical: 5, borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(0,0,0,0.05)'
   },

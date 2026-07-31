@@ -17,7 +17,7 @@ import Colors from '../constants/Colors';
 import { formatUkraineDate } from '../utils/dateUtils';
 import { t } from '../constants/translations';
 import { fetchOrderDetails, confirmOrder, updateOrderStatus } from '../store/ordersSlice';
-import { formatPrice } from '../store/cartSlice';
+import { formatPrice, addToCart, clearCart } from '../store/cartSlice';
 import * as Haptics from 'expo-haptics';
 import { restaurantCancelDelivery } from '../src/api';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
@@ -101,7 +101,7 @@ const OrderItem = React.memo(({ item, theme, locale }) => {
           <Text style={{ fontSize: 12, color: 'gray', marginTop: 2 }}>{weightDetail}</Text>
         ) : null}
       </View>
-      <Text style={[styles.itemPriceText, { color: theme.text }]}>
+      <Text style={[styles.itemPriceText, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
         {formatPrice(
           item.totalLineAmount !== undefined && item.totalLineAmount !== null 
             ? safeNumber(item.totalLineAmount) 
@@ -929,6 +929,45 @@ export default function OrderDetailsScreen() {
                 </>
               )}
             </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.receiptBtn, { backgroundColor: theme.primary, borderColor: theme.primary, marginTop: 10 }]}
+              onPress={() => {
+                if (Platform.OS !== 'web') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+                }
+                const products = order?.products || order?.items || [];
+                if (products.length > 0) {
+                  dispatch(clearCart());
+                  products.forEach((prod) => {
+                    const itemToCart = {
+                      ...prod,
+                      id: prod.product_id ?? prod.productId ?? prod.id,
+                      product_id: prod.product_id ?? prod.productId ?? prod.id,
+                      name: prod.productName ?? prod.name ?? 'Товар',
+                      price: parseFloat(prod.price ?? prod.unitPrice ?? (prod.totalLineAmount && prod.quantity ? prod.totalLineAmount / prod.quantity : 0)) || 0,
+                      restaurantId: prod.restaurantId ?? prod.store_id ?? order?.restaurantId ?? order?.store_id ?? 1,
+                      store_id: prod.store_id ?? prod.restaurantId ?? order?.store_id ?? order?.restaurantId ?? 1,
+                      quantity: Math.max(1, parseInt(prod.quantity ?? prod.qty ?? 1, 10)),
+                      modifiers: prod.modifiers ?? prod.selectedModifiers ?? [],
+                    };
+                    dispatch(addToCart(itemToCart));
+                  });
+                  router.push('/cart');
+                } else {
+                  Alert.alert(
+                    locale === 'en' ? 'Reorder' : 'Повторити замовлення',
+                    locale === 'en' ? 'No items found in this order.' : 'Не знайдено товарів у цьому замовленні.'
+                  );
+                }
+              }}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="refresh-outline" size={18} color="white" style={{ marginRight: 8 }} />
+              <Text style={[styles.receiptBtnText, { color: 'white' }]}>
+                {locale === 'en' ? 'Reorder' : 'Повторити замовлення'}
+              </Text>
+            </TouchableOpacity>
           </View>
         }
       />
@@ -1024,7 +1063,7 @@ const styles = StyleSheet.create({
   itemQtyBadge: { width: ms(34), height: ms(34), borderRadius: r(10), justifyContent: 'center', alignItems: 'center', marginRight: hs(12) },
   itemQtyText: { fontSize: fs(15), fontWeight: '800' },
   itemNameText: { flex: 1, fontSize: fs(16), fontWeight: '600' },
-  itemPriceText: { fontSize: fs(16), fontWeight: '800', marginLeft: hs(10) },
+  itemPriceText: { fontSize: fs(16), fontWeight: '800', marginLeft: hs(10), flexShrink: 0 },
 
   summaryWrap: { paddingHorizontal: hs(20), marginTop: vs(20) },
   totalCard: { 

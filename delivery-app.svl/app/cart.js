@@ -554,7 +554,7 @@ export default function CartScreen() {
             {modifiers.map((mod, idx) => (
               <View key={`${mod.id}-${idx}`} style={styles.modifierRow}>
                 <Text style={[styles.modifierRowName, { color: theme.textSecondary ?? 'gray' }]}>
-                  {mod.name} <Text style={{ opacity: 0.6 }}>x{mod.qty ?? 1}</Text>
+                  {mod.name} {(mod.qty > 1) && <Text style={{ opacity: 0.6 }}>x{mod.qty}</Text>}
                 </Text>
                 <Text style={[styles.modifierRowPrice, { color: theme.textSecondary ?? 'gray' }]}>
                   {formatPrice(safeNum(mod.price) * (mod.qty ?? 1))} ₴

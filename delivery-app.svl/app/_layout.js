@@ -21,7 +21,7 @@ import usePushNotifications from '../hooks/usePushNotifications';
 import { fetchAddresses, fetchMe } from '../store/authSlice';
 import { fetchOrders } from '../store/ordersSlice';
 import { fetchCatalog } from '../store/catalogSlice';
-import { updatePushToken } from '../src/api';
+import { updatePushToken, getToken } from '../src/api';
 import BottomBar from '../components/BottomBar';
 import DynamicIsland from '../components/DynamicIsland';
 import OfflineBanner from '../components/OfflineBanner';
@@ -75,6 +75,15 @@ function getFontFamily(variant, style) {
 }
 
 try {
+  if (Text.defaultProps == null) Text.defaultProps = {};
+  Text.defaultProps.allowFontScaling = false;
+  Text.defaultProps.maxFontSizeMultiplier = 1;
+
+  const { TextInput } = require('react-native');
+  if (TextInput.defaultProps == null) TextInput.defaultProps = {};
+  TextInput.defaultProps.allowFontScaling = false;
+  TextInput.defaultProps.maxFontSizeMultiplier = 1;
+
   if (Text.render) {
     const originalRender = Text.render;
     Text.render = function (props, ref) {
@@ -89,6 +98,8 @@ try {
       }
 
       return originalRender.call(this, {
+        allowFontScaling: false,
+        maxFontSizeMultiplier: 1,
         ...rest,
         style: [
           variantStyle,
@@ -98,7 +109,6 @@ try {
       }, ref);
     };
   } else {
-    if (Text.defaultProps == null) Text.defaultProps = {};
     Text.defaultProps.style = [
       { fontFamily: 'Inter_400Regular' },
       Text.defaultProps.style,
@@ -143,6 +153,12 @@ function AppStartup() {
   }, []);
 
   useEffect(() => {
+    (async () => {
+      const token = await getToken();
+      if (token) {
+        dispatch(fetchMe());
+      }
+    })();
     dispatch(fetchCatalog());
   }, [dispatch]);
 

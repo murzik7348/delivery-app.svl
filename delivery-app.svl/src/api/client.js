@@ -63,11 +63,11 @@ export const getRefreshToken = async () => {
 export const resolveImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    
+
     // Ensure path doesn't start with double slashes if BASE_URL ends with one
     const cleanPath = path.startsWith('/') ? path.substring(1) : path;
     const cleanBase = BASE_URL.endsWith('/') ? BASE_URL : `${BASE_URL}/`;
-    
+
     return `${cleanBase}${cleanPath}`;
 };
 
@@ -100,7 +100,7 @@ client.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         } else {
-            config.headers.Authorization = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjUyMiIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluIiwiZXhwIjoxNzg1MTczNjEzLCJpc3MiOiJEZWxpdmVyeUFwaSIsImF1ZCI6IkRlbGl2ZXJ5QXBpIn0.CojUUJw1c91cdWvm5GM9wEQieT6ew867ac7rKwfkFmQ`;
+            delete config.headers.Authorization;
         }
 
         // Minimal logging for development if not in quiet mode
@@ -162,7 +162,7 @@ client.interceptors.response.use(
                 const now = Date.now();
                 failureTimestamps.push(now);
                 failureTimestamps = failureTimestamps.filter(t => now - t < 10000);
-                
+
                 if (failureTimestamps.length >= 3) {
                     if (now - lastAlertTime > 10000) {
                         lastAlertTime = now;
@@ -192,7 +192,7 @@ client.interceptors.response.use(
 
         // Auto-logout/Refresh logic
         if (error.response?.status === 401 && !originalRequest._retry) {
-            
+
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
@@ -211,9 +211,9 @@ client.interceptors.response.use(
             if (refreshToken) {
                 try {
                     console.log('🔄 [Mobile] Attempting to refresh token...');
-                    
+
                     // Note: original axios is used to avoid interceptor recursion
-                    const response = await axios.post(`${BASE_URL}/auth/refresh`, 
+                    const response = await axios.post(`${BASE_URL}/auth/refresh`,
                         { refreshToken },
                         { headers: { 'Content-Type': 'application/json' } }
                     );
@@ -228,12 +228,12 @@ client.interceptors.response.use(
 
                     if (newToken) {
                         await saveToken(newToken, newRefreshToken);
-                        
+
                         // Update defaults for future requests
                         client.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-                        
+
                         processQueue(null, newToken);
-                        
+
                         // Update current request
                         originalRequest.headers.Authorization = `Bearer ${newToken}`;
                         return client(originalRequest);
@@ -243,14 +243,14 @@ client.interceptors.response.use(
                 } catch (refreshError) {
                     const status = refreshError.response?.status;
                     const data = refreshError.response?.data;
-                    console.error(`❌ [Mobile] Token refresh failed (Status: ${status}):`, 
+                    console.error(`❌ [Mobile] Token refresh failed (Status: ${status}):`,
                         JSON.stringify(data || refreshError.message, null, 2)
                     );
-                    
+
                     processQueue(refreshError, null);
-                    
+
                     if (!originalRequest?._skipLogout) {
-                        await removeToken().catch(() => {});
+                        await removeToken().catch(() => { });
                         const store = getStore();
                         if (store) {
                             const { logoutUser } = require('../../store/authSlice');
@@ -270,7 +270,7 @@ client.interceptors.response.use(
 
         if (!isSilent) {
             if (error.response) {
-                console.warn(`❌ [API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url} (${error.response.status}):`, 
+                console.warn(`❌ [API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url} (${error.response.status}):`,
                     JSON.stringify(error.response.data || {}, null, 2));
             }
         }
@@ -288,7 +288,7 @@ client.interceptors.response.use(
                 }
             }
             let apiMessage = 'Щось пішло не так. Ми вже працюємо над цим. Спробуйте, будь ласка, пізніше!';
-            
+
             if (error.response.data) {
                 const data = error.response.data;
                 if (typeof data === 'string') {
@@ -363,7 +363,7 @@ client.interceptors.response.use(
                     break;
                 }
             }
-                
+
             const apiError = new Error(apiMessage);
             apiError.status = error.response.status;
             apiError.data = error.response.data;
@@ -371,20 +371,20 @@ client.interceptors.response.use(
         }
         if (error.request || !error.response) {
             console.error('[Axios Request Error]', error.message, error.config?.url);
-            
+
             // Dispatch offline status & dynamic island error notice
             const store = getStore();
             if (store) {
                 const { showDynamicIsland, setOffline } = require('../../store/uiSlice');
                 store.dispatch(setOffline(true));
-                
+
                 const Device = require('expo-device');
                 const isIphoneXR = Platform.OS === 'ios' && (
                     Device.modelName === 'iPhone XR' ||
                     Device.modelId === 'iPhone11,8' ||
                     String(Device.modelName || '').toLowerCase().includes('iphone xr')
                 );
-                
+
                 if (!isIphoneXR) {
                     store.dispatch(showDynamicIsland({
                         type: 'error',
@@ -415,99 +415,99 @@ export default client;
 // Base64 decoding helper for JWT token decoding
 const b64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 function base64Decode(input) {
-  let str = input.replace(/-/g, '+').replace(/_/g, '/');
-  while (str.length % 4) {
-    str += '=';
-  }
-  let result = '';
-  for (let i = 0; i < str.length; i += 4) {
-    const w = b64Chars.indexOf(str[i]);
-    const x = b64Chars.indexOf(str[i + 1]);
-    const y = b64Chars.indexOf(str[i + 2]);
-    const z = b64Chars.indexOf(str[i + 3]);
-    if (w < 0 || x < 0) continue;
-    const b1 = (w << 2) | (x >> 4);
-    result += String.fromCharCode(b1);
-    if (y !== -1 && str[i + 2] !== '=') {
-      const b2 = ((x & 15) << 4) | (y >> 2);
-      result += String.fromCharCode(b2);
-      if (z !== -1 && str[i + 3] !== '=') {
-        const b3 = ((y & 3) << 6) | z;
-        result += String.fromCharCode(b3);
-      }
+    let str = input.replace(/-/g, '+').replace(/_/g, '/');
+    while (str.length % 4) {
+        str += '=';
     }
-  }
-  try {
-    return decodeURIComponent(escape(result));
-  } catch (e) {
-    return result;
-  }
+    let result = '';
+    for (let i = 0; i < str.length; i += 4) {
+        const w = b64Chars.indexOf(str[i]);
+        const x = b64Chars.indexOf(str[i + 1]);
+        const y = b64Chars.indexOf(str[i + 2]);
+        const z = b64Chars.indexOf(str[i + 3]);
+        if (w < 0 || x < 0) continue;
+        const b1 = (w << 2) | (x >> 4);
+        result += String.fromCharCode(b1);
+        if (y !== -1 && str[i + 2] !== '=') {
+            const b2 = ((x & 15) << 4) | (y >> 2);
+            result += String.fromCharCode(b2);
+            if (z !== -1 && str[i + 3] !== '=') {
+                const b3 = ((y & 3) << 6) | z;
+                result += String.fromCharCode(b3);
+            }
+        }
+    }
+    try {
+        return decodeURIComponent(escape(result));
+    } catch (e) {
+        return result;
+    }
 }
 
 export function isTokenExpired(token) {
-  if (!token) return true;
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return true;
-    const payloadStr = base64Decode(parts[1]);
-    const payload = JSON.parse(payloadStr);
-    if (!payload || !payload.exp) return true;
-    const currentTime = Math.floor(Date.now() / 1000);
-    // Buffer of 30 seconds to refresh slightly before expiration
-    return payload.exp < currentTime + 30;
-  } catch (e) {
-    return true;
-  }
+    if (!token) return true;
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return true;
+        const payloadStr = base64Decode(parts[1]);
+        const payload = JSON.parse(payloadStr);
+        if (!payload || !payload.exp) return true;
+        const currentTime = Math.floor(Date.now() / 1000);
+        // Buffer of 30 seconds to refresh slightly before expiration
+        return payload.exp < currentTime + 30;
+    } catch (e) {
+        return true;
+    }
 }
 
 export const getValidToken = async () => {
-  let token = await getToken();
-  if (!token) return null;
+    let token = await getToken();
+    if (!token) return null;
 
-  if (isTokenExpired(token)) {
-    if (isRefreshing) {
-      return new Promise((resolve, reject) => {
-        failedQueue.push({ resolve, reject });
-      })
-      .then(t => t)
-      .catch(() => null);
-    }
-
-    isRefreshing = true;
-    const refreshToken = await getRefreshToken();
-    if (refreshToken) {
-      try {
-        console.log('🔄 [Auth Client] Refreshing token synchronously...');
-        const response = await axios.post(`${BASE_URL}/auth/refresh`, 
-          { refreshToken },
-          { headers: { 'Content-Type': 'application/json' } }
-        );
-        const newToken = typeof response.data === 'string'
-          ? response.data
-          : (response.data.accessToken || response.data.token);
-        const newRefreshToken = response.data.refreshToken || response.data.refresh_token || refreshToken;
-
-        if (newToken) {
-          await saveToken(newToken, newRefreshToken);
-          client.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-          processQueue(null, newToken);
-          return newToken;
+    if (isTokenExpired(token)) {
+        if (isRefreshing) {
+            return new Promise((resolve, reject) => {
+                failedQueue.push({ resolve, reject });
+            })
+                .then(t => t)
+                .catch(() => null);
         }
-      } catch (err) {
-        console.error('❌ [Auth Client] Synchronous token refresh failed:', err);
-        processQueue(err, null);
-        // Trigger logout
-        await removeToken().catch(() => {});
-        const store = getStore();
-        if (store) {
-          const { logoutUser } = require('../../store/authSlice');
-          store.dispatch(logoutUser());
+
+        isRefreshing = true;
+        const refreshToken = await getRefreshToken();
+        if (refreshToken) {
+            try {
+                console.log('🔄 [Auth Client] Refreshing token synchronously...');
+                const response = await axios.post(`${BASE_URL}/auth/refresh`,
+                    { refreshToken },
+                    { headers: { 'Content-Type': 'application/json' } }
+                );
+                const newToken = typeof response.data === 'string'
+                    ? response.data
+                    : (response.data.accessToken || response.data.token);
+                const newRefreshToken = response.data.refreshToken || response.data.refresh_token || refreshToken;
+
+                if (newToken) {
+                    await saveToken(newToken, newRefreshToken);
+                    client.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+                    processQueue(null, newToken);
+                    return newToken;
+                }
+            } catch (err) {
+                console.error('❌ [Auth Client] Synchronous token refresh failed:', err);
+                processQueue(err, null);
+                // Trigger logout
+                await removeToken().catch(() => { });
+                const store = getStore();
+                if (store) {
+                    const { logoutUser } = require('../../store/authSlice');
+                    store.dispatch(logoutUser());
+                }
+            } finally {
+                isRefreshing = false;
+            }
         }
-      } finally {
-        isRefreshing = false;
-      }
+        return null;
     }
-    return null;
-  }
-  return token;
+    return token;
 };

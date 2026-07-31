@@ -24,8 +24,12 @@ export const calculateReceiptBreakdown = (order) => {
     
     let deliveryFee = 0;
     if (!isPickup) {
-        // Read delivery fee directly from order (which includes any applied coefficients)
-        deliveryFee = Number(order.deliveryFee ?? order.delivery ?? order.deliveryFeeAmount ?? 0);
+        if (order.deliveryFee !== undefined || order.delivery !== undefined || order.deliveryFeeAmount !== undefined) {
+            deliveryFee = Number(order.deliveryFee ?? order.delivery ?? order.deliveryFeeAmount ?? 0);
+        } else {
+            const remainder = Math.max(0, total - itemsSubtotal);
+            deliveryFee = Math.min(50, remainder);
+        }
     }
     
     const commissionFee = Math.max(0, total - itemsSubtotal - deliveryFee);

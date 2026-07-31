@@ -12,6 +12,7 @@ export const BASE_DELIVERY_FEE = 0;        // Strictly 0 UAH default (wait for D
 /** Resolve the base product ID from any item shape the app uses. */
 const resolveId = (item) => {
   if (item?.product_id !== undefined && item.product_id !== null) return item.product_id;
+  if (item?.productId !== undefined && item.productId !== null) return item.productId;
   if (item?.id !== undefined && item.id !== null) return item.id;
   return null;
 };
@@ -169,13 +170,14 @@ const cartSlice = createSlice({
       const cartKey = makeCartKey(action.payload);
       const existingItem = state.items.find((item) => item.cartKey === cartKey);
       const safePrice = safeNum(action.payload.price);
+      const payloadQty = safeNum(action.payload.quantity ?? action.payload.qty);
 
       if (existingItem) {
-        existingItem.quantity += 1;
+        existingItem.quantity += payloadQty > 0 ? payloadQty : 1;
       } else {
         const step = safeNum(action.payload.weightStep ?? 100);
         const minW = safeNum(action.payload.minWeight ?? step);
-        const initialQty = Math.max(1, Math.round(minW / step));
+        const initialQty = payloadQty > 0 ? payloadQty : Math.max(1, Math.round(minW / step));
 
         state.items.push({
           ...action.payload,
