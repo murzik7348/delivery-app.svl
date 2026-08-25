@@ -106,8 +106,13 @@ export default function CartItemExtrasSheet({ visible, item, catalogProduct, onC
 
   const getModifiersList = () => {
     const list = [];
-    Object.values(selectedModifiers).forEach(groupMods => {
-        list.push(...Object.values(groupMods));
+    Object.entries(selectedModifiers).forEach(([groupId, groupMods]) => {
+      Object.values(groupMods).forEach((mod) => {
+        list.push({
+          ...mod,
+          modifierGroupId: parseInt(groupId, 10),
+        });
+      });
     });
     return list;
   };
@@ -245,7 +250,7 @@ export default function CartItemExtrasSheet({ visible, item, catalogProduct, onC
         ) : null}
 
         {/* Divider */}
-        {allAddons.length > 0 && (
+        {(catalogProduct?.modifierGroups?.length ?? 0) > 0 && (
           <View style={[styles.divider, { backgroundColor: theme.border ?? 'rgba(0,0,0,0.08)' }]} />
         )}
 
@@ -257,31 +262,43 @@ export default function CartItemExtrasSheet({ visible, item, catalogProduct, onC
         >
           {catalogProduct?.modifierGroups?.map((group) => {
               const selectedCount = Object.keys(selectedModifiers[group.id] || {}).length;
+              const isSingleChoice = group.selectionType === 1;
               return (
                   <View key={group.id} style={styles.groupContainer}>
-                      <Text style={[styles.groupName, { color: theme.text }]}>
-                          {group.name} {group.isRequired && <Text style={{ color: theme.primary }}>*</Text>}
-                      </Text>
-                      <View style={styles.optionsRow}>
+                      <View style={styles.groupHeader}>
+                          <Text style={[styles.groupName, { color: theme.text }]}>
+                              {group.name}
+                          </Text>
+                          <View style={[styles.badge, { backgroundColor: group.isRequired ? `${theme.primary}18` : theme.input }]}>
+                              <Text style={[styles.badgeText, { color: group.isRequired ? theme.primary : theme.textSecondary ?? 'gray' }]}>
+                                  {group.isRequired ? 'Обов\'язково' : 'Опціонально'}
+                              </Text>
+                          </View>
+                      </View>
+
+                      <View style={styles.modifiersList}>
                           {group.modifiers?.map((mod) => {
                               const isSelected = !!(selectedModifiers[group.id] && selectedModifiers[group.id][mod.id]);
+                              const modPrice = safeNum(mod.price);
+
                               return (
                                   <TouchableOpacity
                                       key={mod.id}
+                                      activeOpacity={0.7}
                                       style={[
-                                          styles.optionChip,
+                                          styles.modifierCard,
                                           { 
-                                              backgroundColor: isSelected ? theme.primary : theme.input,
-                                              borderColor: isSelected ? theme.primary : 'rgba(0,0,0,0.05)'
+                                              backgroundColor: isSelected ? `${theme.primary}14` : theme.input,
+                                              borderColor: isSelected ? theme.primary : 'rgba(0,0,0,0.04)'
                                           }
                                       ]}
                                       onPress={() => {
-                                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
                                           setSelectedModifiers(prev => {
                                               const currentGroupMods = { ...(prev[group.id] || {}) };
                                               const currentlySelected = !!currentGroupMods[mod.id];
 
-                                              if (group.selectionType === 1) {
+                                              if (isSingleChoice) {
                                                   if (currentlySelected) {
                                                       if (group.isRequired && Object.keys(currentGroupMods).length === 1) {
                                                           return prev;
@@ -304,9 +321,33 @@ export default function CartItemExtrasSheet({ visible, item, catalogProduct, onC
                                           });
                                       }}
                                   >
-                                      <Text style={[styles.optionText, { color: isSelected ? 'white' : theme.text }]}>
-                                          {mod.name} {mod.price > 0 ? `(+${mod.price} ₴)` : ''}
-                                      </Text>
+                                      <View style={styles.modifierLeft}>
+                                          <View style={[
+                                              styles.iconIndicator,
+                                              isSingleChoice ? styles.radioIndicator : styles.checkboxIndicator,
+                                              {
+                                                  borderColor: isSelected ? theme.primary : 'rgba(150,150,150,0.4)',
+                                                  backgroundColor: isSelected ? theme.primary : 'transparent',
+                                              }
+                                          ]}>
+                                              {isSelected && (
+                                                  isSingleChoice ? (
+                                                      <View style={styles.radioInnerDot} />
+                                                  ) : (
+                                                      <Ionicons name="checkmark" size={12} color="white" />
+                                                  )
+                                              )}
+                                          </View>
+                                          <Text style={[styles.modifierName, { color: theme.text, fontWeight: isSelected ? '700' : '500' }]}>
+                                              {mod.name}
+                                          </Text>
+                                      </View>
+
+                                      {modPrice > 0 && (
+                                          <Text style={[styles.modifierPrice, { color: isSelected ? theme.primary : (theme.textSecondary ?? 'gray') }]}>
+                                              +{formatPrice(modPrice)} ₴
+                                          </Text>
+                                      )}
                                   </TouchableOpacity>
                               );
                           })}
@@ -425,30 +466,75 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   groupContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
   groupName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    opacity: 0.8,
+    letterSpacing: -0.2,
   },
-  optionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modifiersList: {
     gap: 8,
   },
-  optionChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
+  modifierCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1.5,
   },
-  optionText: {
+  modifierLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  iconIndicator: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+  },
+  radioIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+  },
+  checkboxIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+  },
+  radioInnerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'white',
+  },
+  modifierName: {
+    fontSize: 15,
+    flex: 1,
+  },
+  modifierPrice: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginLeft: 8,
   },
   emptyAddons: {
     alignItems: 'center',

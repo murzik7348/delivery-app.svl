@@ -25,8 +25,6 @@ import * as Linking from 'expo-linking';
 import Colors from '../../constants/Colors';
 import { authLogin, getMe } from '../../src/api';
 import { fetchAddresses, loginUser } from '../../store/authSlice';
-import { setTheme } from '../../store/uiSlice';
-import DarkModeToggle from '../../components/DarkModeToggle';
 
 const { width, height } = Dimensions.get('window');
 
@@ -281,13 +279,8 @@ export default function LoginScreen() {
       />
 
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        {/* Style Toggle & Support Action Buttons */}
+        {/* Support Action Button */}
         <Animated.View style={[styles.topActions, { opacity: fadeAnim }]}>
-          <DarkModeToggle
-            initialState={isDarkCover}
-            onToggle={(isDark) => dispatch(setTheme(isDark ? 'dark' : 'light'))}
-          />
-
           <TouchableOpacity 
             style={[
               styles.supportButton, 
@@ -323,7 +316,7 @@ export default function LoginScreen() {
                 }
               ]}
             >
-              <Text style={[styles.header, { color: textColor, marginTop: 40 }]}>K&M Restaurant</Text>
+              <Text style={[styles.header, { color: textColor, marginTop: 40 }]}>K&M Delivery</Text>
               <Text style={[styles.subHeader, { color: textMuted, marginBottom: 20 }]}>Преміум-доставка страв у вашому місті</Text>
             </Animated.View>
 
@@ -578,7 +571,7 @@ const styles = StyleSheet.create({
   },
   topActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingHorizontal: 24,
     paddingTop: 12,
     alignItems: 'center',

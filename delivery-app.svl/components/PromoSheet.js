@@ -5,7 +5,6 @@ import {
     Animated,
     Clipboard,
     Dimensions,
-    Image,
     Modal,
     ScrollView,
     StyleSheet,
@@ -16,6 +15,7 @@ import {
     Platform,
     PanResponder,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../constants/Colors';
@@ -55,36 +55,20 @@ export default function PromoSheet({ promo, onClose }) {
 
     const panResponder = useRef(
         PanResponder.create({
-            onStartShouldSetPanResponder: (evt, gestureState) => {
-                const { locationY } = evt.nativeEvent;
-                return locationY < 200 || scrollOffset.current <= 0;
-            },
-            onMoveShouldSetPanResponder: (evt, gestureState) => {
-                const isVertical = Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 1.5;
-                if (!isVertical) return false;
-
-                const { locationY } = evt.nativeEvent;
-                const isTouchInHeader = locationY < 200;
-                const isPullingDown = gestureState.dy > 2;
-                const isAtTop = scrollOffset.current <= 0;
-
-                return isTouchInHeader || (isPullingDown && isAtTop);
-            },
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 5,
             onPanResponderGrant: () => {
                 translateY.stopAnimation();
-                Animated.spring(activeScale, { toValue: 1.3, friction: 8, useNativeDriver: true }).start();
+                Animated.spring(activeScale, { toValue: 1.2, friction: 8, useNativeDriver: true }).start();
             },
             onPanResponderMove: (_, gestureState) => {
-                const dy = gestureState.dy;
-                if (dy > 0) {
-                    translateY.setValue(dy);
-                } else {
-                    translateY.setValue(dy * 0.2);
+                if (gestureState.dy > 0) {
+                    translateY.setValue(gestureState.dy);
                 }
             },
             onPanResponderRelease: (_, gestureState) => {
                 Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
-                if (gestureState.vy > 0.5 || gestureState.dy > SCREEN_H * 0.3) {
+                if (gestureState.vy > 0.5 || gestureState.dy > 120) {
                     handleDismiss();
                 } else {
                     Animated.spring(translateY, {
@@ -108,13 +92,14 @@ export default function PromoSheet({ promo, onClose }) {
     ).current;
 
     useEffect(() => {
+        translateY.setValue(SCREEN_H);
         Animated.spring(translateY, {
             toValue: 0,
             friction: 8,
             tension: 40,
             useNativeDriver: true,
         }).start();
-    }, []);
+    }, [promo]);
 
     const handleCopyCode = () => {
         Clipboard.setString(promo.promoCode);
@@ -183,7 +168,6 @@ export default function PromoSheet({ promo, onClose }) {
 
             <View style={{ flex: 1, justifyContent: 'flex-end' }}>
                 <Animated.View
-                    {...panResponder.panHandlers}
                     style={[
                         s.sheet,
                         {
@@ -192,7 +176,7 @@ export default function PromoSheet({ promo, onClose }) {
                         }
                     ]}
                 >
-                    <View style={s.dragHandleArea}>
+                    <View style={s.dragHandleArea} {...panResponder.panHandlers}>
                         <Animated.View 
                             style={[
                                 s.pill,
@@ -208,7 +192,14 @@ export default function PromoSheet({ promo, onClose }) {
 
                     {/* Hero */}
                     <View style={s.heroWrap}>
-                        <Image source={typeof promo.image === 'number' ? promo.image : { uri: promo.image }} style={s.hero} />
+                        <Image 
+                            source={typeof promo.image === 'number' ? promo.image : { uri: promo.image }} 
+                            style={s.hero} 
+                            contentFit="cover"
+                            priority="high"
+                            cachePolicy="memory-disk"
+                            transition={0}
+                        />
                         <View style={s.heroOverlay} />
                         <View style={[s.tag, { backgroundColor: promo.tagColor ?? theme.primary }]}>
                             <Text style={s.tagText}>{promo.tag}</Text>

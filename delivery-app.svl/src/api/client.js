@@ -59,6 +59,70 @@ export const getRefreshToken = async () => {
     }
 };
 
+/** Helper to check if a JWT access token is expired or expires within bufferSeconds */
+export const isJwtExpiringSoon = (jwtToken, bufferSeconds = 60) => {
+    try {
+        if (!jwtToken || typeof jwtToken !== 'string') return true;
+        const parts = jwtToken.split('.');
+        if (parts.length !== 3) return false;
+        let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) base64 += '=';
+
+        let jsonStr = '';
+        if (typeof Buffer !== 'undefined') {
+            jsonStr = Buffer.from(base64, 'base64').toString('utf8');
+        } else if (typeof atob !== 'undefined') {
+            jsonStr = atob(base64);
+        } else {
+            return false;
+        }
+
+        const payload = JSON.parse(jsonStr);
+        if (payload && payload.exp) {
+            const expTimeMs = payload.exp * 1000;
+            return (expTimeMs - Date.now()) < (bufferSeconds * 1000);
+        }
+        return false;
+    } catch {
+        return false;
+    }
+};
+
+/** Proactively refreshes the token if it is expired or expiring soon before sending any request */
+export const ensureFreshToken = async () => {
+    let token = await getToken();
+    if (!token) return null;
+
+    if (isJwtExpiringSoon(token, 60)) {
+        const refreshToken = await getRefreshToken();
+        if (refreshToken) {
+            try {
+                console.log('🛡️ [API Proactive Auth] Access token expiring soon, refreshing before request...');
+                const refreshHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+                const response = await axios.post(`${BASE_URL}/auth/refresh`,
+                    { refreshToken, token, accessToken: token },
+                    { headers: refreshHeaders }
+                );
+
+                const newToken = typeof response.data === 'string'
+                    ? response.data
+                    : (response.data.accessToken || response.data.token);
+                const newRefreshToken = response.data.refreshToken || response.data.refresh_token || refreshToken;
+
+                if (newToken) {
+                    await saveToken(newToken, newRefreshToken);
+                    client.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+                    console.log('✅ [API Proactive Auth] Token refreshed proactively!');
+                    return newToken;
+                }
+            } catch (err) {
+                console.warn('⚠️ [API Proactive Auth] Proactive token refresh failed:', err.message);
+            }
+        }
+    }
+    return token;
+};
+
 /** Resolve a relative image path from the backend to a full URL */
 export const resolveImageUrl = (path) => {
     if (!path) return null;
@@ -69,6 +133,24 @@ export const resolveImageUrl = (path) => {
     const cleanBase = BASE_URL.endsWith('/') ? BASE_URL : `${BASE_URL}/`;
 
     return `${cleanBase}${cleanPath}`;
+};
+
+/** Resolve product image variant: 'thumb', 'medium', or 'original' */
+export const resolveProductImageUrl = (path, variant = 'medium') => {
+    if (!path) return null;
+
+    let targetPath = path;
+
+    // Replace existing variant filename if present
+    if (targetPath.includes('/thumb.jpg') || targetPath.includes('/medium.jpg') || targetPath.includes('/original.jpg')) {
+        targetPath = targetPath.replace(/\/(thumb|medium|original)\.jpg$/, `/${variant}.jpg`);
+    } else if (!targetPath.endsWith('.jpg') && !targetPath.endsWith('.png') && !targetPath.endsWith('.jpeg')) {
+        // Appends /variant.jpg if path is a base folder (e.g. images/products/UUID)
+        const clean = targetPath.endsWith('/') ? targetPath.slice(0, -1) : targetPath;
+        targetPath = `${clean}/${variant}.jpg`;
+    }
+
+    return resolveImageUrl(targetPath);
 };
 
 // ─── Axios instance ──────────────────────────────────────────────────────────
@@ -96,7 +178,7 @@ client.interceptors.request.use(
             return Promise.reject(rateLimitError);
         }
 
-        const token = await getToken();
+        const token = await ensureFreshToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         } else {
@@ -208,14 +290,21 @@ client.interceptors.response.use(
             isRefreshing = true;
 
             const refreshToken = await getRefreshToken();
+            const expiredToken = await getToken();
+
             if (refreshToken) {
                 try {
                     console.log('🔄 [Mobile] Attempting to refresh token...');
 
+                    const refreshHeaders = { 'Content-Type': 'application/json' };
+                    if (expiredToken) {
+                        refreshHeaders['Authorization'] = `Bearer ${expiredToken}`;
+                    }
+
                     // Note: original axios is used to avoid interceptor recursion
                     const response = await axios.post(`${BASE_URL}/auth/refresh`,
-                        { refreshToken },
-                        { headers: { 'Content-Type': 'application/json' } }
+                        { refreshToken, token: expiredToken, accessToken: expiredToken },
+                        { headers: refreshHeaders }
                     );
 
                     console.log('✅ [Mobile] Token refresh success:', typeof response.data);
@@ -243,14 +332,12 @@ client.interceptors.response.use(
                 } catch (refreshError) {
                     const status = refreshError.response?.status;
                     const data = refreshError.response?.data;
-                    console.error(`❌ [Mobile] Token refresh failed (Status: ${status}):`,
-                        JSON.stringify(data || refreshError.message, null, 2)
-                    );
+                    console.warn(`⚠️ [Mobile] Token refresh failed (Status: ${status}), clearing invalid tokens.`);
 
                     processQueue(refreshError, null);
+                    await removeToken().catch(() => { });
 
                     if (!originalRequest?._skipLogout) {
-                        await removeToken().catch(() => { });
                         const store = getStore();
                         if (store) {
                             const { logoutUser } = require('../../store/authSlice');
@@ -262,7 +349,17 @@ client.interceptors.response.use(
                     isRefreshing = false;
                 }
             } else {
-                console.warn('⚠️ [Mobile] No refresh token available, skipping refresh attempt.');
+                console.warn('⚠️ [Mobile] No refresh token available, clearing invalid tokens.');
+                await removeToken().catch(() => { });
+
+                if (!originalRequest?._skipLogout) {
+                    const store = getStore();
+                    if (store) {
+                        const { logoutUser } = require('../../store/authSlice');
+                        store.dispatch(logoutUser());
+                    }
+                }
+                return Promise.reject(error);
             }
         }
 

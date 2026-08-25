@@ -31,12 +31,52 @@ class OrderService {
 
         const paymentMethodId = isOnline ? 2 : 1;
 
+        const buildModifierGroups = (modifiersList) => {
+            if (!Array.isArray(modifiersList) || modifiersList.length === 0) {
+                return null;
+            }
+            const groupsMap = {};
+            modifiersList.forEach((mod) => {
+                const groupId = mod.modifierGroupId ?? mod.groupId ?? mod.group_id;
+                const modId = mod.id ?? mod.modifierId ?? mod.modifier_id;
+                if (groupId && modId) {
+                    const gId = parseInt(groupId, 10);
+                    const mId = parseInt(modId, 10);
+                    if (!groupsMap[gId]) {
+                        groupsMap[gId] = [];
+                    }
+                    if (!groupsMap[gId].includes(mId)) {
+                        groupsMap[gId].push(mId);
+                    }
+                }
+            });
+
+            const groupsArray = Object.entries(groupsMap).map(([gId, selectedIds]) => ({
+                modifierGroupId: parseInt(gId, 10),
+                selectedModifierIds: selectedIds,
+            }));
+
+            return groupsArray.length > 0 ? groupsArray : null;
+        };
+
         // Map the app's internal cart payload to the exact API DeliveryCreateRequest shape.
         const deliveryPayload = {
-            products: (orderPayload.items ?? []).map((item) => ({
-                productId: parseInt(item.product_id ?? item.id, 10),
-                quantity: item.quantity,
-            })),
+            products: (orderPayload.items ?? []).map((item) => {
+                const productId = parseInt(item.product_id ?? item.id, 10);
+                const quantity = item.quantity;
+                const modifierGroups = buildModifierGroups(item.modifiers);
+
+                const productObj = {
+                    productId,
+                    quantity,
+                };
+
+                if (modifierGroups && modifierGroups.length > 0) {
+                    productObj.modifierGroups = modifierGroups;
+                }
+
+                return productObj;
+            }),
             addressId: addressId || 0,
             paymentMethodId: paymentMethodId || 0,
             description: (orderPayload.note?.trim() || "Без коментарів").slice(0, 100),

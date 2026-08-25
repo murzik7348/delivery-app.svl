@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import CatalogService from '../services/CatalogService';
+import CatalogService, { DEFAULT_PROMOTIONS } from '../services/CatalogService';
 
 // ── Async Thunk ───────────────────────────────────────────────────────────────
 export const fetchCatalog = createAsyncThunk(
@@ -18,7 +18,7 @@ export const fetchCatalog = createAsyncThunk(
             const { catalog } = getState();
             if (catalog.isLoading) return false;
             if (arg?.forceRefresh) return true;
-            if (catalog.lastFetched && Date.now() - catalog.lastFetched < 5 * 60 * 1000) return false;
+            if (catalog.lastFetched && Date.now() - catalog.lastFetched < 10 * 1000) return false;
             return true;
         },
     }
@@ -39,7 +39,7 @@ export const fetchRestaurantProducts = createAsyncThunk(
 // ── Slice ─────────────────────────────────────────────────────────────────────
 const initialState = {
     categories: [],
-    promotions: [],
+    promotions: DEFAULT_PROMOTIONS,
     stores: [],
     products: [],
     isLoading: false,
@@ -75,7 +75,11 @@ const catalogSlice = createSlice({
                 state.lastFetched = Date.now();
                 const { categories: c, promotions: p, stores: s, products: pr } = action.payload;
                 if (c) state.categories = c;
-                if (p) state.promotions = p;
+                if (p && p.length > 0) {
+                    state.promotions = p;
+                } else if (!state.promotions || state.promotions.length === 0) {
+                    state.promotions = DEFAULT_PROMOTIONS;
+                }
                 if (s) state.stores = s;
                 if (pr) {
                     const productMap = new Map();

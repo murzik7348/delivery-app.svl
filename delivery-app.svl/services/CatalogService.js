@@ -1,8 +1,19 @@
 import { getProducts, getCategories, getRestaurants } from '../src/api';
-import { resolveImageUrl } from '../src/api/client';
+import { resolveImageUrl, resolveProductImageUrl } from '../src/api/client';
 
 // GUID логотипу "Рутенія" — продукти/категорії з цим фото є placeholder
 const RUTENIA_LOGO_GUID = '062973e9-b44b-48b3-88bf-6f3d65ed83b0';
+
+export const DEFAULT_PROMOTIONS = [
+    {
+        id: 1,
+        title: 'Спеціальна пропозиція від K&M Delivery',
+        description: 'Спробуйте нові авторські страви та сети від шеф-кухаря. Швидка та надійна доставка прямо до ваших дверей!',
+        tag: 'АКЦІЯ',
+        tagColor: '#e334e3',
+        image: require('../assets/images/promo_banner.png'),
+    }
+];
 
 /**
  * CatalogService — fetches real product/category data from the backend API.
@@ -46,34 +57,9 @@ class CatalogService {
      * Filter out unwanted drinks and deduplicate products by name (synchronous)
      */
     static filterProducts(productsList, categories) {
-        const ALLOWED_DRINKS = ['пепсі', 'pepsi', 'фанта', 'fanta', 'сандора', 'sandora', 'соки'];
-
-        const filteredDrinks = productsList.filter(p => {
-            const cat = categories.find(c => Number(c.category_id || c.id) === Number(p.category_id));
-            const catName = (cat?.name || '').toLowerCase();
-
-            const isDrink = catName.includes('напої') ||
-                catName.includes('фреш') ||
-                catName.includes('коктейл') ||
-                catName.includes('пиво') ||
-                catName.includes('горілк') ||
-                catName.includes('бар') ||
-                catName.includes('настоянк') ||
-                catName.includes('міцні') ||
-                catName.includes('вино') ||
-                catName.includes('кава') ||
-                catName.includes('чай');
-
-            if (isDrink) {
-                const nameLower = (p.name || '').toLowerCase();
-                return ALLOWED_DRINKS.some(allowed => nameLower.includes(allowed));
-            }
-            return true;
-        });
-
         const seen = new Set();
         const uniqueProducts = [];
-        filteredDrinks.forEach(p => {
+        (productsList || []).forEach(p => {
             const key = `${p.store_id || 0}_${(p.name || '').trim().toLowerCase()}`;
             if (!seen.has(key)) {
                 seen.add(key);
@@ -91,12 +77,19 @@ class CatalogService {
         const catId = Array.isArray(p.categoryIds) && p.categoryIds.length > 0
             ? Number(p.categoryIds[0])
             : Number(p.categoryId || p.category_id) || 0;
+
+        const rawPath = p.urlBase || p.imageUrl || p.image;
+        const fallbackUrl = "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=500";
+
         return {
             ...p,
             product_id: p.id,
             store_id: Number(p.restaurantId || fallbackRestaurantId) || 0,
             category_id: catId,
-            image: resolveImageUrl(p.urlBase || p.imageUrl) || "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=500"
+            image: resolveImageUrl(rawPath) || fallbackUrl,
+            imageThumb: resolveProductImageUrl(rawPath, 'thumb') || resolveImageUrl(rawPath) || fallbackUrl,
+            imageMedium: resolveProductImageUrl(rawPath, 'medium') || resolveImageUrl(rawPath) || fallbackUrl,
+            imageOriginal: resolveProductImageUrl(rawPath, 'original') || resolveImageUrl(rawPath) || fallbackUrl,
         };
     }
 
@@ -112,40 +105,72 @@ class CatalogService {
                 getRestaurants(),
             ]);
 
-            const STICKER_MAP = {
-                'піца': '🍕', 'піцца': '🍕',
-                'суші': '🍣', 'роли': '🍣',
-                'бургери': '🍔', 'бургер': '🍔',
-                'напої': '🥤', 'безалкогольні напої': '🥤',
-                'десерти': '🍰', 'салати': '🥗',
-                "м'ясо": '🥩', 'стейки': '🥩',
-                'паста': '🍝', 'сніданки': '🍳',
-                'снеки': '🍿', 'соуси': '🍯'
+            const ALLOWED_CATEGORIES_CONFIG = {
+                35: { sticker: '🍝', keyword: 'мучн' },
+                34: { sticker: '🍔', keyword: 'бургер' },
+                24: { sticker: '🍹', keyword: 'фреш' },
+                23: { sticker: '🥤', keyword: 'безалкоголь' },
+                22: { sticker: '🍕', keyword: 'піц' },
+                21: { sticker: '🌯', keyword: 'лаваш' },
+                20: { sticker: '🍳', keyword: 'снідан' },
+                19: { sticker: '🍟', keyword: 'закус' },
+                18: { sticker: '🥘', keyword: 'сковорідк' },
+                17: { sticker: '🥣', keyword: 'перш' },
+                16: { sticker: '🍚', keyword: 'гарнір' },
+                15: { sticker: '🍰', keyword: 'десерт' },
+                14: { sticker: '🥨', keyword: 'пивн' },
+                13: { sticker: '🥩', keyword: 'інші страви з м' },
+                11: { sticker: '🍢', keyword: 'мангал' },
             };
 
-            const apiCategoryList = (Array.isArray(apiCategories) ? apiCategories : []).map(c => ({
-                ...c,
-                category_id: c.categoryId || c.id,
-                sticker: STICKER_MAP[(c.name || '').toLowerCase()] || '🍽️',
-                image: resolveImageUrl(c.urlBase || c.imageUrl) || null
-            }));
+            const getCategoryStickerIfAllowed = (c) => {
+                const catId = Number(c?.categoryId || c?.id);
+                const nameLower = (c?.name || '').toLowerCase().trim();
 
-            // Тимчасово: видалити категорії з однаковим (placeholder) фото (10526 bytes)
-            const PLACEHOLDER_CATEGORY_IDS = [7,4,5,3,2,1,31,30,29,28,27,20,26,19,25,16,24,17,13,21,11,22,23,12,18,9,15,14,10];
-            const uniqueCategories = apiCategoryList.filter(c => !PLACEHOLDER_CATEGORY_IDS.includes(c.category_id));
+                // 1. Direct ID match
+                if (ALLOWED_CATEGORIES_CONFIG[catId]) {
+                    return ALLOWED_CATEGORIES_CONFIG[catId].sticker;
+                }
+
+                // 2. Exact keyword match by name
+                for (const item of Object.values(ALLOWED_CATEGORIES_CONFIG)) {
+                    if (nameLower.includes(item.keyword)) {
+                        return item.sticker;
+                    }
+                }
+
+                // Дефолтна іконка для будь-якої іншої категорії
+                return '🍽️';
+            };
+
+            const seenCategoryKeys = new Set();
+            const uniqueCategories = [];
+
+            (Array.isArray(apiCategories) ? apiCategories : []).forEach(c => {
+                const catId = Number(c.categoryId || c.id);
+                const nameLower = (c.name || '').toLowerCase().trim();
+                const sticker = getCategoryStickerIfAllowed(c) || '🍽️';
+
+                if (nameLower && !seenCategoryKeys.has(catId) && !seenCategoryKeys.has(nameLower)) {
+                    seenCategoryKeys.add(catId);
+                    seenCategoryKeys.add(nameLower);
+                    uniqueCategories.push({
+                        ...c,
+                        category_id: catId,
+                        sticker,
+                        image: resolveImageUrl(c.urlBase || c.imageUrl) || null
+                    });
+                }
+            });
+
+            const validCatIds = new Set(uniqueCategories.map(c => Number(c.category_id)));
 
             const allProductsMapped = (rawProducts || []).map(p => CatalogService.mapProduct(p));
 
-
             const allFiltered = CatalogService.filterProducts(allProductsMapped, uniqueCategories);
 
-            // Тимчасово: залишити для Рутенії тільки ті продукти, які мають справжні фото (не placeholder 2675 bytes)
-            const VALID_RUTENIA_PRODUCTS = [504, 499, 486, 478, 476, 473];
-            
             const apiProducts = allFiltered.filter(p => {
-                if (Number(p.store_id) === 1) {
-                    return VALID_RUTENIA_PRODUCTS.includes(p.product_id);
-                }
+                if (!validCatIds.has(Number(p.category_id))) return false;
                 return true;
             });
 
@@ -175,12 +200,12 @@ class CatalogService {
             return {
                 categories: uniqueCategories,
                 products: apiProducts,
-                promotions: [],
+                promotions: DEFAULT_PROMOTIONS,
                 stores,
             };
         } catch (err) {
             console.warn('[CatalogService] API unavailable:', err.message);
-            return { categories: [], promotions: [], stores: [], products: [] };
+            return { categories: [], promotions: DEFAULT_PROMOTIONS, stores: [], products: [] };
         }
     }
 
@@ -194,11 +219,7 @@ class CatalogService {
             const items = await CatalogService.fetchAllProducts({ restaurantId });
             const mapped = items.map(p => CatalogService.mapProduct(p, restaurantId));
 
-            // Тимчасово: залишити для Рутенії тільки ті продукти, які мають справжні фото
-            if (Number(restaurantId) === 1) {
-                const VALID_RUTENIA_PRODUCTS = [504, 499, 486, 478, 476, 473];
-                return mapped.filter(p => VALID_RUTENIA_PRODUCTS.includes(p.product_id));
-            }
+            // Повертаємо всі товари ресторану
             return mapped;
         } catch {
             return [];

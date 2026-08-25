@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
   RefreshControl,
   Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -118,26 +118,6 @@ export default function HomeScreen() {
         Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
       ])
     ).start();
-
-    // Тимчасовий локальний тест звуку сповіщень через 5 секунд після входу на головну
-    const testTimer = setTimeout(async () => {
-      try {
-        const Notifications = require('expo-notifications');
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Локальний тест звуку 🔔',
-            body: 'Якщо ви чуєте цей звук, дозволи та динамік працюють!',
-            sound: 'default',
-          },
-          trigger: null, // негайно
-        });
-        console.log('🔔 [Test] Локальне сповіщення відправлено!');
-      } catch (e) {
-        console.warn('⚠️ [Test] Помилка локального сповіщення:', e);
-      }
-    }, 5000);
-
-    return () => clearTimeout(testTimer);
   }, []);
 
   const handleSearchPress = () => {
@@ -286,13 +266,20 @@ export default function HomeScreen() {
                 activeOpacity={0.9}
                 onPress={() => setSelectedPromo(promo)}
               >
-                <Image source={typeof promo.image === 'number' ? promo.image : { uri: promo.image }} style={styles.promoImage} />
+                <Image 
+                  source={typeof promo.image === 'number' ? promo.image : { uri: promo.image }} 
+                  style={styles.promoImage} 
+                  contentFit="cover"
+                  priority="high"
+                  cachePolicy="memory-disk"
+                  transition={0}
+                />
                 {/* Темний градієнт знижу */}
                 <View style={styles.promoOverlay}>
                   <Text style={styles.promoTitle} numberOfLines={2}>{promo.title}</Text>
-                  <TouchableOpacity style={styles.promoBtn} onPress={() => setSelectedPromo(promo)}>
+                  <View style={styles.promoBtn}>
                     <Text style={styles.promoBtnText}>{t(locale, 'moreDetails')}</Text>
-                  </TouchableOpacity>
+                  </View>
                 </View>
                 {/* Кольоровий тег знижки */}
                 {promo.tag && (
@@ -342,14 +329,7 @@ export default function HomeScreen() {
                       borderWidth: isSelected ? 0 : StyleSheet.hairlineWidth,
                     }
                   ]}>
-                    {cat.image ? (
-                      <Image 
-                        source={{ uri: cat.image }} 
-                        style={{ width: 35, height: 35, tintColor: isSelected ? 'white' : null }} 
-                      />
-                    ) : (
-                      <Text style={{ fontSize: 28 }}>{cat.sticker || '🍽️'}</Text>
-                    )}
+                    <Text style={{ fontSize: 28 }}>{cat.sticker || '🍽️'}</Text>
                   </View>
                   <Text style={[
                     styles.catText,

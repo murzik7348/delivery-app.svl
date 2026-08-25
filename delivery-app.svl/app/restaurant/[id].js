@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState, useMemo } from 'react';
-import { Animated, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Alert, FlatList, ActivityIndicator } from 'react-native';
+import { Animated, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Alert, FlatList, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -20,7 +21,7 @@ import { isRestaurantClosed } from '../../utils/dateUtils';
 const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onAddToCart, onRemoveFromCart, onToggleFav }) => {
   const [scaleAnim] = useState(new Animated.Value(1));
 
-  const handlePressIn = () => Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true }).start();
+  const handlePressIn = () => Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true }).start();
   const handlePressOut = () => Animated.spring(scaleAnim, { toValue: 1, friction: 4, tension: 40, useNativeDriver: true }).start();
 
   const handleAddToCart = () => {
@@ -36,23 +37,40 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
   return (
     <Animated.View style={[styles.productCard, { backgroundColor: theme.card, transform: [{ scale: scaleAnim }] }]}>
       <TouchableOpacity
-        activeOpacity={0.9}
+        activeOpacity={0.85}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={() => onSelect(product)}
-        style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: qty === 0 ? 8 : 0 }}
+        style={styles.cardTouchArea}
       >
-        {/* Фото */}
-        <View style={styles.imgWrap}>
-          <Image source={{ uri: product.image }} style={styles.productImage} />
-          {/* Glassmorphism Price Badge */}
-          <View style={styles.priceBadgeOverlay}>
-            <BlurView intensity={70} tint="dark" style={styles.priceBadgeBlur}>
-              <Text style={styles.priceBadgeTextBlur}>{formatPrice(product.price)} ₴</Text>
-            </BlurView>
+        {/* Ліва частина: Інформація про страву */}
+        <View style={styles.productInfo}>
+          <Text style={[styles.productName, { color: theme.text }]} numberOfLines={2}>
+            {product.name}
+          </Text>
+          {product.description ? (
+            <Text style={[styles.productDesc, { color: 'gray' }]} numberOfLines={2}>
+              {product.description}
+            </Text>
+          ) : null}
+          <View style={styles.priceRow}>
+            <Text style={[styles.productPrice, { color: theme.primary }]}>
+              {formatPrice(product.price)} ₴
+            </Text>
           </View>
+        </View>
 
-          {/* Серце на картинці */}
+        {/* Права частина: Фото з кнопкою додавання */}
+        <View style={styles.imgWrap}>
+          <Image 
+            source={{ uri: product.image }} 
+            style={styles.productImage} 
+            contentFit="cover" 
+            priority="medium"
+            cachePolicy="memory-disk"
+          />
+
+          {/* Кнопка улюбленого (сердечко) */}
           <TouchableOpacity
             style={[
               styles.heartBtn,
@@ -62,58 +80,48 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
               Haptics.selectionAsync();
               onToggleFav(product.product_id);
             }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons
               name={isFavProd ? 'heart' : 'heart-outline'}
-              size={18}
+              size={16}
               color={isFavProd ? '#FF3B30' : 'white'}
             />
           </TouchableOpacity>
-        </View>
 
-        {/* Текст */}
-        <View style={styles.productInfo}>
-          <Text style={[styles.productName, { color: theme.text }]} numberOfLines={2}>
-            {product.name}
-          </Text>
-          {product.description ? (
-            <Text style={[styles.productDesc, { color: 'gray' }]} numberOfLines={1}>
-              {product.description}
-            </Text>
-          ) : null}
+          {/* Кнопка Додати / Лічильник на фото (внизу справа) */}
+          <View style={styles.actionBtnWrap}>
+            {qty === 0 ? (
+              <TouchableOpacity
+                style={[styles.addCircleBtn, { backgroundColor: theme.primary }]}
+                onPress={handleAddToCart}
+                activeOpacity={0.8}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="add" size={20} color="white" />
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.counterPill, { backgroundColor: theme.card, borderColor: theme.primary }]}>
+                <TouchableOpacity
+                  style={styles.counterActionBtn}
+                  onPress={handleRemoveFromCart}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Ionicons name="remove" size={14} color={theme.text} />
+                </TouchableOpacity>
+                <Text style={[styles.counterQtyText, { color: theme.text }]}>{qty}</Text>
+                <TouchableOpacity
+                  style={[styles.counterActionBtn, { backgroundColor: theme.primary }]}
+                  onPress={handleAddToCart}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Ionicons name="add" size={14} color="white" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
-
-      {/* Кнопки - Повністю поза клікабельною областю картки! */}
-      <View style={{ justifyContent: 'center', paddingLeft: 6 }}>
-        {qty === 0 ? (
-          <TouchableOpacity
-            style={[styles.addButton, { backgroundColor: theme.primary }]}
-            onPress={handleAddToCart}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add" size={16} color="white" style={{ marginRight: 4 }} />
-            <Text style={styles.addButtonText}>{t(locale, 'addToCart')}</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.counterContainer}>
-            <TouchableOpacity
-              style={[styles.counterBtn, { backgroundColor: theme.input }]}
-              onPress={handleRemoveFromCart}
-            >
-              <Ionicons name="remove" size={16} color={theme.text} />
-            </TouchableOpacity>
-            <Text style={[styles.counterText, { color: theme.text }]}>{qty}</Text>
-            <TouchableOpacity
-              style={[styles.counterBtn, { backgroundColor: theme.primary }]}
-              onPress={handleAddToCart}
-            >
-              <Ionicons name="add" size={16} color="white" />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
     </Animated.View>
   );
 };
@@ -283,11 +291,12 @@ export default function RestaurantScreen() {
           contentContainerStyle={styles.categoriesContainer}
           style={styles.categoriesScroll}
         >
-          {categoriesToRender.map(cat => {
+          {categoriesToRender.map((cat, index) => {
             const isSelected = selectedCategoryId === cat.category_id;
+            const uniqueKey = cat.category_id !== null && cat.category_id !== undefined ? `cat-${cat.category_id}` : `cat-all-${index}`;
             return (
               <TouchableOpacity
-                key={cat.category_id ?? 'all'}
+                key={uniqueKey}
                 style={[
                   styles.categoryBtn,
                   { backgroundColor: isSelected ? theme.primary : theme.card }

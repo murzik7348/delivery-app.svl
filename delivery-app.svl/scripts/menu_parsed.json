@@ -130,7 +130,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -143,7 +142,6 @@
       "categoryId": "6854252bad8cbe92d5509991",
       "categoryName": "БУРГЕРИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -156,7 +154,6 @@
       "categoryId": "685433d0ad8cbe92d5509d6c",
       "categoryName": "САЛАТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/lFmvGHy-xujoDlD-GFbkwJt.webp",
       "available": true
     },
@@ -169,7 +166,6 @@
       "categoryId": "685435e5ad8cbe92d5509dda",
       "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/EmfWnlm-cxpoKMJ-kPhVsIM.webp",
       "available": true
     },
@@ -182,7 +178,6 @@
       "categoryId": "685456df2bcb737e9c451099",
       "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -195,7 +190,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/BhBhHCs-gCGofnS-QFMfqeL.webp",
       "available": true
     },
@@ -208,7 +202,6 @@
       "categoryId": "68629c8d21dd4379a73e724f",
       "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -221,7 +214,6 @@
       "categoryId": "6862a00c21dd4379a73e7397",
       "categoryName": "ПИВНІ ТАРІЛКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/lJtkyDo-CxNYLIs-hvRaofY.webp",
       "available": true
     },
@@ -234,7 +226,6 @@
       "categoryId": "6862a1cbdde2b5189ea9fcf7",
       "categoryName": "ПЕРШІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/HDvmlld-fCuYnEC-zYKpole.webp",
       "available": true
     },
@@ -247,7 +238,6 @@
       "categoryId": "6862a29fdde2b5189ea9fd19",
       "categoryName": "ГАРНІРИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -260,7 +250,6 @@
       "categoryId": "6862ee1a21dd4379a73e83b0",
       "categoryName": "СКОВОРІДКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/HIKxCGS-RXKbbQb-oQkIebi.webp",
       "available": true
     },
@@ -273,7 +262,6 @@
       "categoryId": "6862f13c21dd4379a73e83c0",
       "categoryName": "ЛАВАШІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/xkFXMuR-EfwePki-vDctNJg.webp",
       "available": true
     },
@@ -286,7 +274,6 @@
       "categoryId": "6884b9f257260d2a94b6d2c1",
       "categoryName": "ДЕСЕРТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -299,7 +286,6 @@
       "categoryId": "6884ba040cce9903538da367",
       "categoryName": "ЗАКУСКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -312,7 +298,6 @@
       "categoryId": "6884ba1257260d2a94b6d2c8",
       "categoryName": "СНІДАНКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -325,7 +310,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -338,7 +322,6 @@
       "categoryId": "6854252bad8cbe92d5509991",
       "categoryName": "БУРГЕРИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -351,7 +334,6 @@
       "categoryId": "685433d0ad8cbe92d5509d6c",
       "categoryName": "САЛАТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/neIChGo-jrrDLec-lLDKMZe.webp",
       "available": true
     },
@@ -364,7 +346,6 @@
       "categoryId": "685435e5ad8cbe92d5509dda",
       "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -377,7 +358,6 @@
       "categoryId": "685456df2bcb737e9c451099",
       "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -390,7 +370,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -403,7 +382,6 @@
       "categoryId": "68629c8d21dd4379a73e724f",
       "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -416,7 +394,6 @@
       "categoryId": "6862a00c21dd4379a73e7397",
       "categoryName": "ПИВНІ ТАРІЛКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -429,7 +406,6 @@
       "categoryId": "6862a1cbdde2b5189ea9fcf7",
       "categoryName": "ПЕРШІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/caaFFRC-nHStHJb-evpWfDm.webp",
       "available": true
     },
@@ -442,7 +418,6 @@
       "categoryId": "6862a29fdde2b5189ea9fd19",
       "categoryName": "ГАРНІРИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/fkjxvUK-LjRtqlT-vBwNlvh.webp",
       "available": true
     },
@@ -455,7 +430,6 @@
       "categoryId": "6862ee1a21dd4379a73e83b0",
       "categoryName": "СКОВОРІДКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -468,7 +442,6 @@
       "categoryId": "6862f13c21dd4379a73e83c0",
       "categoryName": "ЛАВАШІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -481,7 +454,6 @@
       "categoryId": "6884b9f257260d2a94b6d2c1",
       "categoryName": "ДЕСЕРТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -494,7 +466,6 @@
       "categoryId": "6884ba040cce9903538da367",
       "categoryName": "ЗАКУСКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -507,7 +478,6 @@
       "categoryId": "6884ba1257260d2a94b6d2c8",
       "categoryName": "СНІДАНКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -520,7 +490,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -533,7 +502,6 @@
       "categoryId": "6854252bad8cbe92d5509991",
       "categoryName": "БУРГЕРИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -546,7 +514,6 @@
       "categoryId": "685433d0ad8cbe92d5509d6c",
       "categoryName": "САЛАТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -559,7 +526,6 @@
       "categoryId": "685435e5ad8cbe92d5509dda",
       "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -572,7 +538,6 @@
       "categoryId": "685456df2bcb737e9c451099",
       "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -585,7 +550,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -598,7 +562,6 @@
       "categoryId": "68629c8d21dd4379a73e724f",
       "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -611,7 +574,6 @@
       "categoryId": "6862a00c21dd4379a73e7397",
       "categoryName": "ПИВНІ ТАРІЛКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -624,7 +586,6 @@
       "categoryId": "6862a1cbdde2b5189ea9fcf7",
       "categoryName": "ПЕРШІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/HxAogbX-SNFCLel-pkCybOi.webp",
       "available": true
     },
@@ -637,7 +598,6 @@
       "categoryId": "6862a29fdde2b5189ea9fd19",
       "categoryName": "ГАРНІРИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -650,7 +610,6 @@
       "categoryId": "6862ee1a21dd4379a73e83b0",
       "categoryName": "СКОВОРІДКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/uqUlvOC-VSRvPOJ-PLbhqgC.webp",
       "available": true
     },
@@ -663,7 +622,6 @@
       "categoryId": "6862f13c21dd4379a73e83c0",
       "categoryName": "ЛАВАШІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/KebsHzM-UlhVvJC-PBPvxwF.webp",
       "available": true
     },
@@ -676,7 +634,6 @@
       "categoryId": "6884b9f257260d2a94b6d2c1",
       "categoryName": "ДЕСЕРТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -689,7 +646,6 @@
       "categoryId": "6884ba040cce9903538da367",
       "categoryName": "ЗАКУСКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -702,7 +658,6 @@
       "categoryId": "6884ba1257260d2a94b6d2c8",
       "categoryName": "СНІДАНКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/mHvWqaz-kJQvJlC-KFcvMNC.webp",
       "available": true
     },
@@ -715,7 +670,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -728,7 +682,6 @@
       "categoryId": "6854252bad8cbe92d5509991",
       "categoryName": "БУРГЕРИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -741,7 +694,6 @@
       "categoryId": "685433d0ad8cbe92d5509d6c",
       "categoryName": "САЛАТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -754,20 +706,18 @@
       "categoryId": "685435e5ad8cbe92d5509dda",
       "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/DbcuJoR-guJRKaH-vdwWcrc.webp",
       "available": true
     },
     {
       "id": "685457712bcb737e9c4510a8",
-      "name": "Сир фрі з шинкою",
+      "name": "Сир фрі з шинко��",
       "description": "",
       "price": 90,
       "weightGrams": 100,
       "categoryId": "685456df2bcb737e9c451099",
       "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -780,7 +730,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -793,7 +742,6 @@
       "categoryId": "68629c8d21dd4379a73e724f",
       "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -806,7 +754,6 @@
       "categoryId": "6862a00c21dd4379a73e7397",
       "categoryName": "ПИВНІ ТАРІЛКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -819,7 +766,6 @@
       "categoryId": "6862a1cbdde2b5189ea9fcf7",
       "categoryName": "ПЕРШІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -832,7 +778,6 @@
       "categoryId": "6862a29fdde2b5189ea9fd19",
       "categoryName": "ГАРНІРИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -845,7 +790,6 @@
       "categoryId": "6884b9f257260d2a94b6d2c1",
       "categoryName": "ДЕСЕРТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -858,7 +802,6 @@
       "categoryId": "6884ba040cce9903538da367",
       "categoryName": "ЗАКУСКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -871,7 +814,6 @@
       "categoryId": "6884ba1257260d2a94b6d2c8",
       "categoryName": "СНІДАНКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -884,7 +826,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -897,7 +838,6 @@
       "categoryId": "685433d0ad8cbe92d5509d6c",
       "categoryName": "САЛАТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -910,7 +850,6 @@
       "categoryId": "685435e5ad8cbe92d5509dda",
       "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -923,7 +862,6 @@
       "categoryId": "685456df2bcb737e9c451099",
       "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/oDnarrg-FttWCDa-FHJyCZu.webp",
       "available": true
     },
@@ -936,7 +874,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -949,7 +886,6 @@
       "categoryId": "68629c8d21dd4379a73e724f",
       "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -962,7 +898,6 @@
       "categoryId": "6862a00c21dd4379a73e7397",
       "categoryName": "ПИВНІ ТАРІЛКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -975,7 +910,6 @@
       "categoryId": "6862a1cbdde2b5189ea9fcf7",
       "categoryName": "ПЕРШІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -988,7 +922,6 @@
       "categoryId": "6862a29fdde2b5189ea9fd19",
       "categoryName": "ГАРНІРИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/KGPsMfd-FJNGeZZ-FECJcCi.webp",
       "available": true
     },
@@ -1001,7 +934,6 @@
       "categoryId": "6884b9f257260d2a94b6d2c1",
       "categoryName": "ДЕСЕРТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1014,7 +946,6 @@
       "categoryId": "6884ba040cce9903538da367",
       "categoryName": "ЗАКУСКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1027,7 +958,6 @@
       "categoryId": "6884ba1257260d2a94b6d2c8",
       "categoryName": "СНІДАНКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/tnBaWJK-beRPFCE-MKPzTGc.webp",
       "available": true
     },
@@ -1040,7 +970,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1053,7 +982,6 @@
       "categoryId": "685433d0ad8cbe92d5509d6c",
       "categoryName": "САЛАТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/HUGbzNz-sMTFDJi-bsNCkCL.webp",
       "available": true
     },
@@ -1066,7 +994,6 @@
       "categoryId": "685435e5ad8cbe92d5509dda",
       "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1079,7 +1006,6 @@
       "categoryId": "685456df2bcb737e9c451099",
       "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1092,7 +1018,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1105,7 +1030,6 @@
       "categoryId": "68629c8d21dd4379a73e724f",
       "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1118,7 +1042,6 @@
       "categoryId": "6862a00c21dd4379a73e7397",
       "categoryName": "ПИВНІ ТАРІЛКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1131,7 +1054,6 @@
       "categoryId": "6862a1cbdde2b5189ea9fcf7",
       "categoryName": "ПЕРШІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1144,7 +1066,6 @@
       "categoryId": "6862a29fdde2b5189ea9fd19",
       "categoryName": "ГАРНІРИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1157,7 +1078,6 @@
       "categoryId": "6884b9f257260d2a94b6d2c1",
       "categoryName": "ДЕСЕРТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/ZJMyrGS-uzPkttc-DwdaNDH.webp",
       "available": true
     },
@@ -1170,7 +1090,6 @@
       "categoryId": "6884ba040cce9903538da367",
       "categoryName": "ЗАКУСКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1183,7 +1102,6 @@
       "categoryId": "6884ba1257260d2a94b6d2c8",
       "categoryName": "СНІДАНКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1196,7 +1114,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1209,7 +1126,6 @@
       "categoryId": "685433d0ad8cbe92d5509d6c",
       "categoryName": "САЛАТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1222,7 +1138,6 @@
       "categoryId": "685435e5ad8cbe92d5509dda",
       "categoryName": "ЗАКАРПАТСЬКІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1235,7 +1150,6 @@
       "categoryId": "685456df2bcb737e9c451099",
       "categoryName": "МУЧНІ СТРАВИ - ПАСТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1248,7 +1162,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1261,7 +1174,6 @@
       "categoryId": "68629c8d21dd4379a73e724f",
       "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1274,7 +1186,6 @@
       "categoryId": "6862a1cbdde2b5189ea9fcf7",
       "categoryName": "ПЕРШІ СТРАВИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1287,7 +1198,6 @@
       "categoryId": "6884b9f257260d2a94b6d2c1",
       "categoryName": "ДЕСЕРТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1300,7 +1210,6 @@
       "categoryId": "6884ba040cce9903538da367",
       "categoryName": "ЗАКУСКИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1313,7 +1222,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1326,7 +1234,6 @@
       "categoryId": "685433d0ad8cbe92d5509d6c",
       "categoryName": "САЛАТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/RGqcmEb-MYJIHzE-FlqRgeI.webp",
       "available": true
     },
@@ -1339,7 +1246,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1352,7 +1258,6 @@
       "categoryId": "68629c8d21dd4379a73e724f",
       "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1365,7 +1270,6 @@
       "categoryId": "6884b9f257260d2a94b6d2c1",
       "categoryName": "ДЕСЕРТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1378,7 +1282,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1391,7 +1294,6 @@
       "categoryId": "685433d0ad8cbe92d5509d6c",
       "categoryName": "САЛАТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": "https://cdn-media.choiceqr.com/prod-eat-ruteniya-svalyava/menu/RTZDQMJ-DxiEwUL-IeMSRDm.webp",
       "available": true
     },
@@ -1404,7 +1306,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1417,7 +1318,6 @@
       "categoryId": "68629c8d21dd4379a73e724f",
       "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1430,7 +1330,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1443,7 +1342,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1456,7 +1354,6 @@
       "categoryId": "68629c8d21dd4379a73e724f",
       "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1469,7 +1366,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1482,7 +1378,6 @@
       "categoryId": "685433d0ad8cbe92d5509d6c",
       "categoryName": "САЛАТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1495,7 +1390,6 @@
       "categoryId": "685433d0ad8cbe92d5509d6c",
       "categoryName": "САЛАТИ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1508,7 +1402,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1521,7 +1414,6 @@
       "categoryId": "68629c8d21dd4379a73e724f",
       "categoryName": "ІНШІ СТРАВИ З МʼЯСА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1534,7 +1426,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1547,7 +1438,6 @@
       "categoryId": "686299f3dde2b5189ea9f939",
       "categoryName": "СТРАВИ НА МАНГАЛІ",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1560,7 +1450,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1573,7 +1462,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1586,7 +1474,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     },
@@ -1599,7 +1486,6 @@
       "categoryId": "68541a01ad8cbe92d5509551",
       "categoryName": "ПІЦА",
       "sectionId": "685419c7ad8cbe92d550950f",
-      "sectionName": "МЕНЮ",
       "imageUrl": null,
       "available": true
     }

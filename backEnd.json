@@ -2646,6 +2646,90 @@
         }
       }
     },
+    "/product/modifier-group/{modifierGroupId}": {
+      "put": {
+        "tags": [
+          "Product"
+        ],
+        "parameters": [
+          {
+            "name": "modifierGroupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierGroupUpdateRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierGroupUpdateRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierGroupUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/product/modifier/{modifierId}": {
+      "put": {
+        "tags": [
+          "Product"
+        ],
+        "parameters": [
+          {
+            "name": "modifierId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierUpdateRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierUpdateRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/product/{productId}/activate": {
       "put": {
         "tags": [
@@ -4030,6 +4114,13 @@
           "quantity": {
             "type": "integer",
             "format": "int32"
+          },
+          "modifierGroups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/modifierGroup"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -4151,6 +4242,21 @@
           "totalLineAmount": {
             "type": "number",
             "format": "double"
+          },
+          "productPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "basePrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "modifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryUserItemModifier"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -4361,6 +4467,43 @@
           "totalLineAmount": {
             "type": "number",
             "format": "double"
+          },
+          "productPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "basePrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "modifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryUserItemModifier"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DeliveryUserItemModifier": {
+        "type": "object",
+        "properties": {
+          "groupName": {
+            "type": "string",
+            "nullable": true
+          },
+          "modifierName": {
+            "type": "string",
+            "nullable": true
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -4681,6 +4824,38 @@
         },
         "additionalProperties": false
       },
+      "ModifierGroupUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "selectionTypeModifier": {
+            "$ref": "#/components/schemas/SelectionTypeModifierGroup"
+          },
+          "isRequest": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "minSelected": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "maxSelected": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ModifierResponse": {
         "type": "object",
         "properties": {
@@ -4702,6 +4877,34 @@
           "sortOrder": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ModifierUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "price": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "isAvailable": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isDefaultSelected": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -4906,8 +5109,8 @@
       },
       "SelectionTypeModifierGroup": {
         "enum": [
-          0,
-          1
+          1,
+          2
         ],
         "type": "integer",
         "format": "int32"
@@ -5065,6 +5268,27 @@
           },
           "isWorking": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "modifierGroup": {
+        "required": [
+          "modifierGroupId",
+          "selectedModifierIds"
+        ],
+        "type": "object",
+        "properties": {
+          "modifierGroupId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "selectedModifierIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         },
         "additionalProperties": false
