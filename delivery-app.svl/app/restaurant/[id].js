@@ -43,24 +43,7 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
         onPress={() => onSelect(product)}
         style={styles.cardTouchArea}
       >
-        {/* Ліва частина: Інформація про страву */}
-        <View style={styles.productInfo}>
-          <Text style={[styles.productName, { color: theme.text }]} numberOfLines={2}>
-            {product.name}
-          </Text>
-          {product.description ? (
-            <Text style={[styles.productDesc, { color: 'gray' }]} numberOfLines={2}>
-              {product.description}
-            </Text>
-          ) : null}
-          <View style={styles.priceRow}>
-            <Text style={[styles.productPrice, { color: theme.primary }]}>
-              {formatPrice(product.price)} ₴
-            </Text>
-          </View>
-        </View>
-
-        {/* Права частина: Фото з кнопкою додавання */}
+        {/* Ліва частина: Фото з кнопкою улюбленого */}
         <View style={styles.imgWrap}>
           <Image 
             source={{ uri: product.image }} 
@@ -88,9 +71,27 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
               color={isFavProd ? '#FF3B30' : 'white'}
             />
           </TouchableOpacity>
+        </View>
 
-          {/* Кнопка Додати / Лічильник на фото (внизу справа) */}
-          <View style={styles.actionBtnWrap}>
+        {/* Права частина: Інформація про страву, ціна та кнопка */}
+        <View style={styles.productInfo}>
+          <View>
+            <Text style={[styles.productName, { color: theme.text }]} numberOfLines={2}>
+              {product.name}
+            </Text>
+            {product.description ? (
+              <Text style={[styles.productDesc, { color: 'gray' }]} numberOfLines={2}>
+                {product.description}
+              </Text>
+            ) : null}
+          </View>
+
+          {/* Нижній рядок: Ціна зліва, Кнопка додавання справа */}
+          <View style={styles.bottomRow}>
+            <Text style={[styles.productPrice, { color: theme.primary }]}>
+              {formatPrice(product.price)} ₴
+            </Text>
+
             {qty === 0 ? (
               <TouchableOpacity
                 style={[styles.addCircleBtn, { backgroundColor: theme.primary }]}
@@ -449,103 +450,68 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 20, marginBottom: 10 },
 
   productCard: {
-    flexDirection: 'row',
     marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 24,
-    padding: 14,
-    alignItems: 'center',
+    marginBottom: 14,
+    borderRadius: 20,
+    overflow: 'visible',
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  cardTouchArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    minHeight: 124,
   },
   imgWrap: {
     position: 'relative',
+    width: 104,
+    height: 104,
     marginRight: 14,
   },
   productImage: {
     width: 104,
-    height: 114,
-    borderRadius: 18,
+    height: 104,
+    borderRadius: 16,
     backgroundColor: '#222',
-  },
-  priceBadgeOverlay: {
-    position: 'absolute',
-    bottom: 6,
-    left: 6,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  priceBadgeBlur: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  priceBadgeTextBlur: {
-    color: 'white',
-    fontWeight: '900',
-    fontSize: 13,
-    textShadowColor: 'rgba(0,0,0,0.4)',
-    textShadowRadius: 3,
   },
   productInfo: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    minHeight: 104,
   },
   productName: {
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 4,
-    lineHeight: 20,
+    lineHeight: 21,
   },
   productDesc: {
-    fontSize: 12,
-    marginBottom: 10,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 17,
+    marginBottom: 6,
   },
-  actions: {
+  bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 'auto',
+    paddingTop: 4,
   },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#000000',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-  },
-  addButtonText: {
-    color: 'white',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  counterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  counterBtn: {
-    width: 34,
-    height: 34,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 11,
-  },
-  counterText: {
+  productPrice: {
+    fontSize: 17,
     fontWeight: '800',
-    fontSize: 16,
-    minWidth: 20,
-    textAlign: 'center',
   },
   heartBtn: {
     position: 'absolute',
     top: 6,
     right: 6,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -553,6 +519,43 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+  },
+  addCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  counterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  counterActionBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  counterQtyText: {
+    fontWeight: '800',
+    fontSize: 14,
+    paddingHorizontal: 6,
+    textAlign: 'center',
   },
 
   floatingCartContainer: { position: 'absolute', bottom: 30, width: '100%', paddingHorizontal: 20 },
