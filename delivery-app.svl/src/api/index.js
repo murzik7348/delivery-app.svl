@@ -48,6 +48,7 @@ export {
     getDeliveryZones,
     getDeliveryCoefficients,
     toggleDeliveryCoefficientActivityAdmin,
+    getDeliveryReceipt,
 } from './delivery';
 
 

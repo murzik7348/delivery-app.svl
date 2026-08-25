@@ -38,3 +38,9 @@ export const getDeliveryCoefficients = () => client.get('/deliveries/coefficient
  * @param {number} id - Coefficient ID
  */
 export const toggleDeliveryCoefficientActivityAdmin = (id) => client.post(`/admin/delivery/coefficient/${id}/activity`);
+
+/**
+ * Fetch delivery receipt (Checkbox URL / receipt data).
+ * @param {number} id - Delivery ID
+ */
+export const getDeliveryReceipt = (id) => client.get(`/deliveries/${id}/receipt`, { _silentErrors: [404] });

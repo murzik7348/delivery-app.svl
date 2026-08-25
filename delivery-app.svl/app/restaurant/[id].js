@@ -18,8 +18,23 @@ import BackButton from '../../components/BackButton';
 import { isRestaurantClosed } from '../../utils/dateUtils';
 
 
+const formatWeight = (product) => {
+  const w = product?.weightGrams ?? product?.weight_grams ?? product?.weight ?? product?.averageWeight;
+  if (!w) return null;
+  const num = parseInt(w, 10);
+  if (!isNaN(num) && num > 0) {
+    return `${num} г`;
+  }
+  if (typeof w === 'string' && w.trim().length > 0) {
+    const trimmed = w.trim();
+    return trimmed.includes('г') || trimmed.includes('мл') || trimmed.includes('g') ? trimmed : `${trimmed} г`;
+  }
+  return null;
+};
+
 const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onAddToCart, onRemoveFromCart, onToggleFav }) => {
   const [scaleAnim] = useState(new Animated.Value(1));
+  const weightText = formatWeight(product);
 
   const handlePressIn = () => Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true }).start();
   const handlePressOut = () => Animated.spring(scaleAnim, { toValue: 1, friction: 4, tension: 40, useNativeDriver: true }).start();
@@ -73,24 +88,31 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
           </TouchableOpacity>
         </View>
 
-        {/* Права частина: Інформація про страву, ціна та кнопка */}
+        {/* Права частина: Інформація про страву, ціна, грамаж та кнопка */}
         <View style={styles.productInfo}>
           <View>
             <Text style={[styles.productName, { color: theme.text }]} numberOfLines={2}>
               {product.name}
             </Text>
             {product.description ? (
-              <Text style={[styles.productDesc, { color: 'gray' }]} numberOfLines={2}>
+              <Text style={[styles.productDesc, { color: theme.textSecondary || 'gray' }]} numberOfLines={2}>
                 {product.description}
               </Text>
             ) : null}
           </View>
 
-          {/* Нижній рядок: Ціна зліва, Кнопка додавання справа */}
+          {/* Нижній рядок: Ціна (чорна/біла) + Грамаж зліва, Кнопка додавання справа */}
           <View style={styles.bottomRow}>
-            <Text style={[styles.productPrice, { color: theme.primary }]}>
-              {formatPrice(product.price)} ₴
-            </Text>
+            <View style={styles.priceContainer}>
+              <Text style={[styles.productPrice, { color: theme.text }]}>
+                {formatPrice(product.price)} ₴
+              </Text>
+              {weightText ? (
+                <Text style={[styles.productWeight, { color: theme.textSecondary || '#8E8E93' }]}>
+                  {weightText}
+                </Text>
+              ) : null}
+            </View>
 
             {qty === 0 ? (
               <TouchableOpacity
@@ -501,9 +523,21 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
     paddingTop: 4,
   },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    flexShrink: 1,
+    marginRight: 8,
+  },
   productPrice: {
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  productWeight: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   heartBtn: {
     position: 'absolute',

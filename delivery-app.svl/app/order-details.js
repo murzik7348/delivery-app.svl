@@ -7,7 +7,7 @@ import {
 import { useColorScheme } from '../hooks/use-color-scheme';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { HubConnectionBuilder, HttpTransportType, HubConnectionState } from '@microsoft/signalr';
-import { getToken, getValidToken } from '../src/api/client';
+import { getToken, getValidToken, BASE_URL } from '../src/api/client';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
@@ -17,16 +17,17 @@ import Colors from '../constants/Colors';
 import { formatUkraineDate } from '../utils/dateUtils';
 import { t } from '../constants/translations';
 import { fetchOrderDetails, confirmOrder, updateOrderStatus } from '../store/ordersSlice';
-import { formatPrice, addToCart, clearCart } from '../store/cartSlice';
+import { formatPrice } from '../store/cartSlice';
 import * as Haptics from 'expo-haptics';
-import { restaurantCancelDelivery } from '../src/api';
+import { restaurantCancelDelivery, getDeliveryReceipt } from '../src/api';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { safeBack } from '../utils/navigation';
 import { syncLiveActivity, endActivity, startPolling, stopPolling } from '../services/LiveActivityService';
 import { hs, vs, ms, fs, r, hairline } from '../utils/responsive';
 import BackButton from '../components/BackButton';
-import PaymentRetryCard, { isPaidStatus } from '../components/PaymentRetryCard';
+import PaymentRetryCard, { isPaidStatus, getPaymentStatus } from '../components/PaymentRetryCard';
 import ReceiptService from '../services/ReceiptService';
+import * as WebBrowser from 'expo-web-browser';
 
 
 
@@ -184,6 +185,36 @@ const progressStyles = StyleSheet.create({
   line: { flex: 1, height: vs(3), marginHorizontal: hs(4), borderRadius: r(2) },
 });
 
+export const extractReceiptUrl = (data) => {
+  if (!data) return null;
+  if (typeof data === 'string') {
+    const trimmed = data.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    // Check if it's a UUID (Checkbox receipt UUID like dc4ff55f-00cd-48de-8aea-fd2f9498a5a2)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(trimmed)) {
+      return `https://check.checkbox.in.ua/${trimmed}`;
+    }
+    // Search for embedded https://check.checkbox or any url in text
+    const match = trimmed.match(/https?:\/\/[^\s"'<>]+/);
+    if (match) return match[0];
+  }
+  if (typeof data === 'object') {
+    const candidate = data.url || data.receiptUrl || data.checkUrl || data.checkboxUrl || data.fiscalUrl || data.receipt_url || data.link || data.receipt;
+    if (candidate) {
+      return extractReceiptUrl(candidate);
+    }
+    const receiptId = data.receiptId || data.receipt_id || data.checkId || data.check_id || data.fiscalId || data.id;
+    if (receiptId && typeof receiptId === 'string') {
+      const parsed = extractReceiptUrl(receiptId);
+      if (parsed) return parsed;
+    }
+  }
+  return null;
+};
+
 // ──────────────────────────────────────────────────────────────
 // Premium Order Details Screen
 // ──────────────────────────────────────────────────────────────
@@ -193,7 +224,7 @@ export default function OrderDetailsScreen() {
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-  const locale = useSelector(s => s.language?.locale ?? 'uk');
+  const locale = useSelector(state => state.language?.locale ?? 'uk');
   const insets = useSafeAreaInsets();
   const intervalRef = useRef(null);
 
@@ -218,21 +249,59 @@ export default function OrderDetailsScreen() {
   );
 
   const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
+  const [hasConfirmedLocal, setHasConfirmedLocal] = useState(false);
 
   const handleDownloadReceipt = useCallback(async () => {
-    if (!order) return;
+    const orderId = order?.deliveryId || order?.id;
+    if (!orderId) return;
+
     try {
       setIsGeneratingReceipt(true);
       if (Platform.OS !== 'web') {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
-      await ReceiptService.generateAndShareReceipt(order, locale);
+
+      // 1. Check if URL already exists on order object
+      let webUrl = extractReceiptUrl(
+        order?.receiptUrl ||
+        order?.receipt_url ||
+        order?.checkUrl ||
+        order?.checkboxUrl ||
+        order?.fiscalUrl ||
+        order?.receipt ||
+        order?.description
+      );
+
+      // 2. If not found in current order object, query backend endpoint: GET /deliveries/{id}/receipt
+      if (!webUrl) {
+        console.log(`[OrderDetails] Requesting official Checkbox receipt from API for delivery ${orderId}...`);
+        try {
+          const apiReceipt = await getDeliveryReceipt(orderId);
+          console.log('[OrderDetails] API receipt response:', apiReceipt);
+          webUrl = extractReceiptUrl(apiReceipt);
+        } catch (apiErr) {
+          console.warn('[OrderDetails] getDeliveryReceipt endpoint error:', apiErr?.message);
+        }
+      }
+
+      // 3. If found, open the official Checkbox receipt URL in in-app WebBrowser sheet
+      if (webUrl) {
+        console.log('[OrderDetails] Opening official Checkbox receipt:', webUrl);
+        await WebBrowser.openBrowserAsync(webUrl, {
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+          readerMode: false,
+        });
+      } else {
+        console.log('[OrderDetails] Generating client-side / PDF receipt fallback');
+        await ReceiptService.generateAndShareReceipt(order, locale);
+      }
     } catch (e) {
+      console.error('[OrderDetails] Failed to open/generate receipt:', e);
       Alert.alert(
         locale === 'en' ? 'Error' : 'Помилка',
         locale === 'en' 
-          ? 'Failed to generate receipt: ' + e.message 
-          : 'Не вдалося згенерувати чек: ' + e.message
+          ? 'Failed to open receipt: ' + e.message 
+          : 'Не вдалося відкрити чек: ' + e.message
       );
     } finally {
       setIsGeneratingReceipt(false);
@@ -264,6 +333,7 @@ export default function OrderDetailsScreen() {
 
   // Animate map to show restaurant/courier and customer pin (only fit once per status condition to prevent jumping)
   useEffect(() => {
+    if (currentStep !== 4) return;
     if (mapRef.current) {
       const points = [];
       const hasCourier = !!(liveCourierCoords?.latitude && liveCourierCoords?.longitude);
@@ -298,6 +368,7 @@ export default function OrderDetailsScreen() {
       }
     }
   }, [
+    currentStep,
     liveCourierCoords?.latitude,
     liveCourierCoords?.longitude,
     order?.restaurantLatitude,
@@ -308,6 +379,7 @@ export default function OrderDetailsScreen() {
 
   // Fetch precise route using OSRM
   useEffect(() => {
+    if (currentStep !== 4) return;
     let active = true;
     const fetchRoute = async () => {
       const startLat = liveCourierCoords?.latitude || order?.restaurantLatitude;
@@ -383,7 +455,7 @@ export default function OrderDetailsScreen() {
 
         // Force WebSockets transport to prevent fallback to ServerSentEvents (which fails in React Native due to missing EventSource)
         connection = new HubConnectionBuilder()
-          .withUrl("https://api.andi.delivery/trackingHub", {
+          .withUrl(`${BASE_URL}/trackingHub`, {
             accessTokenFactory: async () => {
               const freshToken = await getValidToken();
               return freshToken || "";
@@ -623,9 +695,21 @@ export default function OrderDetailsScreen() {
         { 
           text: locale === 'en' ? 'Yes, Received' : 'Так, отримано', 
           onPress: async () => {
+            const orderId = order.deliveryId || order.id;
             try {
               setIsConfirming(true);
-              await dispatch(confirmOrder(order.deliveryId || order.id)).unwrap();
+              setHasConfirmedLocal(true);
+              // Миттєво перемикаємо статус у Redux на доставлено, щоб кнопка зникла одразу
+              dispatch(updateOrderStatus({ 
+                orderId, 
+                status: 'delivered', 
+                statusDelivery: 'delivered', 
+                deliveryStatus: 5,
+                isConfirmedByUser: true 
+              }));
+
+              await dispatch(confirmOrder(orderId)).unwrap();
+              dispatch(fetchOrderDetails(orderId));
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               Alert.alert(
                 locale === 'en' ? 'Success' : 'Успішно',
@@ -635,6 +719,15 @@ export default function OrderDetailsScreen() {
               const rawError = String(e || '');
               let errorMsg = rawError;
               if (rawError.toLowerCase().includes('alredy confirmed') || rawError.toLowerCase().includes('already confirmed')) {
+                setHasConfirmedLocal(true);
+                dispatch(updateOrderStatus({ 
+                  orderId, 
+                  status: 'delivered', 
+                  statusDelivery: 'delivered', 
+                  deliveryStatus: 5,
+                  isConfirmedByUser: true 
+                }));
+                dispatch(fetchOrderDetails(orderId));
                 errorMsg = locale === 'en'
                   ? 'This order has already been confirmed.'
                   : 'Це замовлення вже підтверджено.';
@@ -762,16 +855,16 @@ export default function OrderDetailsScreen() {
               </View>
             )}
 
-            {/* Real-time Map section */}
-            {currentStep < 5 && (order.restaurantLatitude || order.customerLatitude) && (
+            {/* Real-time Map section - ONLY shown when courier has picked up order (Step 4) */}
+            {currentStep === 4 && (order.restaurantLatitude || order.customerLatitude || liveCourierCoords) && (
               <View style={[styles.mapContainer, { borderColor: theme.border }]}>
                 <MapView
                   ref={mapRef}
                   style={styles.map}
                   provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
                   initialRegion={{
-                    latitude: order.customerLatitude || order.restaurantLatitude || 50.4501,
-                    longitude: order.customerLongitude || order.restaurantLongitude || 30.5234,
+                    latitude: liveCourierCoords?.latitude || order.customerLatitude || order.restaurantLatitude || 50.4501,
+                    longitude: liveCourierCoords?.longitude || order.customerLongitude || order.restaurantLongitude || 30.5234,
                     latitudeDelta: 0.01,
                     longitudeDelta: 0.01,
                   }}
@@ -796,8 +889,13 @@ export default function OrderDetailsScreen() {
               </View>
             )}
 
-            {/* Awaiting Confirmation button when status is ready/delivered */}
-            {(currentStep === 3 || currentStep === 4 || currentStep === 5) && order.status !== 'completed' && (
+            {/* Кнопка "Замовлення отримано": відображається ТІЛЬКИ на етапі доставки (Step 4) і зникає одразу після переходу в доставлено (Step 5) або підтвердження */}
+            {!hasConfirmedLocal && 
+             !order.isConfirmedByUser && 
+             currentStep === 4 && 
+             activeStatus !== 'delivered' && 
+             activeStatus !== 'completed' && 
+             activeStatus !== '5' && (
               <TouchableOpacity
                 disabled={isConfirming}
                 onPress={handleConfirm}
@@ -830,14 +928,43 @@ export default function OrderDetailsScreen() {
                   {formatUkraineDate(order.createdAt || order.date)}
                 </Text>
               </View>
-              {isPaidStatus(order.paymentStatus) && (
-                <View style={[styles.summaryRow, { marginTop: 8 }]}>
-                  <Text style={styles.summaryLabel}>Статус оплати</Text>
-                  <View style={styles.paidBadge}>
-                    <Text style={styles.paidBadgeText}>Оплачено</Text>
-                  </View>
-                </View>
-              )}
+              {(() => {
+                const pStatus = getPaymentStatus(order);
+                if (pStatus === 'hold_wait' || pStatus === 'hold') {
+                  return (
+                    <View style={[styles.summaryRow, { marginTop: 8 }]}>
+                      <Text style={styles.summaryLabel}>Статус оплати</Text>
+                      <View style={[styles.paidBadge, { backgroundColor: 'rgba(14, 165, 233, 0.15)', borderColor: 'rgba(14, 165, 233, 0.3)' }]}>
+                        <Ionicons name="lock-closed" size={12} color="#0ea5e9" style={{ marginRight: 4 }} />
+                        <Text style={[styles.paidBadgeText, { color: '#0ea5e9' }]}>Заморожено (Холд)</Text>
+                      </View>
+                    </View>
+                  );
+                }
+                if (pStatus === 'paid' || pStatus === 'success' || pStatus === 'completed') {
+                  return (
+                    <View style={[styles.summaryRow, { marginTop: 8 }]}>
+                      <Text style={styles.summaryLabel}>Статус оплати</Text>
+                      <View style={styles.paidBadge}>
+                        <Ionicons name="checkmark-circle" size={12} color="#10b981" style={{ marginRight: 4 }} />
+                        <Text style={styles.paidBadgeText}>Оплачено</Text>
+                      </View>
+                    </View>
+                  );
+                }
+                if (pStatus === 'pending') {
+                  return (
+                    <View style={[styles.summaryRow, { marginTop: 8 }]}>
+                      <Text style={styles.summaryLabel}>Статус оплати</Text>
+                      <View style={[styles.paidBadge, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
+                        <Ionicons name="alert-circle" size={12} color="#f59e0b" style={{ marginRight: 4 }} />
+                        <Text style={[styles.paidBadgeText, { color: '#f59e0b' }]}>Очікує оплати</Text>
+                      </View>
+                    </View>
+                  );
+                }
+                return null;
+              })()}
               {hasWeightedItems && (
                 <View style={[styles.orderWeightNotice, { backgroundColor: theme.input }]}>
                   <Ionicons name="scale-outline" size={16} color={theme.primary} />
@@ -912,62 +1039,26 @@ export default function OrderDetailsScreen() {
               </View>
             </View>
             
-            <TouchableOpacity 
-              style={[styles.receiptBtn, { borderColor: theme.primary }]}
-              onPress={handleDownloadReceipt}
-              disabled={isGeneratingReceipt}
-              activeOpacity={0.7}
-            >
-              {isGeneratingReceipt ? (
-                <ActivityIndicator size="small" color={theme.primary} />
-              ) : (
-                <>
-                  <Ionicons name="document-text-outline" size={18} color={theme.primary} style={{ marginRight: 8 }} />
-                  <Text style={[styles.receiptBtnText, { color: theme.primary }]}>
-                    {locale === 'en' ? 'Download PDF Receipt' : 'Завантажити чек PDF'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.receiptBtn, { backgroundColor: theme.primary, borderColor: theme.primary, marginTop: 10 }]}
-              onPress={() => {
-                if (Platform.OS !== 'web') {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
-                }
-                const products = order?.products || order?.items || [];
-                if (products.length > 0) {
-                  dispatch(clearCart());
-                  products.forEach((prod) => {
-                    const itemToCart = {
-                      ...prod,
-                      id: prod.product_id ?? prod.productId ?? prod.id,
-                      product_id: prod.product_id ?? prod.productId ?? prod.id,
-                      name: prod.productName ?? prod.name ?? 'Товар',
-                      price: parseFloat(prod.price ?? prod.unitPrice ?? (prod.totalLineAmount && prod.quantity ? prod.totalLineAmount / prod.quantity : 0)) || 0,
-                      restaurantId: prod.restaurantId ?? prod.store_id ?? order?.restaurantId ?? order?.store_id ?? 1,
-                      store_id: prod.store_id ?? prod.restaurantId ?? order?.store_id ?? order?.restaurantId ?? 1,
-                      quantity: Math.max(1, parseInt(prod.quantity ?? prod.qty ?? 1, 10)),
-                      modifiers: prod.modifiers ?? prod.selectedModifiers ?? [],
-                    };
-                    dispatch(addToCart(itemToCart));
-                  });
-                  router.push('/cart');
-                } else {
-                  Alert.alert(
-                    locale === 'en' ? 'Reorder' : 'Повторити замовлення',
-                    locale === 'en' ? 'No items found in this order.' : 'Не знайдено товарів у цьому замовленні.'
-                  );
-                }
-              }}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="refresh-outline" size={18} color="white" style={{ marginRight: 8 }} />
-              <Text style={[styles.receiptBtnText, { color: 'white' }]}>
-                {locale === 'en' ? 'Reorder' : 'Повторити замовлення'}
-              </Text>
-            </TouchableOpacity>
+            {/* Receipt button - ONLY shown after successful delivery (Step 5) */}
+            {currentStep === 5 && (
+              <TouchableOpacity 
+                style={[styles.receiptBtn, { borderColor: theme.primary }]}
+                onPress={handleDownloadReceipt}
+                disabled={isGeneratingReceipt}
+                activeOpacity={0.7}
+              >
+                {isGeneratingReceipt ? (
+                  <ActivityIndicator size="small" color={theme.primary} />
+                ) : (
+                  <>
+                    <Ionicons name="document-text-outline" size={18} color={theme.primary} style={{ marginRight: 8 }} />
+                    <Text style={[styles.receiptBtnText, { color: theme.primary }]}>
+                      {locale === 'en' ? 'View / Download Receipt' : 'Переглянути / Завантажити чек'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         }
       />

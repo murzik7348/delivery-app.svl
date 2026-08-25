@@ -8,16 +8,23 @@ import { fetchOrderDetails } from '../store/ordersSlice';
 import { getLiqPayCheckout } from '../src/api';
 import { hs, vs, ms, fs, r, hairline } from '../utils/responsive';
 
+export const getPaymentStatus = (order) => {
+  const s = order?.statusPayment ?? order?.paymentStatus ?? order?.status_payment ?? '';
+  return String(s).toLowerCase().trim();
+};
+
 export const isPaidStatus = (status) => {
   if (!status) return false;
   const s = String(status).toLowerCase().trim();
-  return s !== 'pending';
+  return s === 'paid' || s === 'success' || s === 'completed' || s === 'hold_wait' || s === 'hold';
 };
 
 export default function PaymentRetryCard({ order, locale, theme, currentStep }) {
   const dispatch = useDispatch();
   const [isPaying, setIsPaying] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+
+  const rawStatus = getPaymentStatus(order);
 
   const startFastPolling = useCallback(() => {
     const deliveryId = order?.deliveryId || order?.id;
@@ -26,8 +33,8 @@ export default function PaymentRetryCard({ order, locale, theme, currentStep }) 
       console.log(`[PaymentRetryCard] Fast polling tick ${count + 1}`);
       const result = await dispatch(fetchOrderDetails(deliveryId));
       const freshOrder = result?.payload;
-      if (freshOrder && isPaidStatus(freshOrder.paymentStatus)) {
-        console.log('[PaymentRetryCard] Payment status updated to paid, stopping polling.');
+      if (freshOrder && isPaidStatus(getPaymentStatus(freshOrder))) {
+        console.log('[PaymentRetryCard] Payment status updated to paid/hold, stopping polling.');
         clearInterval(interval);
       }
       count++;
@@ -38,7 +45,7 @@ export default function PaymentRetryCard({ order, locale, theme, currentStep }) 
   }, [dispatch, order?.deliveryId, order?.id]);
 
   const handleRetryPayment = useCallback(async () => {
-    const serverDeliveryId = order.serverDeliveryId || order.deliveryId || order.id;
+    const serverDeliveryId = order?.serverDeliveryId || order?.deliveryId || order?.id;
     const numericId = parseInt(serverDeliveryId, 10);
     
     if (isNaN(numericId)) {
@@ -59,7 +66,6 @@ export default function PaymentRetryCard({ order, locale, theme, currentStep }) 
         const checkoutUrl = `https://www.liqpay.ua/api/3/checkout?data=${liqPayResponse.data}&signature=${liqPayResponse.signature}`;
         console.log('[PaymentRetryCard] Attempting to open browser for LiqPay retry...');
         
-        // Start polling immediately in the background (will run while browser is open)
         startFastPolling();
 
         await WebBrowser.openBrowserAsync(checkoutUrl, {
@@ -93,11 +99,14 @@ export default function PaymentRetryCard({ order, locale, theme, currentStep }) 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const result = await dispatch(fetchOrderDetails(deliveryId));
       const freshOrder = result?.payload;
+      const freshStatus = getPaymentStatus(freshOrder);
       
-      if (freshOrder && isPaidStatus(freshOrder.paymentStatus)) {
+      if (freshOrder && isPaidStatus(freshStatus)) {
         Alert.alert(
-          locale === 'en' ? 'Payment Successful' : 'Оплату успішно підтверджено',
-          locale === 'en' ? 'Your payment has been received. The restaurant is preparing your order.' : 'Вашу оплату отримано. Ресторан вже готує ваше замовлення.'
+          locale === 'en' ? 'Payment Verified' : 'Оплату підтверджено',
+          freshStatus === 'hold_wait' || freshStatus === 'hold'
+            ? (locale === 'en' ? 'Funds reserved on your card (Hold).' : 'Кошти успішно зарезервовано на вашій картці (Холд).')
+            : (locale === 'en' ? 'Your payment has been received.' : 'Вашу оплату отримано.')
         );
       } else {
         Alert.alert(
@@ -118,22 +127,60 @@ export default function PaymentRetryCard({ order, locale, theme, currentStep }) 
     }
   }, [dispatch, order?.deliveryId, order?.id, locale]);
 
-  if (isPaidStatus(order?.paymentStatus) || currentStep >= 5) {
+  // If order is completed/delivered or already fully settled
+  if (currentStep >= 5 && (rawStatus === 'paid' || rawStatus === 'success' || rawStatus === 'completed')) {
     return null;
   }
 
+  // 1. HOLD / RESERVED: Money is already secured in gateway
+  if (rawStatus === 'hold_wait' || rawStatus === 'hold') {
+    return (
+      <View style={[styles.paymentCard, { backgroundColor: '#0ea5e912', borderColor: '#0ea5e935' }]}>
+        <View style={styles.paymentCardHeader}>
+          <View style={[styles.iconCircle, { backgroundColor: '#0ea5e920' }]}>
+            <Ionicons name="shield-checkmark" size={22} color="#0ea5e9" />
+          </View>
+          <View style={{ marginLeft: 12, flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ color: '#0ea5e9', fontWeight: '800', fontSize: 14 }}>
+                {locale === 'en' ? 'Funds Reserved (Hold)' : 'Оплата зарезервована (Холд)'}
+              </Text>
+            </View>
+            <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 3, lineHeight: 17 }}>
+              {locale === 'en'
+                ? 'Funds are held securely on your card and will be captured upon successful delivery.'
+                : 'Кошти заблоковано на вашій картці та будуть остаточно списані лише після вручення замовлення.'}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // 2. PAID / SUCCESS
+  if (rawStatus === 'paid' || rawStatus === 'success' || rawStatus === 'completed') {
+    return null;
+  }
+
+  // 3. PENDING or UNPAID: Urgent warning banner to prompt the user
+  const isFailed = rawStatus === 'failed' || rawStatus === 'failure';
+
   return (
-    <View style={[styles.paymentCard, { backgroundColor: '#ff950012', borderColor: '#ff950030' }]}>
+    <View style={[styles.paymentCard, { backgroundColor: isFailed ? '#ef444415' : '#f59e0b15', borderColor: isFailed ? '#ef444440' : '#f59e0b40' }]}>
       <View style={styles.paymentCardHeader}>
-        <Ionicons name="warning-outline" size={24} color="#ff9500" />
+        <View style={[styles.iconCircle, { backgroundColor: isFailed ? '#ef444422' : '#f59e0b22' }]}>
+          <Ionicons name={isFailed ? "close-circle" : "warning"} size={24} color={isFailed ? "#ef4444" : "#f59e0b"} />
+        </View>
         <View style={{ marginLeft: 12, flex: 1 }}>
-          <Text style={{ color: '#ff9500', fontWeight: '800', fontSize: 14 }}>
-            {locale === 'en' ? 'Awaiting Payment' : 'Очікує оплати'}
+          <Text style={{ color: isFailed ? '#ef4444' : '#f59e0b', fontWeight: '800', fontSize: 14 }}>
+            {isFailed 
+              ? (locale === 'en' ? 'Payment Failed ❌' : 'Помилка оплати ❌')
+              : (locale === 'en' ? 'Order Awaiting Payment ⚠️' : 'Увага: Замовлення очікує оплати! ⚠️')}
           </Text>
-          <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
-            {locale === 'en' 
-              ? 'Order is placed but unpaid. Please complete payment to proceed.' 
-              : 'Замовлення оформлено, але не оплачено. Будь ласка, здійсніть оплату, щоб замовлення було передано в роботу.'}
+          <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 3, lineHeight: 17 }}>
+            {isFailed
+              ? (locale === 'en' ? 'Transaction was declined. Please try paying again.' : 'Не вдалося здійснити транзакцію. Спробуйте оплатити знову.')
+              : (locale === 'en' ? 'Please complete the payment online so the kitchen and courier can proceed immediately.' : 'Будь ласка, здійсніть оплату онлайн, щоб замовлення було передано в роботу кухні та кур\'єру.')}
           </Text>
         </View>
       </View>
@@ -144,14 +191,14 @@ export default function PaymentRetryCard({ order, locale, theme, currentStep }) 
           disabled={isPaying || isChecking}
           style={[
             styles.payBtn,
-            { backgroundColor: theme.primary }
+            { backgroundColor: isFailed ? '#ef4444' : theme.primary }
           ]}
         >
           <Ionicons name="card-outline" size={20} color="white" />
           <Text style={styles.payBtnText}>
             {isPaying 
-              ? (locale === 'en' ? 'Opening...' : 'Відкриваємо...')
-              : (locale === 'en' ? 'Pay Now' : 'Оплатити зараз')}
+              ? (locale === 'en' ? 'Opening Gateway...' : 'Відкриваємо...')
+              : (locale === 'en' ? 'Pay Online (LiqPay)' : 'Оплатити онлайн (LiqPay)')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -165,10 +212,10 @@ export default function PaymentRetryCard({ order, locale, theme, currentStep }) 
         {isChecking ? (
           <ActivityIndicator size="small" color={theme.primary} />
         ) : (
-          <Ionicons name="refresh-outline" size={14} color={theme.primary} />
+          <Ionicons name="refresh-outline" size={15} color={theme.primary} />
         )}
         <Text style={[styles.checkPaymentText, { color: theme.primary }]}>
-          {locale === 'en' ? 'I paid (check status)' : 'Я вже оплатив (перевірити статус)'}
+          {locale === 'en' ? 'I have already paid (check status)' : 'Я вже оплатив (перевірити статус)'}
         </Text>
       </TouchableOpacity>
     </View>
@@ -190,6 +237,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: vs(12)
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   paymentActionRow: {
     flexDirection: 'row',

@@ -641,6 +641,48 @@
         }
       }
     },
+    "/admin/courier/{id}/balance": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCourierBalanceRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCourierBalanceRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCourierBalanceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/auth/start": {
       "post": {
         "tags": [
@@ -1067,6 +1109,26 @@
       "get": {
         "tags": [
           "Category"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -1960,6 +2022,46 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deliveries/{id}/receipt": {
+      "get": {
+        "tags": [
+          "Delivery"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryUserResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryUserResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryUserResult"
                 }
               }
             }
@@ -3992,6 +4094,14 @@
             "type": "string",
             "nullable": true
           },
+          "balance": {
+            "type": "number",
+            "format": "double"
+          },
+          "deliveryPercent": {
+            "type": "number",
+            "format": "double"
+          },
           "status": {
             "type": "string",
             "nullable": true
@@ -4143,7 +4253,8 @@
           },
           "restaurantId": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "statusDelivery": {
             "type": "string",
@@ -4177,7 +4288,7 @@
             "type": "number",
             "format": "double"
           },
-          "total_weight_grams": {
+          "totalWeightGrams": {
             "type": "integer",
             "format": "int32"
           },
@@ -4298,11 +4409,13 @@
           },
           "restaurantLat": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "restaurantLng": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "estimatedReadyAt": {
             "type": "string",
@@ -4312,6 +4425,10 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "courierEarnings": {
+            "type": "number",
+            "format": "double"
           },
           "items": {
             "type": "array",
@@ -5159,6 +5276,23 @@
             "nullable": true
           },
           "refreshToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateCourierBalanceRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionType": {
+            "$ref": "#/components/schemas/CourierTransactionTypes"
+          },
+          "description": {
             "type": "string",
             "nullable": true
           }

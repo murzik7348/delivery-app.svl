@@ -503,6 +503,7 @@ class OrderService {
             courierPhone: parsedCourierPhone,
             courierPhoto: parsedCourierPhoto,
             courierRating: parsedCourierRating,
+            receiptUrl: item.receiptUrl || item.receipt_url || item.checkUrl || item.check_url || item.checkboxUrl || item.checkbox_url || item.fiscalUrl || item.fiscal_url || item.receipt || null,
         };
     }
 
@@ -531,10 +532,6 @@ class OrderService {
         }
 
         const orders = items.map(item => OrderService.normalizeOrder(item, savedAddresses)).filter(Boolean);
-
-        for (let order of orders) {
-            await OrderService.enrichAddress(order);
-        }
 
         return orders;
     }

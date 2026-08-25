@@ -21,6 +21,20 @@ import { tryAddToCart, removeFromCart, decrementItem, removeItem, formatPrice, m
 import { toggleFavoriteProduct } from '../store/favoritesSlice';
 import * as Haptics from 'expo-haptics';
 
+const formatWeight = (product) => {
+    const w = product?.weightGrams ?? product?.weight_grams ?? product?.weight ?? product?.averageWeight;
+    if (!w) return null;
+    const num = parseInt(w, 10);
+    if (!isNaN(num) && num > 0) {
+        return `${num} г`;
+    }
+    if (typeof w === 'string' && w.trim().length > 0) {
+        const trimmed = w.trim();
+        return trimmed.includes('г') || trimmed.includes('мл') || trimmed.includes('g') ? trimmed : `${trimmed} г`;
+    }
+    return null;
+};
+
 const safeNum = (v) => {
     const n = Number(v);
     return isNaN(n) ? 0 : n;
@@ -215,6 +229,11 @@ export default function ProductSheet({ product, onClose }) {
         });
     };
 
+    const handleDismissRef = useRef(handleDismiss);
+    useEffect(() => {
+        handleDismissRef.current = handleDismiss;
+    });
+
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: (evt) => {
@@ -240,7 +259,7 @@ export default function ProductSheet({ product, onClose }) {
             onPanResponderRelease: (_, gestureState) => {
                 Animated.spring(activeScale, { toValue: 1, friction: 8, useNativeDriver: true }).start();
                 if (gestureState.vy > 0.5 || gestureState.dy > SHEET_H * 0.35) {
-                    handleDismiss();
+                    if (handleDismissRef.current) handleDismissRef.current();
                 } else {
                     Animated.spring(translateY, {
                         toValue: 0,
@@ -356,7 +375,16 @@ export default function ProductSheet({ product, onClose }) {
 
                 {/* Контент */}
                 <View style={styles.content}>
-                    <Text style={[styles.name, { color: theme.text }]}>{product.name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={[styles.name, { color: theme.text, flex: 1 }]}>{product.name}</Text>
+                        {formatWeight(product) && (
+                            <View style={[styles.weightBadge, { backgroundColor: theme.input }]}>
+                                <Text style={[styles.weightBadgeText, { color: theme.textSecondary || '#8E8E93' }]}>
+                                    {formatWeight(product)}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
 
                     <ScrollView 
                         showsVerticalScrollIndicator={false}
@@ -378,26 +406,26 @@ export default function ProductSheet({ product, onClose }) {
 
                         {/* Options / Modifier Groups */}
                         {product.modifierGroups?.map((group) => {
-                            const selectedCount = Object.keys(selectedModifiers[group.id] || {}).length;
                             const isSingleChoice = group.selectionType === 1;
                             return (
                                 <View key={group.id} style={styles.groupContainer}>
                                     <View style={styles.groupHeader}>
-                                        <Text style={[styles.groupName, { color: theme.text }]}>
-                                            {group.name}
-                                        </Text>
-                                        <View style={[styles.badge, { backgroundColor: group.isRequired ? `${theme.primary}18` : theme.input }]}>
-                                            <Text style={[styles.badgeText, { color: group.isRequired ? theme.primary : theme.textSecondary ?? 'gray' }]}>
-                                                {group.isRequired ? (locale === 'en' ? 'Required' : 'Обов\'язково') : (locale === 'en' ? 'Optional' : 'Опціонально')}
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                            <Text style={[styles.groupName, { color: theme.text }]}>{group.name}</Text>
+                                            {group.isRequired && (
+                                                <Text style={{ color: '#e74c3c', fontWeight: 'bold' }}>*</Text>
+                                            )}
+                                        </View>
+                                        <View style={[styles.badge, { backgroundColor: theme.input }]}>
+                                            <Text style={[styles.badgeText, { color: theme.textSecondary }]}>
+                                                {isSingleChoice ? (locale === 'en' ? 'Choose 1' : 'Оберіть 1') : (locale === 'en' ? 'Optional' : 'Додатково')}
                                             </Text>
                                         </View>
                                     </View>
 
                                     <View style={styles.modifiersList}>
                                         {group.modifiers?.map((mod) => {
-                                            const isSelected = !!(selectedModifiers[group.id] && selectedModifiers[group.id][mod.id]);
-                                            const modPrice = safeNum(mod.price);
-
+                                            const isSelected = !!selectedModifiers[group.id]?.[mod.id];
                                             return (
                                                 <TouchableOpacity
                                                     key={mod.id}
@@ -428,7 +456,7 @@ export default function ProductSheet({ product, onClose }) {
                                                                 if (currentlySelected) {
                                                                     delete currentGroupMods[mod.id];
                                                                 } else {
-                                                                    if (group.maxSelection !== null && selectedCount >= group.maxSelection) {
+                                                                    if (group.maxSelection !== null && Object.keys(currentGroupMods).length >= group.maxSelection) {
                                                                         return prev;
                                                                     }
                                                                     currentGroupMods[mod.id] = mod;
@@ -443,7 +471,7 @@ export default function ProductSheet({ product, onClose }) {
                                                             styles.iconIndicator,
                                                             isSingleChoice ? styles.radioIndicator : styles.checkboxIndicator,
                                                             {
-                                                                borderColor: isSelected ? theme.primary : 'rgba(150,150,150,0.4)',
+                                                                borderColor: isSelected ? theme.primary : 'gray',
                                                                 backgroundColor: isSelected ? theme.primary : 'transparent',
                                                             }
                                                         ]}>
@@ -451,7 +479,7 @@ export default function ProductSheet({ product, onClose }) {
                                                                 isSingleChoice ? (
                                                                     <View style={styles.radioInnerDot} />
                                                                 ) : (
-                                                                    <Ionicons name="checkmark" size={12} color="white" />
+                                                                    <Ionicons name="checkmark" size={14} color="white" />
                                                                 )
                                                             )}
                                                         </View>
@@ -460,11 +488,9 @@ export default function ProductSheet({ product, onClose }) {
                                                         </Text>
                                                     </View>
 
-                                                    {modPrice > 0 && (
-                                                        <Text style={[styles.modifierPrice, { color: isSelected ? theme.primary : (theme.textSecondary ?? 'gray') }]}>
-                                                            +{formatPrice(modPrice)} ₴
-                                                        </Text>
-                                                    )}
+                                                    <Text style={[styles.modifierPrice, { color: isSelected ? theme.primary : theme.textSecondary }]}>
+                                                        {mod.price > 0 ? `+${formatPrice(mod.price)} ₴` : (locale === 'en' ? 'Free' : 'Безкоштовно')}
+                                                    </Text>
                                                 </TouchableOpacity>
                                             );
                                         })}
@@ -482,11 +508,11 @@ export default function ProductSheet({ product, onClose }) {
                     <View style={styles.footer}>
                         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
                             {product?.oldPrice && (
-                                <Text style={{ fontSize: pricingType !== 'piece' ? 13 : 18, textDecorationLine: 'line-through', color: 'gray', marginRight: 4 }}>
+                                <Text style={{ fontSize: pricingType !== 'piece' ? 14 : 19, textDecorationLine: 'line-through', color: 'gray', marginRight: 4 }}>
                                     {formatPrice(safeNum(product.oldPrice) + (pricingType === 'piece' ? modsPrice : 0))} ₴
                                 </Text>
                             )}
-                            <Text style={[styles.price, { color: theme.primary, fontSize: pricingType !== 'piece' ? 18 : 26 }]}>{priceLabel}</Text>
+                            <Text style={[styles.price, { color: theme.text, fontSize: pricingType !== 'piece' ? 20 : 28 }]}>{priceLabel}</Text>
                         </View>
 
                         {qty === 0 ? (
@@ -729,5 +755,15 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '700',
         marginLeft: 8,
+    },
+    weightBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        marginLeft: 8,
+    },
+    weightBadgeText: {
+        fontSize: 13,
+        fontWeight: '700',
     },
 });
