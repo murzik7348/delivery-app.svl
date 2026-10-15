@@ -45,6 +45,7 @@ export {
     getMyDeliveries,
     acceptDelivery,
     userConfirmDelivery,
+    getDeliveryConfirmationQr,
     getDeliveryZones,
     getDeliveryCoefficients,
     toggleDeliveryCoefficientActivityAdmin,

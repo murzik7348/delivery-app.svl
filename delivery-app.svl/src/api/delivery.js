@@ -23,6 +23,9 @@ export const acceptDelivery = (id) => client.put(`/deliveries/${id}/accepted`);
  */
 export const userConfirmDelivery = (id) => client.put(`/deliveries/${id}/confirmations`);
 
+/** Get the one-time code the customer shows to the courier to confirm delivery. */
+export const getDeliveryConfirmationQr = (id) => client.get(`/deliveries/${id}/confirmation-qr`);
+
 /**
  * Fetch geographic delivery zones (polygons and prices).
  */

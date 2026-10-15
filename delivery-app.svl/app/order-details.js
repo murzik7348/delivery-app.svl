@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import {
   View, Text, TouchableOpacity, Image, FlatList, Alert,
   StyleSheet, Animated, Easing, Dimensions, Linking, Platform, BackHandler,
-  ActivityIndicator
+  ActivityIndicator, Modal
 } from 'react-native';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -16,10 +16,11 @@ import { BlurView } from 'expo-blur';
 import Colors from '../constants/Colors';
 import { formatUkraineDate } from '../utils/dateUtils';
 import { t } from '../constants/translations';
-import { fetchOrderDetails, confirmOrder, updateOrderStatus } from '../store/ordersSlice';
+import { fetchOrderDetails } from '../store/ordersSlice';
 import { formatPrice } from '../store/cartSlice';
 import * as Haptics from 'expo-haptics';
-import { restaurantCancelDelivery, getDeliveryReceipt } from '../src/api';
+import { restaurantCancelDelivery, getDeliveryReceipt, getDeliveryConfirmationQr } from '../src/api';
+import QRCode from 'react-native-qrcode-svg';
 import { formatOrderNumber } from '../utils/formatOrderNumber';
 import { safeBack } from '../utils/navigation';
 import { syncLiveActivity, endActivity, startPolling, stopPolling } from '../services/LiveActivityService';
@@ -239,6 +240,8 @@ export default function OrderDetailsScreen() {
   useEffect(() => {
     setLiveCourierCoords(null);
     setHasRealSignalRCoords(false);
+    setConfirmationQr(null);
+    setIsQrVisible(false);
     setRouteCoords([]);
     lastRouteFetchedCoords.current = { startLat: null, startLng: null, endLat: null, endLng: null };
     hasFittedMap.current = { withCourier: false, withoutCourier: false };
@@ -249,7 +252,9 @@ export default function OrderDetailsScreen() {
   );
 
   const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
-  const [hasConfirmedLocal, setHasConfirmedLocal] = useState(false);
+  const [confirmationQr, setConfirmationQr] = useState(null);
+  const [isLoadingQr, setIsLoadingQr] = useState(false);
+  const [isQrVisible, setIsQrVisible] = useState(false);
 
   const handleDownloadReceipt = useCallback(async () => {
     const orderId = order?.deliveryId || order?.id;
@@ -603,8 +608,6 @@ export default function OrderDetailsScreen() {
   }
   const statusDef = STATUS_CONFIG[currentStep] || STATUS_CONFIG[0];
 
-  const [isConfirming, setIsConfirming] = useState(false);
-
   const isOnlinePayment = useCallback((method) => {
     if (!method) return true; // default to card (user stated app is card only)
     const m = String(method).toLowerCase();
@@ -686,60 +689,22 @@ export default function OrderDetailsScreen() {
     );
   };
 
-  const handleConfirm = () => {
-    Alert.alert(
-      locale === 'en' ? 'Confirm Delivery' : 'Підтвердити отримання',
-      locale === 'en' ? 'Did you receive your order?' : 'Ви отримали своє замовлення?',
-      [
-        { text: locale === 'en' ? 'No' : 'Ні', style: 'cancel' },
-        { 
-          text: locale === 'en' ? 'Yes, Received' : 'Так, отримано', 
-          onPress: async () => {
-            const orderId = order.deliveryId || order.id;
-            try {
-              setIsConfirming(true);
-              setHasConfirmedLocal(true);
-              // Миттєво перемикаємо статус у Redux на доставлено, щоб кнопка зникла одразу
-              dispatch(updateOrderStatus({ 
-                orderId, 
-                status: 'delivered', 
-                statusDelivery: 'delivered', 
-                deliveryStatus: 5,
-                isConfirmedByUser: true 
-              }));
-
-              await dispatch(confirmOrder(orderId)).unwrap();
-              dispatch(fetchOrderDetails(orderId));
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert(
-                locale === 'en' ? 'Success' : 'Успішно',
-                locale === 'en' ? 'Thank you for your confirmation!' : 'Дякуємо за підтвердження!'
-              );
-            } catch (e) {
-              const rawError = String(e || '');
-              let errorMsg = rawError;
-              if (rawError.toLowerCase().includes('alredy confirmed') || rawError.toLowerCase().includes('already confirmed')) {
-                setHasConfirmedLocal(true);
-                dispatch(updateOrderStatus({ 
-                  orderId, 
-                  status: 'delivered', 
-                  statusDelivery: 'delivered', 
-                  deliveryStatus: 5,
-                  isConfirmedByUser: true 
-                }));
-                dispatch(fetchOrderDetails(orderId));
-                errorMsg = locale === 'en'
-                  ? 'This order has already been confirmed.'
-                  : 'Це замовлення вже підтверджено.';
-              }
-              Alert.alert(locale === 'en' ? 'Error' : 'Помилка', errorMsg);
-            } finally {
-              setIsConfirming(false);
-            }
-          }
-        }
-      ]
-    );
+  const handleShowConfirmationQr = async () => {
+    const orderId = order.deliveryId || order.id;
+    try {
+      setIsLoadingQr(true);
+      const response = await getDeliveryConfirmationQr(orderId);
+      if (!response?.code) throw new Error('The server did not return a QR confirmation code.');
+      setConfirmationQr(response);
+      setIsQrVisible(true);
+    } catch (error) {
+      Alert.alert(
+        locale === 'en' ? 'Could not load QR code' : 'Не вдалося завантажити QR-код',
+        error?.response?.data?.detail || error?.message || (locale === 'en' ? 'Please try again.' : 'Спробуйте ще раз.')
+      );
+    } finally {
+      setIsLoadingQr(false);
+    }
   };
 
   const renderItem = useCallback(({ item }) => (
@@ -889,26 +854,24 @@ export default function OrderDetailsScreen() {
               </View>
             )}
 
-            {/* Кнопка "Замовлення отримано": відображається ТІЛЬКИ на етапі доставки (Step 4) і зникає одразу після переходу в доставлено (Step 5) або підтвердження */}
-            {!hasConfirmedLocal && 
-             !order.isConfirmedByUser && 
-             currentStep === 4 && 
+            {/* Customer displays a confirmation QR while the courier is delivering the order. */}
+            {currentStep === 4 &&
              activeStatus !== 'delivered' && 
              activeStatus !== 'completed' && 
              activeStatus !== '5' && (
               <TouchableOpacity
-                disabled={isConfirming}
-                onPress={handleConfirm}
+                disabled={isLoadingQr}
+                onPress={handleShowConfirmationQr}
                 style={[
                   styles.confirmBtn,
                   { backgroundColor: theme.primary, shadowColor: theme.primary }
                 ]}
               >
-                <Ionicons name="checkmark-done-circle" size={24} color="white" />
+                {isLoadingQr
+                  ? <ActivityIndicator color="white" />
+                  : <Ionicons name="qr-code" size={24} color="white" />}
                 <Text style={styles.confirmBtnText}>
-                  {isConfirming 
-                    ? (locale === 'en' ? 'Confirming...' : 'Підтвердження...')
-                    : (locale === 'en' ? 'I Received My Order' : 'Замовлення отримано')}
+                  {locale === 'en' ? 'Show delivery QR code' : 'Показати QR-код для отримання'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -1062,6 +1025,29 @@ export default function OrderDetailsScreen() {
           </View>
         }
       />
+      <Modal visible={isQrVisible} transparent animationType="fade" onRequestClose={() => setIsQrVisible(false)}>
+        <View style={styles.qrBackdrop}>
+          <View style={[styles.qrCard, { backgroundColor: theme.card }]}>
+            <TouchableOpacity style={styles.qrCloseButton} onPress={() => setIsQrVisible(false)} accessibilityLabel={locale === 'en' ? 'Close' : 'Закрити'}>
+              <Ionicons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={[styles.qrTitle, { color: theme.text }]}>
+              {locale === 'en' ? 'Show this code to your courier' : 'Покажіть цей код кур’єру'}
+            </Text>
+            {confirmationQr?.code ? (
+              <View style={styles.qrImageWrap}>
+                <QRCode value={confirmationQr.code} size={220} />
+              </View>
+            ) : null}
+            <Text style={[styles.qrHint, { color: theme.textSecondary }]}>
+              {locale === 'en' ? 'The courier will scan it to confirm delivery.' : 'Кур’єр відсканує його, щоб підтвердити доставку.'}
+            </Text>
+            <Text style={[styles.qrOrderId, { color: theme.textSecondary }]}>
+              {locale === 'en' ? 'Order' : 'Замовлення'} #{confirmationQr?.deliveryId || order.deliveryId || order.id}
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1104,6 +1090,13 @@ const styles = StyleSheet.create({
     elevation: 8,
     gap: 12,
   },
+  qrBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.62)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  qrCard: { width: '100%', maxWidth: 360, borderRadius: 24, padding: 24, alignItems: 'center' },
+  qrCloseButton: { alignSelf: 'flex-end', padding: 4, marginBottom: 8 },
+  qrTitle: { fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 20 },
+  qrImageWrap: { backgroundColor: 'white', padding: 14, borderRadius: 16 },
+  qrHint: { fontSize: 14, textAlign: 'center', marginTop: 18 },
+  qrOrderId: { fontSize: 13, fontWeight: '700', marginTop: 10 },
   confirmBtnText: {
     color: 'white',
     fontSize: 18,
