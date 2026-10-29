@@ -216,12 +216,22 @@ class OrderService {
 
         let paymentMethodStr = item.paymentMethod;
 
-        const normalizedItems = (item.products || item.items || []).map(p => ({
-            ...p,
-            productName: p.productName || p.name || 'Товар',
-            quantity: p.quantity || 1,
-            totalLineAmount: p.totalLineAmount ?? ((p.price ?? 0) * (p.quantity || 1)),
-        }));
+        const normalizedItems = (item.products || item.items || []).map(p => {
+            const rawMods = Array.isArray(p.modifiers) ? p.modifiers : (Array.isArray(p.selectedModifiers) ? p.selectedModifiers : []);
+            return {
+                ...p,
+                productName: p.productName || p.name || 'Товар',
+                quantity: p.quantity || 1,
+                totalLineAmount: p.totalLineAmount ?? ((p.price ?? 0) * (p.quantity || 1)),
+                modifiers: rawMods.map(m => ({
+                    ...m,
+                    name: m.name || m.modifierName || '',
+                    modifierName: m.modifierName || m.name || '',
+                    groupName: m.groupName || m.group_name || '',
+                    price: m.price ?? m.modifierPrice ?? 0,
+                }))
+            };
+        });
 
         const addressId = item.addressId || item.address?.addressId || item.address?.id || item.deliveryAddress?.addressId || item.deliveryAddress?.id;
         let matchedAddr = null;

@@ -89,6 +89,8 @@ const OrderItem = React.memo(({ item, theme, locale }) => {
     weightDetail = `(≈ ${item.averageWeight}г)`;
   }
 
+  const modifiers = Array.isArray(item.modifiers) ? item.modifiers : [];
+
   return (
     <View style={[styles.itemRowWrapper, { backgroundColor: theme.background }]}>
       <View style={[styles.itemQtyBadge, { backgroundColor: theme.input }]}>
@@ -101,6 +103,20 @@ const OrderItem = React.memo(({ item, theme, locale }) => {
         {weightDetail ? (
           <Text style={{ fontSize: 12, color: 'gray', marginTop: 2 }}>{weightDetail}</Text>
         ) : null}
+        {modifiers.length > 0 && (
+          <View style={{ marginTop: 4 }}>
+            {modifiers.map((mod, mIdx) => {
+              const mName = mod.modifierName || mod.name || '';
+              const mPrice = safeNumber(mod.price, 0);
+              const mGroup = mod.groupName ? `${mod.groupName}: ` : '';
+              return (
+                <Text key={mod.id || mIdx} style={{ fontSize: 12, color: theme.textSecondary ?? '#8E8E93', marginTop: 1 }}>
+                  + {mGroup}{mName}{mPrice > 0 ? ` (+${formatPrice(mPrice)} ₴)` : ''}
+                </Text>
+              );
+            })}
+          </View>
+        )}
       </View>
       <Text style={[styles.itemPriceText, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
         {formatPrice(
@@ -819,7 +835,7 @@ export default function OrderDetailsScreen() {
                         <Image source={{ uri: courierPhoto }} style={[styles.avatarPremium, { borderColor: theme.border }]} />
                       ) : (
                         <View style={[styles.avatarPremium, styles.avatarPlaceholder, { borderColor: theme.border }]}>
-                          <Ionicons name="person" size={24} color="white" />
+                          <Ionicons name="person" size={24} color={theme.textSecondary || '#8E8E93'} />
                         </View>
                       )}
                       <View style={{ marginLeft: hs(14), flex: 1 }}>
@@ -930,24 +946,13 @@ export default function OrderDetailsScreen() {
               </View>
               {(() => {
                 const pStatus = getPaymentStatus(order);
-                if (pStatus === 'hold_wait' || pStatus === 'hold') {
+                if (pStatus === 'paid' || pStatus === 'success' || pStatus === 'completed' || pStatus === 'hold_wait' || pStatus === 'hold') {
                   return (
                     <View style={[styles.summaryRow, { marginTop: 8 }]}>
-                      <Text style={styles.summaryLabel}>Статус оплати</Text>
-                      <View style={[styles.paidBadge, { backgroundColor: 'rgba(14, 165, 233, 0.15)', borderColor: 'rgba(14, 165, 233, 0.3)' }]}>
-                        <Ionicons name="lock-closed" size={12} color="#0ea5e9" style={{ marginRight: 4 }} />
-                        <Text style={[styles.paidBadgeText, { color: '#0ea5e9' }]}>Заморожено (Холд)</Text>
-                      </View>
-                    </View>
-                  );
-                }
-                if (pStatus === 'paid' || pStatus === 'success' || pStatus === 'completed') {
-                  return (
-                    <View style={[styles.summaryRow, { marginTop: 8 }]}>
-                      <Text style={styles.summaryLabel}>Статус оплати</Text>
+                      <Text style={styles.summaryLabel}>{locale === 'en' ? 'Payment Status' : 'Статус оплати'}</Text>
                       <View style={styles.paidBadge}>
-                        <Ionicons name="checkmark-circle" size={12} color="#10b981" style={{ marginRight: 4 }} />
-                        <Text style={styles.paidBadgeText}>Оплачено</Text>
+                        <Ionicons name="checkmark-circle" size={14} color="#10b981" />
+                        <Text style={styles.paidBadgeText}>{locale === 'en' ? 'Paid' : 'Оплачено'}</Text>
                       </View>
                     </View>
                   );
@@ -955,10 +960,10 @@ export default function OrderDetailsScreen() {
                 if (pStatus === 'pending') {
                   return (
                     <View style={[styles.summaryRow, { marginTop: 8 }]}>
-                      <Text style={styles.summaryLabel}>Статус оплати</Text>
+                      <Text style={styles.summaryLabel}>{locale === 'en' ? 'Payment Status' : 'Статус оплати'}</Text>
                       <View style={[styles.paidBadge, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
-                        <Ionicons name="alert-circle" size={12} color="#f59e0b" style={{ marginRight: 4 }} />
-                        <Text style={[styles.paidBadgeText, { color: '#f59e0b' }]}>Очікує оплати</Text>
+                        <Ionicons name="alert-circle" size={14} color="#f59e0b" />
+                        <Text style={[styles.paidBadgeText, { color: '#f59e0b' }]}>{locale === 'en' ? 'Pending' : 'Очікує оплати'}</Text>
                       </View>
                     </View>
                   );
@@ -1134,7 +1139,7 @@ const styles = StyleSheet.create({
   courierRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   courierLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   avatarPremium: { width: ms(56), height: ms(56), borderRadius: r(28), borderWidth: hairline() * 2, borderColor: 'rgba(255,255,255,0.2)' },
-  avatarPlaceholder: { backgroundColor: '#FF9500', justifyContent: 'center', alignItems: 'center' },
+  avatarPlaceholder: { backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center' },
   courierName: { fontSize: fs(18), fontWeight: '800', marginBottom: vs(2) },
   courierSub: { fontSize: fs(13), color: '#888', fontWeight: '600' },
   premiumCallBtn: { 
@@ -1189,8 +1194,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  paidBadge: { backgroundColor: '#2ecc71', paddingHorizontal: hs(12), paddingVertical: vs(4), borderRadius: r(8) },
-  paidBadgeText: { color: 'white', fontWeight: '800', fontSize: fs(12), textTransform: 'uppercase' },
+  paidBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: hairline(),
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  paidBadgeText: {
+    color: '#10b981',
+    fontWeight: '800',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    includeFontPadding: false,
+  },
   distanceBanner: { 
     flexDirection: 'row', alignItems: 'center', borderRadius: r(20), 
     borderWidth: hairline(), 

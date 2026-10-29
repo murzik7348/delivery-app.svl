@@ -262,7 +262,8 @@ export default function CartItemExtrasSheet({ visible, item, catalogProduct, onC
         >
           {catalogProduct?.modifierGroups?.map((group) => {
               const selectedCount = Object.keys(selectedModifiers[group.id] || {}).length;
-              const isSingleChoice = group.selectionType === 1;
+              const groupSelType = group.selectionType !== undefined ? group.selectionType : (group.selectionTypeModifier !== undefined ? group.selectionTypeModifier : 1);
+              const isSingleChoice = Number(groupSelType) === 1;
               return (
                   <View key={group.id} style={styles.groupContainer}>
                       <View style={styles.groupHeader}>

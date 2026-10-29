@@ -27,12 +27,13 @@ class CatalogService {
     static async fetchAllProducts(params = {}) {
         let page = 1;
         let allItems = [];
-        while (true) {
-            const response = await getProducts({ ...params, page, pageSize: 50 });
-            const items = response?.items ?? response ?? [];
+        const pageSize = 20;
+        while (page <= 50) {
+            const response = await getProducts({ ...params, page, pageSize });
+            const items = Array.isArray(response) ? response : (response?.items ?? []);
             if (!Array.isArray(items) || items.length === 0) break;
             allItems = allItems.concat(items);
-            if (items.length < 50) break;
+            if (items.length < pageSize) break;
             page++;
         }
         return allItems;

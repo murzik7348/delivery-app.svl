@@ -85,10 +85,10 @@ export const confirmOrder = createAsyncThunk(
 const initialState = {
   orders: [],
   isLoading: false,
+  isMoreLoading: false,
   error: null,
   currentPage: 1,
   hasMore: true,
-  maxPage: 1,
   hiddenOrderIds: [],
 };
 
@@ -133,15 +133,21 @@ const ordersSlice = createSlice({
     builder
       .addCase(fetchOrders.pending, (state, action) => {
         const isBackground = action.meta.arg?.isBackground ?? false;
+        const page = action.meta.arg?.page ?? 1;
         if (!isBackground) {
-          state.isLoading = true;
+          if (page === 1 && state.orders.length === 0) {
+            state.isLoading = true;
+          } else if (page > 1) {
+            state.isMoreLoading = true;
+          }
         }
         state.error = null;
       })
       .addCase(fetchOrders.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.isMoreLoading = false;
 
-        const { newOrders = [], page, pageSize, isBackground } = action.payload;
+        const { newOrders = [], page, pageSize, isBackground, isRefresh } = action.payload;
 
         const getOrderId = (o) => (o.deliveryId || o.id)?.toString();
 
@@ -155,33 +161,59 @@ const ordersSlice = createSlice({
           return newOrder;
         });
 
-        processedRemoteOrders.sort((a, b) => {
-          const dateA = new Date(a.createdAt || a.date || 0).getTime();
-          const dateB = new Date(b.createdAt || b.date || 0).getTime();
-          return dateB - dateA;
-        });
-
         if (isBackground) {
           // Background polling: update active page items in place
           const existingMap = new Map(state.orders.map(o => [getOrderId(o), o]));
+          const newItems = [];
           for (const item of processedRemoteOrders) {
             const oid = getOrderId(item);
             if (existingMap.has(oid)) {
               existingMap.set(oid, { ...existingMap.get(oid), ...item });
+            } else {
+              newItems.push(item);
             }
           }
-          state.orders = Array.from(existingMap.values());
+          const mergedList = [...newItems, ...Array.from(existingMap.values())];
+          mergedList.sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.date || 0).getTime();
+            const dateB = new Date(b.createdAt || b.date || 0).getTime();
+            return dateB - dateA;
+          });
+          state.orders = mergedList;
+        } else if (page === 1) {
+          if (isRefresh) {
+            processedRemoteOrders.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0));
+            state.orders = processedRemoteOrders;
+            state.currentPage = 1;
+            state.hasMore = newOrders.length >= pageSize;
+          } else {
+            const remoteIds = new Set(processedRemoteOrders.map(getOrderId));
+            const existingOlder = state.orders.filter((o) => {
+              const oid = getOrderId(o);
+              return oid && oid !== 'undefined' && !remoteIds.has(oid);
+            });
+            const merged = [...processedRemoteOrders, ...existingOlder];
+            merged.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0));
+            state.orders = merged;
+            state.currentPage = Math.max(state.currentPage || 1, 1);
+            state.hasMore = newOrders.length >= pageSize;
+          }
         } else {
-          // Page mode (20 per page)
-          state.orders = processedRemoteOrders;
+          // Seamless infinite scroll append
+          const existingIds = new Set(state.orders.map(getOrderId));
+          const uniqueNewOrders = processedRemoteOrders.filter(o => {
+            const oid = getOrderId(o);
+            return oid && !existingIds.has(oid);
+          });
+          state.orders = [...state.orders, ...uniqueNewOrders];
+          state.orders.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0));
           state.currentPage = page;
           state.hasMore = newOrders.length >= pageSize;
-          const currentMax = Math.max(state.maxPage || 1, page + (newOrders.length >= pageSize ? 1 : 0));
-          state.maxPage = currentMax;
         }
       })
       .addCase(fetchOrders.rejected, (state, action) => {
         state.isLoading = false;
+        state.isMoreLoading = false;
         state.error = action.payload ?? 'Failed to load orders';
       })
       .addCase(fetchOrderDetails.fulfilled, (state, action) => {

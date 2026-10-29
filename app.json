@@ -1,5 +1,9 @@
 {
   "ios": {
     "bundleIdentifier": "com.murzik7.delivery-app"
+  },
+  "android": {
+    "package": "delivery.andi.app",
+    "versionCode": 8
   }
 }

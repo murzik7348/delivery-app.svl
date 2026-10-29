@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Animated, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, RefreshControl, Alert, FlatList, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { useColorScheme } from '../../hooks/use-color-scheme';
@@ -149,6 +149,114 @@ const ProductCardItem = ({ product, theme, locale, qty, isFavProd, onSelect, onA
   );
 };
 
+const RestaurantHeader = ({
+  restaurant,
+  isClosed,
+  isFavorite,
+  onToggleFavorite,
+  categoriesToRender,
+  selectedCategoryId,
+  onSelectCategory,
+  isLoading,
+  restaurantProductsLength,
+  filteredProductsLength,
+  theme,
+  locale,
+  categoryScrollRef,
+  categoryScrollX,
+}) => (
+  <View style={{ backgroundColor: theme.background }}>
+    {/* Картинка */}
+    <View style={{ position: 'relative' }}>
+      <Image source={{ uri: restaurant.image }} style={styles.image} />
+      {isClosed && (
+        <View style={styles.closedOverlayDetail}>
+          <View style={styles.closedTextBgDetail}>
+            <Ionicons name="lock-closed" size={20} color="white" style={{ marginRight: 6 }} />
+            <Text style={styles.closedTextDetail}>Наразі ресторан зачинений</Text>
+          </View>
+        </View>
+      )}
+      <View style={styles.backButton}>
+        <BackButton color="white" />
+      </View>
+    </View>
+
+    {/* Інформація про заклад */}
+    <View style={[styles.infoContainer, { backgroundColor: theme.background }]}>
+      <View style={styles.titleRow}>
+        <Text style={[styles.title, { color: theme.text, flex: 1 }]}>{restaurant.name}</Text>
+        <TouchableOpacity onPress={onToggleFavorite}>
+          <Ionicons
+            name={isFavorite ? "star" : "star-outline"}
+            size={28}
+            color="#FFD700"
+            style={{ marginLeft: 10 }}
+          />
+        </TouchableOpacity>
+      </View>
+      <Text style={styles.metaText}>{restaurant.delivery_time}</Text>
+    </View>
+
+    <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'restaurantMenu')}</Text>
+
+    {/* Горизонтальний повзунок категорій */}
+    {categoriesToRender.length > 0 && (
+      <ScrollView
+        ref={categoryScrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoriesContainer}
+        style={styles.categoriesScroll}
+        onScroll={(e) => {
+          categoryScrollX.current = e.nativeEvent.contentOffset.x;
+        }}
+        scrollEventThrottle={16}
+      >
+        {categoriesToRender.map((cat, index) => {
+          const isSelected = selectedCategoryId === cat.category_id;
+          const uniqueKey = cat.category_id !== null && cat.category_id !== undefined ? `cat-${cat.category_id}` : `cat-all-${index}`;
+          return (
+            <TouchableOpacity
+              key={uniqueKey}
+              style={[
+                styles.categoryBtn,
+                { backgroundColor: isSelected ? theme.primary : theme.card }
+              ]}
+              onPress={() => onSelectCategory(cat.category_id)}
+            >
+              <Text style={styles.categorySticker}>{cat.sticker}</Text>
+              <Text
+                style={[
+                  styles.categoryBtnText,
+                  { color: isSelected ? 'white' : theme.text }
+                ]}
+              >
+                {cat.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    )}
+
+    {/* Стан завантаження */}
+    {isLoading && restaurantProductsLength === 0 ? (
+      <View style={{ padding: 40, alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'loading') || 'Завантаження...'}</Text>
+      </View>
+    ) : null}
+
+    {filteredProductsLength === 0 && !isLoading ? (
+      <View style={{ padding: 40, alignItems: 'center' }}>
+        <Ionicons name="fast-food-outline" size={48} color="gray" />
+        <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'noProducts') || 'Товарів не знайдено'}</Text>
+      </View>
+    ) : null}
+  </View>
+);
+
 export default function RestaurantScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -167,6 +275,14 @@ export default function RestaurantScreen() {
   const isLoading = useSelector(state => state.catalog.isLoading);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const categoryScrollRef = useRef(null);
+  const categoryScrollX = useRef(0);
+
+  const handleSelectCategory = (catId) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedCategoryId(catId);
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -270,97 +386,6 @@ export default function RestaurantScreen() {
 
   if (!restaurant) return null;
 
-  const renderHeader = () => (
-    <View style={{ backgroundColor: theme.background }}>
-      {/* Картинка */}
-      <View style={{ position: 'relative' }}>
-        <Image source={{ uri: restaurant.image }} style={styles.image} />
-        {isClosed && (
-          <View style={styles.closedOverlayDetail}>
-            <View style={styles.closedTextBgDetail}>
-              <Ionicons name="lock-closed" size={20} color="white" style={{ marginRight: 6 }} />
-              <Text style={styles.closedTextDetail}>Наразі ресторан зачинений</Text>
-            </View>
-          </View>
-        )}
-        <View style={styles.backButton}>
-          <BackButton color="white" />
-        </View>
-      </View>
-
-      {/* Інформація про заклад */}
-      <View style={[styles.infoContainer, { backgroundColor: theme.background }]}>
-        <View style={styles.titleRow}>
-          <Text style={[styles.title, { color: theme.text, flex: 1 }]}>{restaurant.name}</Text>
-          <TouchableOpacity onPress={() => dispatch(toggleFavorite(Number(id)))}>
-            <Ionicons
-              name={isFavorite ? "star" : "star-outline"}
-              size={28}
-              color="#FFD700"
-              style={{ marginLeft: 10 }}
-            />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.metaText}>{restaurant.delivery_time}</Text>
-      </View>
-
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>{t(locale, 'restaurantMenu')}</Text>
-
-      {/* Горизонтальний повзунок категорій */}
-      {restaurantCategories.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContainer}
-          style={styles.categoriesScroll}
-        >
-          {categoriesToRender.map((cat, index) => {
-            const isSelected = selectedCategoryId === cat.category_id;
-            const uniqueKey = cat.category_id !== null && cat.category_id !== undefined ? `cat-${cat.category_id}` : `cat-all-${index}`;
-            return (
-              <TouchableOpacity
-                key={uniqueKey}
-                style={[
-                  styles.categoryBtn,
-                  { backgroundColor: isSelected ? theme.primary : theme.card }
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedCategoryId(cat.category_id);
-                }}
-              >
-                <Text style={styles.categorySticker}>{cat.sticker}</Text>
-                <Text
-                  style={[
-                    styles.categoryBtnText,
-                    { color: isSelected ? 'white' : theme.text }
-                  ]}
-                >
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      )}
-
-      {/* Стан завантаження */}
-      {isLoading && restaurantProducts.length === 0 ? (
-        <View style={{ padding: 40, alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'loading') || 'Завантаження...'}</Text>
-        </View>
-      ) : null}
-
-      {filteredProducts.length === 0 && !isLoading ? (
-        <View style={{ padding: 40, alignItems: 'center' }}>
-          <Ionicons name="fast-food-outline" size={48} color="gray" />
-          <Text style={{ color: 'gray', marginTop: 10 }}>{t(locale, 'noProducts') || 'Товарів не знайдено'}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
-
   const renderItem = ({ item }) => {
     if (item.type === 'header') {
       return (
@@ -423,7 +448,24 @@ export default function RestaurantScreen() {
         data={flatData}
         renderItem={renderItem}
         keyExtractor={item => item.id.toString()}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={
+          <RestaurantHeader
+            restaurant={restaurant}
+            isClosed={isClosed}
+            isFavorite={isFavorite}
+            onToggleFavorite={() => dispatch(toggleFavorite(Number(id)))}
+            categoriesToRender={categoriesToRender}
+            selectedCategoryId={selectedCategoryId}
+            onSelectCategory={handleSelectCategory}
+            isLoading={isLoading}
+            restaurantProductsLength={restaurantProducts.length}
+            filteredProductsLength={filteredProducts.length}
+            theme={theme}
+            locale={locale}
+            categoryScrollRef={categoryScrollRef}
+            categoryScrollX={categoryScrollX}
+          />
+        }
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
         initialNumToRender={6}

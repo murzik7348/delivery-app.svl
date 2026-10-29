@@ -285,10 +285,16 @@ export default function ProfileScreen() {
           {/* Шапка профілю */}
           <View style={styles.header}>
             <View style={styles.avatarContainer}>
-              <Image
-                source={{ uri: resolveImageUrl(user?.avatarUrl || user?.avatar) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500' }}
-                style={[styles.avatar, { borderColor: theme.primary }]}
-              />
+              {user?.avatarUrl || user?.avatar ? (
+                <Image
+                  source={{ uri: resolveImageUrl(user.avatarUrl || user.avatar) }}
+                  style={[styles.avatar, { borderColor: theme.primary }]}
+                />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: theme.input || '#2c2c2e', borderColor: theme.border }]}>
+                  <Ionicons name="person" size={48} color={theme.textSecondary || '#8E8E93'} />
+                </View>
+              )}
               {/* 👇 ОСЬ ТУТ КНОПКА РЕДАГУВАННЯ (ОЛІВЕЦЬ) */}
               <TouchableOpacity style={[styles.editBtn, { backgroundColor: theme.primary }]}
                   activeOpacity={0.8} onPress={() => router.push('/profile-edit')}>
@@ -520,6 +526,7 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', marginVertical: 20 },
   avatarContainer: { position: 'relative', marginBottom: 15 },
   avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: '#000000' },
+  avatarPlaceholder: { justifyContent: 'center', alignItems: 'center' },
   editBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#000000', padding: 8, borderRadius: 20, borderWidth: 2, borderColor: 'white' },
   name: { fontSize: 24, fontWeight: 'bold', marginBottom: 5 },
   phone: { fontSize: 16 },

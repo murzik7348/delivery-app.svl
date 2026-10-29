@@ -202,8 +202,8 @@ export default function HomeScreen() {
                 style={styles.avatar} 
               />
             ) : (
-              <View style={[styles.avatarFallback, { backgroundColor: theme.card }]}>
-                <Ionicons name="person" size={20} color={theme.primary} />
+              <View style={[styles.avatarFallback, { backgroundColor: theme.input || theme.card }]}>
+                <Ionicons name="person" size={20} color={theme.textSecondary || '#8E8E93'} />
               </View>
             )}
             <View style={[styles.avatarRing, { borderColor: theme.primary }]} />

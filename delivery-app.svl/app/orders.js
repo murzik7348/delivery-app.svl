@@ -26,19 +26,15 @@ export default function OrdersTabScreen() {
   const isLoading = useSelector((state) => state.orders.isLoading);
   const currentPage = useSelector((state) => state.orders.currentPage ?? 1);
   const hasMore = useSelector((state) => state.orders.hasMore ?? true);
-  const maxPage = useSelector((state) => state.orders.maxPage ?? 1);
+  const isMoreLoading = useSelector((state) => state.orders.isMoreLoading ?? false);
   const locale = useSelector((state) => state.language?.locale ?? 'uk');
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
-  const flatListRef = useRef(null);
-
-  const totalPages = Math.max(currentPage, hasMore ? currentPage + 1 : currentPage, maxPage || 1);
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await dispatch(fetchOrders({ page: currentPage, pageSize: 20, isRefresh: true })).unwrap();
+      await dispatch(fetchOrders({ page: 1, pageSize: 20, isRefresh: true })).unwrap();
     } catch (error) {
       console.error('Refresh orders failed:', error);
     } finally {
@@ -46,25 +42,23 @@ export default function OrdersTabScreen() {
     }
   };
 
-  const handleSelectPage = (targetPage) => {
-    if (targetPage < 1 || targetPage === currentPage || isLoading) return;
-    if (Platform.OS !== 'web') {
-      Haptics.selectionAsync().catch(() => null);
+  const handleLoadMore = () => {
+    if (hasMore && !isMoreLoading && !isLoading && !refreshing) {
+      const nextPage = (currentPage || 1) + 1;
+      dispatch(fetchOrders({ page: nextPage, pageSize: 20 }));
     }
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    dispatch(fetchOrders({ page: targetPage, pageSize: 20 }));
   };
 
-  // Load orders from backend on screen mount and periodically in background
+  // Load orders on mount and periodically in background
   useEffect(() => {
-    dispatch(fetchOrders({ page: currentPage, pageSize: 20 }));
+    dispatch(fetchOrders({ page: 1, pageSize: 20 }));
     
     const interval = setInterval(() => {
-      dispatch(fetchOrders({ page: currentPage, pageSize: 20, isBackground: true }));
+      dispatch(fetchOrders({ page: 1, pageSize: 20, isBackground: true }));
     }, 20000); // 20 seconds
     
     return () => clearInterval(interval);
-  }, [dispatch, currentPage]);
+  }, [dispatch]);
 
   const renderOrderItem = ({ item }) => {
     // Prioritize numeric deliveryStatus from our normalization or backend
@@ -102,6 +96,44 @@ export default function OrdersTabScreen() {
             {formatPrice(item.totalPrice || item.total)} ₴
           </Text>
         </View>
+
+        {/* Products and Modifiers List */}
+        {Array.isArray(item.items) && item.items.length > 0 && (
+          <View style={{ marginTop: 10, marginBottom: 4, gap: 6 }}>
+            {item.items.map((prod, pIdx) => {
+              const prodName = prod.productName || prod.name || 'Товар';
+              const prodQty = prod.quantity || 1;
+              const prodMods = Array.isArray(prod.modifiers) ? prod.modifiers : [];
+              return (
+                <View key={prod.id || pIdx} style={{ flexDirection: 'column' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: fs(13), fontWeight: '600', color: theme.text, flex: 1 }} numberOfLines={1}>
+                      <Text style={{ fontWeight: '800', color: theme.primary }}>{prodQty}x </Text>
+                      {prodName}
+                    </Text>
+                    <Text style={{ fontSize: fs(13), fontWeight: '700', color: theme.text, marginLeft: 8 }}>
+                      {formatPrice(prod.totalLineAmount ?? ((prod.price ?? 0) * prodQty))} ₴
+                    </Text>
+                  </View>
+                  {prodMods.length > 0 && (
+                    <View style={{ marginLeft: 16, marginTop: 2 }}>
+                      {prodMods.map((m, mIdx) => {
+                        const mName = m.modifierName || m.name || '';
+                        const mPrice = parseFloat(m.price) || 0;
+                        const mGroup = m.groupName ? `${m.groupName}: ` : '';
+                        return (
+                          <Text key={m.id || mIdx} style={{ fontSize: fs(11), color: theme.textSecondary ?? '#8E8E93' }}>
+                            + {mGroup}{mName}{mPrice > 0 ? ` (+${formatPrice(mPrice)} ₴)` : ''}
+                          </Text>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
 
         <View style={styles.divider} />
 
@@ -144,7 +176,6 @@ export default function OrdersTabScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
-        ref={flatListRef}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         data={orders}
@@ -175,81 +206,12 @@ export default function OrdersTabScreen() {
             </TouchableOpacity>
           </View>
         }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.7}
         ListFooterComponent={
-          orders.length > 0 ? (
-            <View style={styles.paginationContainer}>
-              {isLoading && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <ActivityIndicator size="small" color={theme.primary} />
-                  <Text style={{ fontSize: fs(12), color: theme.textSecondary, fontWeight: '600' }}>
-                    {locale === 'en' ? 'Loading page...' : 'Завантаження сторінки...'}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.paginationRow}>
-                {/* Previous Button */}
-                <TouchableOpacity
-                  style={[
-                    styles.pageNavBtn,
-                    { backgroundColor: theme.card, borderColor: theme.border },
-                    currentPage === 1 && { opacity: 0.3 }
-                  ]}
-                  disabled={currentPage === 1 || isLoading}
-                  onPress={() => handleSelectPage(currentPage - 1)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="chevron-back" size={18} color={theme.text} />
-                </TouchableOpacity>
-
-                {/* Numbered Page Pills */}
-                {pages.map((p) => {
-                  const isActive = p === currentPage;
-                  return (
-                    <TouchableOpacity
-                      key={p}
-                      style={[
-                        styles.pagePill,
-                        { borderColor: isActive ? theme.primary : theme.border },
-                        isActive
-                          ? { backgroundColor: theme.primary }
-                          : { backgroundColor: theme.card }
-                      ]}
-                      disabled={isActive || isLoading}
-                      onPress={() => handleSelectPage(p)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.pagePillText,
-                          { color: isActive ? 'white' : theme.text }
-                        ]}
-                      >
-                        {p}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-
-                {/* Next Button */}
-                <TouchableOpacity
-                  style={[
-                    styles.pageNavBtn,
-                    { backgroundColor: theme.card, borderColor: theme.border },
-                    !hasMore && { opacity: 0.3 }
-                  ]}
-                  disabled={!hasMore || isLoading}
-                  onPress={() => handleSelectPage(currentPage + 1)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="chevron-forward" size={18} color={theme.text} />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={[styles.pageInfoText, { color: theme.textSecondary || 'gray' }]}>
-                {locale === 'en'
-                  ? `Page ${currentPage} of ${totalPages} (20 per page)`
-                  : `Сторінка ${currentPage} з ${totalPages} (по 20 на сторінці)`}
-              </Text>
+          isMoreLoading ? (
+            <View style={{ paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator size="small" color={theme.primary} />
             </View>
           ) : null
         }
@@ -304,7 +266,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   headerTitle: { fontSize: fs(20), fontWeight: 'bold' },
-  clearBtn: { padding: 4 },
   card: {
     borderRadius: 24, marginBottom: 16,
     borderWidth: StyleSheet.hairlineWidth,
@@ -334,50 +295,4 @@ const styles = StyleSheet.create({
   emptyText: { marginTop: 16, fontSize: 16, marginBottom: 24 },
   shopBtn: { backgroundColor: '#000000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
   shopBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-
-  paginationContainer: {
-    paddingVertical: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  paginationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  pageNavBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
-      android: { elevation: 1 }
-    })
-  },
-  pagePill: {
-    minWidth: 42,
-    height: 42,
-    paddingHorizontal: 12,
-    borderRadius: 21,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
-      android: { elevation: 1 }
-    })
-  },
-  pagePillText: {
-    fontSize: fs(14),
-    fontWeight: '800',
-  },
-  pageInfoText: {
-    fontSize: fs(12),
-    fontWeight: '600',
-  },
 });

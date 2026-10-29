@@ -104,9 +104,7 @@ export default function PaymentRetryCard({ order, locale, theme, currentStep }) 
       if (freshOrder && isPaidStatus(freshStatus)) {
         Alert.alert(
           locale === 'en' ? 'Payment Verified' : 'Оплату підтверджено',
-          freshStatus === 'hold_wait' || freshStatus === 'hold'
-            ? (locale === 'en' ? 'Funds reserved on your card (Hold).' : 'Кошти успішно зарезервовано на вашій картці (Холд).')
-            : (locale === 'en' ? 'Your payment has been received.' : 'Вашу оплату отримано.')
+          locale === 'en' ? 'Your payment has been received.' : 'Вашу оплату успішно здійснено.'
         );
       } else {
         Alert.alert(
@@ -127,42 +125,12 @@ export default function PaymentRetryCard({ order, locale, theme, currentStep }) 
     }
   }, [dispatch, order?.deliveryId, order?.id, locale]);
 
-  // If order is completed/delivered or already fully settled
-  if (currentStep >= 5 && (rawStatus === 'paid' || rawStatus === 'success' || rawStatus === 'completed')) {
+  // If order payment is already secured/paid/hold or delivered, don't show any banner
+  if (isPaidStatus(rawStatus) || currentStep >= 5) {
     return null;
   }
 
-  // 1. HOLD / RESERVED: Money is already secured in gateway
-  if (rawStatus === 'hold_wait' || rawStatus === 'hold') {
-    return (
-      <View style={[styles.paymentCard, { backgroundColor: '#0ea5e912', borderColor: '#0ea5e935' }]}>
-        <View style={styles.paymentCardHeader}>
-          <View style={[styles.iconCircle, { backgroundColor: '#0ea5e920' }]}>
-            <Ionicons name="shield-checkmark" size={22} color="#0ea5e9" />
-          </View>
-          <View style={{ marginLeft: 12, flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ color: '#0ea5e9', fontWeight: '800', fontSize: 14 }}>
-                {locale === 'en' ? 'Funds Reserved (Hold)' : 'Оплата зарезервована (Холд)'}
-              </Text>
-            </View>
-            <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 3, lineHeight: 17 }}>
-              {locale === 'en'
-                ? 'Funds are held securely on your card and will be captured upon successful delivery.'
-                : 'Кошти заблоковано на вашій картці та будуть остаточно списані лише після вручення замовлення.'}
-            </Text>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  // 2. PAID / SUCCESS
-  if (rawStatus === 'paid' || rawStatus === 'success' || rawStatus === 'completed') {
-    return null;
-  }
-
-  // 3. PENDING or UNPAID: Urgent warning banner to prompt the user
+  // PENDING or UNPAID: Urgent warning banner to prompt the user
   const isFailed = rawStatus === 'failed' || rawStatus === 'failure';
 
   return (

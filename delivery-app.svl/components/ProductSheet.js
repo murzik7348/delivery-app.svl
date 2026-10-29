@@ -78,7 +78,8 @@ export default function ProductSheet({ product, onClose }) {
                         }
                     });
                     // Fallback: if it's required single-choice and nothing is default, select the first one
-                    if (!hasDefault && group.selectionType === 1 && group.isRequired && group.modifiers.length > 0) {
+                    const selType = group.selectionType !== undefined ? group.selectionType : (group.selectionTypeModifier !== undefined ? group.selectionTypeModifier : 1);
+                    if (!hasDefault && Number(selType) === 1 && group.isRequired && group.modifiers.length > 0) {
                         initial[group.id][group.modifiers[0].id] = group.modifiers[0];
                     }
                 }
@@ -406,7 +407,8 @@ export default function ProductSheet({ product, onClose }) {
 
                         {/* Options / Modifier Groups */}
                         {product.modifierGroups?.map((group) => {
-                            const isSingleChoice = group.selectionType === 1;
+                            const groupSelType = group.selectionType !== undefined ? group.selectionType : (group.selectionTypeModifier !== undefined ? group.selectionTypeModifier : 1);
+                            const isSingleChoice = Number(groupSelType) === 1;
                             return (
                                 <View key={group.id} style={styles.groupContainer}>
                                     <View style={styles.groupHeader}>
