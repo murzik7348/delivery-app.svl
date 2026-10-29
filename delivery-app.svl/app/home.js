@@ -267,7 +267,7 @@ export default function HomeScreen() {
                 onPress={() => setSelectedPromo(promo)}
               >
                 <Image 
-                  source={typeof promo.image === 'number' ? promo.image : { uri: promo.image }} 
+                  source={typeof promo.image === 'string' ? { uri: promo.image } : promo.image}
                   style={styles.promoImage} 
                   contentFit="cover"
                   priority="high"

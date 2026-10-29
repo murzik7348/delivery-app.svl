@@ -6,6 +6,14 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const targetPlatform = platform || context.platform;
+
+  if (moduleName === 'react-native' && targetPlatform === 'web') {
+    return resolve(
+      { ...context, resolveRequest: undefined },
+      'react-native-web',
+      platform
+    );
+  }
   
   if (moduleName === 'react-native-maps') {
     if (targetPlatform === 'web') {

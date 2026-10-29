@@ -193,7 +193,7 @@ export default function PromoSheet({ promo, onClose }) {
                     {/* Hero */}
                     <View style={s.heroWrap}>
                         <Image 
-                            source={typeof promo.image === 'number' ? promo.image : { uri: promo.image }} 
+                            source={typeof promo.image === 'string' ? { uri: promo.image } : promo.image}
                             style={s.hero} 
                             contentFit="cover"
                             priority="high"
